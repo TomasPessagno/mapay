@@ -121,6 +121,9 @@ class FakeCollection:
             if isinstance(expected, dict) and "$exists" in expected:
                 if (actual is not MISSING) != bool(expected["$exists"]):
                     return False
+            elif isinstance(expected, dict) and "$in" in expected:
+                if actual is MISSING or actual not in expected["$in"]:
+                    return False
             elif actual != expected:
                 return False
         return True
@@ -154,6 +157,12 @@ class FakeCollection:
             self.docs.append(new)
             return SimpleNamespace(matched_count=0, modified_count=0, upserted_id=new.get("_id"))
         return SimpleNamespace(matched_count=0, modified_count=0, upserted_id=None)
+
+    async def delete_many(self, query):
+        kept = [doc for doc in self.docs if not self._matches(doc, query)]
+        deleted = len(self.docs) - len(kept)
+        self.docs = kept
+        return SimpleNamespace(deleted_count=deleted)
 
 
 class FakeDb(SimpleNamespace):
@@ -202,6 +211,23 @@ class FakeGenaiClient:
         return False
 
 
+class RaisingModels:
+    def __init__(self):
+        self.calls = 0
+
+    async def generate_content(self, **kwargs):
+        self.calls += 1
+        raise errors.APIError(429, {"error": {"message": "per-minute quota"}})
+
+
+class RaisingGenaiClient(FakeGenaiClient):
+    """Gemini is configured but every call fails, e.g. AI Studio's per-minute limit."""
+
+    def __init__(self):
+        super().__init__({})
+        self.models = RaisingModels()
+
+
 def offline_handler(laya="ok", calls=None):
     calls = [] if calls is None else calls
     gdelt = json.loads((FIXTURES / "news_gdelt.json").read_text(encoding="utf-8"))
@@ -232,8 +258,11 @@ def offline_handler(laya="ok", calls=None):
     return handler
 
 
-async def run_pipeline(db, *, laya="ok", laya_url="http://laya.test", gemini=None):
-    gemini = FakeGenaiClient() if gemini is None else gemini
+DEFAULT_GEMINI = object()
+
+
+async def run_pipeline(db, *, laya="ok", laya_url="http://laya.test", gemini=DEFAULT_GEMINI):
+    gemini = FakeGenaiClient() if gemini is DEFAULT_GEMINI else gemini
     calls = []
     transport = httpx.MockTransport(offline_handler(laya=laya, calls=calls))
     async with httpx.AsyncClient(transport=transport) as client:
@@ -423,13 +452,15 @@ class ExtractionTests(unittest.IsolatedAsyncioTestCase):
                                     "severity": 3, "summary": "Crash.", "confidence": 0.9}
                    for article in articles}
         client = FakeGenaiClient(results)
-        extracted = await news_extraction.extract(articles, client=client)
+        outcome = await news_extraction.extract(articles, client=client)
         self.assertEqual(len(client.models.calls), 2)
-        self.assertEqual(len(extracted), news_extraction.BATCH_SIZE + 1)
-        self.assertEqual(extracted[0]["category"], "incident")
-        self.assertEqual(extracted[0]["severity"], 3)
+        self.assertEqual(len(outcome.items), news_extraction.BATCH_SIZE + 1)
+        self.assertEqual(outcome.answered, {article["_id"] for article in articles})
+        self.assertEqual(outcome.failed, set())
+        self.assertEqual(outcome.items[0]["category"], "incident")
+        self.assertEqual(outcome.items[0]["severity"], 3)
 
-    async def test_irrelevant_and_unknown_categories_are_dropped(self):
+    async def test_irrelevant_and_unknown_categories_are_dropped_but_answered(self):
         articles = [self.article(0), self.article(1)]
         results = {
             "id0": {"id": "id0", "relevant": False, "category": "event", "location_text": "",
@@ -437,25 +468,29 @@ class ExtractionTests(unittest.IsolatedAsyncioTestCase):
             "id1": {"id": "id1", "relevant": True, "category": "aliens", "location_text": "",
                     "starts_at": "", "ends_at": "", "severity": 1, "summary": "x", "confidence": 0.5},
         }
-        extracted = await news_extraction.extract(articles, client=FakeGenaiClient(results))
-        self.assertEqual(extracted, [])
+        outcome = await news_extraction.extract(articles, client=FakeGenaiClient(results))
+        self.assertEqual(outcome.items, [])
+        self.assertEqual(outcome.answered, {"id0", "id1"})
+        self.assertEqual(outcome.failed, set())
 
-    async def test_api_error_is_logged_and_skips_the_batch(self):
-        class FailingModels:
-            async def generate_content(self, **kwargs):
-                raise errors.APIError(429, {"error": {"message": "quota"}})
+    async def test_missing_answer_for_one_id_marks_only_that_article_failed(self):
+        articles = [self.article(0), self.article(1)]
+        results = {"id0": {"id": "id0", "relevant": True, "category": "incident",
+                           "location_text": "I-95", "starts_at": "", "ends_at": "",
+                           "severity": 3, "summary": "Crash.", "confidence": 0.9}}
+        outcome = await news_extraction.extract(articles, client=FakeGenaiClient(results))
+        self.assertEqual(outcome.answered, {"id0"})
+        self.assertEqual(outcome.failed, {"id1"})
 
-        class FailingClient(FakeGenaiClient):
-            def __init__(self):
-                super().__init__({})
-                self.models = FailingModels()
-
+    async def test_api_error_is_logged_and_reports_the_batch_as_failed(self):
         with patch.object(news_extraction, "log_api_error") as log:
-            extracted = await news_extraction.extract([self.article(0)], client=FailingClient())
-        self.assertEqual(extracted, [])
+            outcome = await news_extraction.extract([self.article(0)], client=RaisingGenaiClient())
+        self.assertEqual(outcome.items, [])
+        self.assertEqual(outcome.answered, set())
+        self.assertEqual(outcome.failed, {"id0"})
         log.assert_called_once()
 
-    async def test_invalid_json_is_dropped(self):
+    async def test_invalid_json_is_treated_as_failed(self):
         class BadModels:
             async def generate_content(self, **kwargs):
                 return SimpleNamespace(text="not json")
@@ -465,7 +500,16 @@ class ExtractionTests(unittest.IsolatedAsyncioTestCase):
                 super().__init__({})
                 self.models = BadModels()
 
-        self.assertEqual(await news_extraction.extract([self.article(0)], client=BadClient()), [])
+        outcome = await news_extraction.extract([self.article(0)], client=BadClient())
+        self.assertEqual(outcome.items, [])
+        self.assertEqual(outcome.failed, {"id0"})
+
+    async def test_unconfigured_gemini_marks_everything_failed(self):
+        articles = [self.article(0), self.article(1)]
+        with patch.object(news_extraction, "gemini_configured", return_value=False):
+            outcome = await news_extraction.extract(articles, client=None)
+        self.assertEqual(outcome.items, [])
+        self.assertEqual(outcome.failed, {"id0", "id1"})
 
 
 class GeocodingTests(unittest.IsolatedAsyncioTestCase):
@@ -551,7 +595,8 @@ class RunTests(unittest.IsolatedAsyncioTestCase):
         summary, gemini, calls = await run_pipeline(db)
 
         self.assertEqual(summary, {"fetched": 8, "new": 8, "triaged": 6, "dropped": 2,
-                                   "extracted": 6, "evidence": 3, "incidents": 1, "skipped": 2})
+                                   "extracted": 6, "evidence": 3, "incidents": 1, "skipped": 2,
+                                   "released": 0})
         self.assertEqual(sum(1 for url in calls if "/v1/systemone" in url), 8)
         self.assertEqual(sum(1 for url in calls if "/health" in url), 1)
 
@@ -590,6 +635,9 @@ class RunTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(summary["evidence"], 3)
         self.assertEqual(summary["incidents"], 1)
         self.assertEqual(summary["skipped"], 2)
+        # The GDELT-only water-main article has no extraction in the stub, so Gemini
+        # "never answered" it and its claim goes back for the next run.
+        self.assertEqual(summary["released"], 1)
         self.assertFalse(any("laya.test" in url for url in calls))
         self.assertIn(news.item_id(BAKERY_URL), " ".join(gemini.models.calls))
 
@@ -600,6 +648,7 @@ class RunTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(summary["triaged"], 8)
         self.assertEqual(summary["dropped"], 0)
         self.assertEqual(summary["extracted"], 6)
+        self.assertEqual(summary["released"], 1)
         self.assertEqual(sum(1 for url in calls if "/health" in url), 1)
         self.assertEqual(sum(1 for url in calls if "/v1/systemone" in url), 0)
         self.assertIn(news.item_id(BAKERY_URL), " ".join(gemini.models.calls))
@@ -612,8 +661,56 @@ class RunTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(summary["fetched"], 8)
         self.assertEqual(summary["new"], 0)
         self.assertEqual(summary["extracted"], 0)
+        self.assertEqual(summary["released"], 0)
         self.assertEqual(gemini.models.calls, [])
         self.assertEqual(sum(1 for url in calls if "/v1/systemone" in url), 0)
+
+    def claims(self, db, url):
+        return [doc for doc in db.intel_cache.docs if doc["_id"] == f"news_seen:{news.item_id(url)}"]
+
+    async def test_successful_run_keeps_every_claim(self):
+        db = seeded_db()
+        summary, _, _ = await run_pipeline(db)
+        self.assertEqual(summary["released"], 0)
+        claims = [doc for doc in db.intel_cache.docs if doc["_id"].startswith("news_seen:")]
+        self.assertEqual(len(claims), 8)
+        self.assertTrue(self.claims(db, CRASH_URL))
+
+    async def test_failed_gemini_batch_releases_claims_and_the_next_run_retries(self):
+        db = seeded_db()
+        with patch.object(news_extraction, "log_api_error"):
+            summary, gemini, _ = await run_pipeline(db, gemini=RaisingGenaiClient())
+
+        self.assertEqual(summary["triaged"], 6)
+        self.assertEqual(summary["extracted"], 0)
+        self.assertEqual(summary["released"], 6)
+        self.assertEqual(gemini.models.calls, 1)
+        # Laya-dropped articles reached their decision and stay claimed; the six that
+        # Gemini never answered are handed back for the next run.
+        self.assertEqual(self.claims(db, BAKERY_URL)[0]["type"], "news_seen")
+        self.assertEqual(self.claims(db, WATER_MAIN_URL)[0]["type"], "news_seen")
+        self.assertEqual(self.claims(db, CRASH_URL), [])
+
+        retry_gemini = FakeGenaiClient(EXTRACTIONS)
+        summary, _, _ = await run_pipeline(db, gemini=retry_gemini)
+        self.assertEqual(summary["fetched"], 8)
+        self.assertEqual(summary["new"], 6)
+        self.assertEqual(summary["extracted"], 6)
+        self.assertEqual(summary["evidence"], 3)
+        self.assertEqual(summary["incidents"], 1)
+        self.assertEqual(summary["released"], 0)
+        self.assertIn(news.item_id(CRASH_URL), " ".join(retry_gemini.models.calls))
+
+    async def test_unconfigured_gemini_releases_all_claims(self):
+        db = seeded_db()
+        with patch.object(news_extraction, "gemini_configured", return_value=False):
+            summary, _, _ = await run_pipeline(db, gemini=None)
+
+        self.assertEqual(summary["triaged"], 6)
+        self.assertEqual(summary["extracted"], 0)
+        self.assertEqual(summary["released"], 6)
+        self.assertEqual(self.claims(db, CRASH_URL), [])
+        self.assertEqual(self.claims(db, BAKERY_URL)[0]["type"], "news_seen")
 
 
 if __name__ == "__main__":

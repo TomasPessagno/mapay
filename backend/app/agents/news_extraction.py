@@ -6,6 +6,7 @@ atomically before triage. Gemini interprets only -- it never picks a route.
 """
 import json
 import logging
+from typing import NamedTuple
 
 from google.genai import errors
 
@@ -13,6 +14,21 @@ from app.agents.genai_client import gemini_configured, get_genai_client, log_api
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
+
+
+class ExtractionOutcome(NamedTuple):
+    """Which articles Gemini answered for, and which it did not.
+
+    ``items`` holds the relevant extracted articles; ``answered`` holds every
+    submitted id present in Gemini's response (relevant or not); ``failed`` holds
+    the rest (API error, missing from the response, invalid JSON, unconfigured).
+    ``news.py`` releases the claims of ``failed`` so the next run retries them.
+    """
+
+    items: list[dict]
+    answered: set[str]
+    failed: set[str]
+
 
 BATCH_SIZE = 8
 FALLBACK_MODEL = "gemini-3.8-flash"
@@ -94,10 +110,11 @@ def _merge(batch: list[dict], extracted: dict[str, dict]) -> list[dict]:
     return merged
 
 
-async def _extract_batch(batch: list[dict], *, client=None) -> list[dict]:
+async def _extract_batch(batch: list[dict], *, client=None) -> ExtractionOutcome:
     payload = [{"id": article["_id"], "source": article.get("source"),
                 "title": article["title"], "summary": article.get("summary", "")}
                for article in batch]
+    submitted = {article["_id"] for article in batch}
     genai_client = client or get_genai_client()
     try:
         from google.genai import types
@@ -112,22 +129,36 @@ async def _extract_batch(batch: list[dict], *, client=None) -> list[dict]:
             )
     except errors.APIError as exc:
         log_api_error("News extraction", exc)
-        return []
+        return ExtractionOutcome([], set(), submitted)
     except Exception:
         logger.exception("News extraction failed for a batch of %d articles", len(batch))
-        return []
-    return _merge(batch, _parse(response.text))
+        return ExtractionOutcome([], set(), submitted)
+    parsed = _parse(response.text)
+    answered = submitted & set(parsed)
+    return ExtractionOutcome(_merge(batch, parsed), answered, submitted - answered)
 
 
-async def extract(articles: list[dict], *, client=None) -> list[dict]:
-    """Relevant extracted articles; irrelevant or unparseable ones are dropped."""
+def _gemini_available() -> bool:
+    try:
+        return gemini_configured()
+    except Exception:  # noqa: BLE001 - offline callers need no app settings
+        return False
+
+
+async def extract(articles: list[dict], *, client=None) -> ExtractionOutcome:
+    """Gemini's answers per submitted article; failed ids were never answered."""
     items = [article for article in articles if article.get("title") and article.get("_id")]
     if not items:
-        return []
-    if client is None and not gemini_configured():
+        return ExtractionOutcome([], set(), set())
+    if client is None and not _gemini_available():
         logger.warning("Gemini is not configured: skipping extraction for %d articles", len(items))
-        return []
-    extracted = []
+        return ExtractionOutcome([], set(), {article["_id"] for article in items})
+    extracted: list[dict] = []
+    answered: set[str] = set()
+    failed: set[str] = set()
     for start in range(0, len(items), BATCH_SIZE):
-        extracted.extend(await _extract_batch(items[start:start + BATCH_SIZE], client=client))
-    return extracted
+        outcome = await _extract_batch(items[start:start + BATCH_SIZE], client=client)
+        extracted.extend(outcome.items)
+        answered |= outcome.answered
+        failed |= outcome.failed
+    return ExtractionOutcome(extracted, answered, failed)

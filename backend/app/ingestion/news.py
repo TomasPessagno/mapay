@@ -4,7 +4,8 @@ Pipeline per run (Cloud Scheduler calls it every 15 min via A15):
 
 1. Fetch the five local RSS feeds and five GDELT DOC queries, deduped by URL hash.
 2. Claim each URL atomically in ``intel_cache`` (``news_seen:<hash>``, 3-day TTL) so
-   an article is never extracted twice.
+   an article is never extracted twice. Claims for articles Gemini never answered
+   (batch failed, not configured) are released so the next run retries them.
 3. Laya drops articles that are not about streets when it is reachable; without a
    reachable Laya every article goes to Gemini (see ``news_triage``).
 4. Gemini extracts ``{relevant, category, location_text, starts_at, ends_at,
@@ -213,6 +214,16 @@ async def claim_new(db, items: list[dict], now: datetime) -> list[dict]:
     return fresh
 
 
+async def release_claims(db, item_ids: set[str] | list[str]) -> int:
+    """Give back claims Gemini never answered, so the next 15-minute run retries them."""
+    ids = sorted(set(item_ids))
+    if not ids:
+        return 0
+    result = await db.intel_cache.delete_many(
+        {"_id": {"$in": [f"news_seen:{item_id}" for item_id in ids]}})
+    return result.deleted_count
+
+
 def _google_key() -> str:
     try:
         return get_settings().google_maps_api_key or ""
@@ -348,10 +359,15 @@ async def run(db, now: datetime | None = None, *, client: httpx.AsyncClient | No
         fresh = await claim_new(db, fetched, moment)
         kept = await news_triage.triage(fresh, client=http, base_url=laya_url,
                                         api_key=laya_api_key)
-        extracted = await news_extraction.extract(kept, client=gemini_client)
+        outcome = await news_extraction.extract(kept, client=gemini_client)
+        released = await release_claims(db, outcome.failed)
+        if released:
+            logger.warning("Gemini did not answer %d article(s); claims released for the next run",
+                           released)
+        extracted = outcome.items
         summary = {"fetched": len(fetched), "new": len(fresh), "triaged": len(kept),
                    "dropped": len(fresh) - len(kept), "extracted": len(extracted),
-                   "evidence": 0, "incidents": 0, "skipped": 0}
+                   "evidence": 0, "incidents": 0, "skipped": 0, "released": released}
         for item in extracted:
             geometry = await geocode_location(item.get("location_text"), client=http,
                                               api_key=geocoding_api_key)
