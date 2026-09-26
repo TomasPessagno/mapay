@@ -215,7 +215,9 @@ Tomas can hand the backend queue to a local Claude Code session: "you're the orc
      - #10, once Tomas confirms the `X-Device-Id` header (T0);
      - #15, after #4 and #7 have merged.
 3. **Launch** each one in the background from `mapay`: `scripts/opencode-task.sh <N> > ../opencode-<N>.log 2>&1`.
-4. **When a run ends,** find its PR with `gh pr list --head <branch>`. If there's none, read the log and the worktree's `git status`, then send a follow-up from the worktree: `opencode run --continue --model opencode-go/deepseek-v4.1-flash "<what's missing>"`.
+4. **When a run ends,** find its PR with `gh pr list --head <branch>`. If there's none, read the log (look for `Error:`, since `opencode run` exits 0 anyway) and the worktree's `git status`, then send a follow-up from the worktree: `opencode run --session <id> --model opencode-go/deepseek-v4.1-flash --variant high "<what's missing>"`.
+   - Take the id from `opencode session list`, matched by title. All worktrees share one session list, so `--continue` can resume another task's session.
+   - Headless runs automatically refuse file access outside the worktree, and the agent stops there (usually it saved downloads to `/tmp`). Tell it to use `.scratch/` in the worktree instead; that folder is git-ignored through `.git/info/exclude`.
 5. **Review each PR** with "Reviewing and merging" above:
    - `gh pr checks <N> --watch`, then `gh pr diff <N>`.
    - Also check that no keys were committed and that tests don't touch the network.
