@@ -547,7 +547,7 @@ Backup: a screen recording of the iPhone (and the Simulator) in case the live de
 
 ## Roadmap (~20-24 hrs)
 
-**Two people?** Work from [`TASKS.md`](TASKS.md): person A = backend + data (tracks A and C below), person B = the iPhone app (track B), with task-sized branches, dependencies and checkpoints.
+**Two people?** Work from [`TASKS.md`](TASKS.md): Tomas's and Jean's queues split the tasks evenly (Tomas: the iPhone app + five backend tasks; Jean: the rest of the backend + data), and every issue is assigned to its owner.
 
 Tracks: **A** = backend core (routing, routines, heads-up briefings, Customize). **B** = iPhone app (Ionic UI in the browser, then Capacitor iOS + the Swift widget on the Mac). **C** = data + AI (ingestion, news → Gemini, weather, satellite) and pitch material. Anything native needs the Mac, so B owns it. Hours count from when we start building; if we're already in, keep the order and re-slot the rest. P1/P2 items are marked; everything else is P0.
 
@@ -565,4 +565,4 @@ Tracks: **A** = backend core (routing, routines, heads-up briefings, Customize).
 | 17-18 | Backup demo video (iPhone screen recording), Devpost draft | | |
 | 18-20 | Rehearse 90s pitch, buffer |  |  |
 
-**Only two devs:** [`TASKS.md`](TASKS.md) has the task-by-task split. In short: drop every P1 item and run C's P0 rows on A, in this order: fast layers (once `/route` works), news, GFM flood (once `/routines/upcoming` works), and construction through the permit-site fallback instead of automatic Sentinel-2 detection. B keeps the iPhone column, and pitch material moves to hours 16-18.
+**Only two devs:** use the queues in [`TASKS.md`](TASKS.md). If time runs short, drop the P1 items first and use the cut list there; pitch material moves to hours 16-18.

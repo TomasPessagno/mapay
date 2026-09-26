@@ -1,6 +1,6 @@
 # Mapay task board
 
-How two people build Mapay in parallel. Claim a task by assigning yourself on its issue, make a branch with the task's name, open a PR into `main` when it works. This file is the menu; **status lives in the issues and PRs** (assignee = taken, open PR = in progress, closed = done), so nobody has to edit this file to claim a task.
+How two people build Mapay in parallel. The work is split evenly into **Tomas's queue** and **Jean's queue** (below), and every issue is assigned to its owner on GitHub. Take the next task in your queue, make a branch with the task's name, open a PR into `main` when it works. **Status lives in the issues and PRs** (open PR = in progress, closed = done), so nobody has to edit this file to track progress.
 
 **Every task is a GitHub issue** ([task board #45](https://github.com/TomasPessagno/mapay/issues/45)); see [Working with the issues](#working-with-the-issues) below.
 
@@ -24,7 +24,7 @@ Every task in this file is a GitHub issue, written so either of you or a coding 
 | `P0` / `P1` | Must have / should have |
 
 **Running agents (or yourselves) on them**
-1. Pick an open issue whose **Blocked by** issues are all closed. At the start that's [#3](https://github.com/TomasPessagno/mapay/issues/3)–[#9](https://github.com/TomasPessagno/mapay/issues/9), then [#10](https://github.com/TomasPessagno/mapay/issues/10)–[#12](https://github.com/TomasPessagno/mapay/issues/12) right after the kickoff [#2](https://github.com/TomasPessagno/mapay/issues/2).
+1. Take the next open issue in your queue (it's assigned to you) whose **Blocked by** issues are all closed and that has no open PR yet.
 2. Give the agent the issue link. It reads [`AGENTS.md`](AGENTS.md#working-on-a-task-people-and-coding-agents) (Codex, Jules and Copilot do this on their own; Claude Code through `CLAUDE.md`), works on the branch named in the issue, and opens a PR that says `Closes #<issue>`.
 3. One agent per issue, so two agents never share a branch.
 4. Review the PR and merge when CI is green. The issue closes, and whatever it was blocking can start.
@@ -34,15 +34,81 @@ Every task in this file is a GitHub issue, written so either of you or a coding 
 
 ## Who does what
 
-The tracks are areas of the code, not fixed people. **Tomas** leads the iPhone app (Mac and iPhone access) and also takes backend tasks; **Jean** leads the backend + data. Backend issues are split between you as you go.
+The work is split evenly by rough effort: about **31 h of must-have (P0) work each**, mostly agent time, plus 6 h of should-haves (P1) each. Every issue is assigned to its owner on GitHub. **Tomas** has all the iPhone work (Mac and iPhone access) plus five small backend tasks; **Jean** has the rest of the backend + data. The code areas stay the same: `backend/**` and `frontend/**`.
+
+To **swap a task**, reassign its issue on GitHub first, then update the queues here in a small PR. If you're ahead, take the next unblocked issue from the other queue the same way.
+
+### Tomas's queue (assigned to `TomasPessagno`)
+
+| # | Issue | Task | Est. | Notes |
+| --- | --- | --- | --- | --- |
+| 1 | [#12](https://github.com/TomasPessagno/mapay/issues/12) | B1 · App shell (Ionic, tabs, theme, API client + mocks) | 2 h | browser |
+| 2 | [#10](https://github.com/TomasPessagno/mapay/issues/10) | A1 · Device id + CORS | 1 h | backend · agent |
+| 3 | [#4](https://github.com/TomasPessagno/mapay/issues/4) | A5 · Neighbourhood polygons + `/neighborhoods` | 1.5 h | backend · agent · Jean's #17 waits on it |
+| 4 | [#5](https://github.com/TomasPessagno/mapay/issues/5) | A11 · City construction + closures | 1.5 h | backend · agent · Jean's #16 waits on it |
+| 5 | [#7](https://github.com/TomasPessagno/mapay/issues/7) | A13 · NWS weather | 1 h | backend · agent |
+| 6 | [#8](https://github.com/TomasPessagno/mapay/issues/8) | A14 · OSM no-sidewalk layer | 1 h | backend · agent |
+| 7 | [#19](https://github.com/TomasPessagno/mapay/issues/19) | B2 · Capacitor iOS + widget target + AltStore proof | 2 h | Mac + iPhone |
+| 8 | [#20](https://github.com/TomasPessagno/mapay/issues/20) | B3 · Map + legend | 2.5 h | browser |
+| 9 | [#27](https://github.com/TomasPessagno/mapay/issues/27) | B4 · Sheet, search, route options, Open in Google Maps | 3 h | browser → Simulator |
+| — | [#38](https://github.com/TomasPessagno/mapay/issues/38) | **T1 · Integration: real map + routing** | | together |
+| 10 | [#21](https://github.com/TomasPessagno/mapay/issues/21) | B5 · Routines tab + editor | 3 h | browser |
+| 11 | [#22](https://github.com/TomasPessagno/mapay/issues/22) | B6 · Preferences tab | 1.5 h | browser |
+| 12 | [#34](https://github.com/TomasPessagno/mapay/issues/34) | B7 · Heads-up card | 1.5 h | browser |
+| 13 | [#28](https://github.com/TomasPessagno/mapay/issues/28) | B8 · Local notifications + deep links | 2 h | Simulator |
+| 14 | [#29](https://github.com/TomasPessagno/mapay/issues/29) | B9 · Home-screen widget (SwiftUI) | 3 h | Mac |
+| — | [#42](https://github.com/TomasPessagno/mapay/issues/42) | **T2 · Integration: heads-up end to end** | | together |
+| 15 | [#35](https://github.com/TomasPessagno/mapay/issues/35) | B10 · Customize sheet | 1.5 h | browser |
+| — | [#43](https://github.com/TomasPessagno/mapay/issues/43) | **T3 · Integration: Customize end to end** | | together |
+| 16 | [#30](https://github.com/TomasPessagno/mapay/issues/30) | B11 · Hazard detail sheet + report | 1.5 h | browser |
+| 17 | [#36](https://github.com/TomasPessagno/mapay/issues/36) | B12 · Demo button | 1 h | Simulator + iPhone |
+| 18 | [#31](https://github.com/TomasPessagno/mapay/issues/31) | B13 · Vercel web preview | 0.5 h | Vercel account |
+
+**P1:** [#37](https://github.com/TomasPessagno/mapay/issues/37) B14 Live Activity + Lock Screen widgets (2.5 h, Mac) · [#41](https://github.com/TomasPessagno/mapay/issues/41) B15 Design polish (2 h, iPhone) · [#24](https://github.com/TomasPessagno/mapay/issues/24) A22 Potholes + radar overlay (1.5 h, backend).
+
+### Jean's queue (assigned to `Jeanm2005`)
+
+| # | Issue | Task | Est. | Notes |
+| --- | --- | --- | --- | --- |
+| 1 | [#11](https://github.com/TomasPessagno/mapay/issues/11) | A4 · Routes API client + `/route` alternatives | 2.5 h | critical path |
+| 2 | [#3](https://github.com/TomasPessagno/mapay/issues/3) | A2 · Floods → beliefs (tides + FEMA + hotspots) | 2.5 h | agent |
+| 3 | [#6](https://github.com/TomasPessagno/mapay/issues/6) | A12 · HERE incidents + flow | 1.5 h | agent |
+| 4 | [#9](https://github.com/TomasPessagno/mapay/issues/9) | A17 · Satellite floods (GFM / Earth Engine) | 3 h | agent · accounts from T0 |
+| 5 | [#15](https://github.com/TomasPessagno/mapay/issues/15) | A16 · News → Gemini → evidence | 3 h | agent · AI Studio key |
+| 6 | [#13](https://github.com/TomasPessagno/mapay/issues/13) | A3 · `/layers` from beliefs | 1.5 h |  |
+| 7 | [#14](https://github.com/TomasPessagno/mapay/issues/14) | A15 · `/internal/ingest` + Cloud Scheduler | 1.5 h |  |
+| 8 | [#17](https://github.com/TomasPessagno/mapay/issues/17) | A6 · Route scoring | 2 h | needs Tomas's #4 |
+| 9 | [#26](https://github.com/TomasPessagno/mapay/issues/26) | A7 · Detour + deep links | 2 h |  |
+| — | [#38](https://github.com/TomasPessagno/mapay/issues/38) | **T1 · Integration: real map + routing** | | together |
+| 10 | [#18](https://github.com/TomasPessagno/mapay/issues/18) | A8 · Routines v2 (legs, places, preferences) | 2.5 h | needs Tomas's #10 |
+| 11 | [#32](https://github.com/TomasPessagno/mapay/issues/32) | A9 · `/routines/upcoming` + briefings + demo | 3 h |  |
+| — | [#42](https://github.com/TomasPessagno/mapay/issues/42) | **T2 · Integration: heads-up end to end** | | together |
+| 12 | [#33](https://github.com/TomasPessagno/mapay/issues/33) | A10 · `/customize` | 2.5 h |  |
+| — | [#43](https://github.com/TomasPessagno/mapay/issues/43) | **T3 · Integration: Customize end to end** | | together |
+| 13 | [#16](https://github.com/TomasPessagno/mapay/issues/16) | A18 · Satellite construction (Sentinel-2 + Gemini) | 3 h | agent · needs Tomas's #5 |
+
+**P1:** [#39](https://github.com/TomasPessagno/mapay/issues/39) A19 Best time inside a window (1.5 h) · [#40](https://github.com/TomasPessagno/mapay/issues/40) A20 Precomputed briefings (1.5 h) · [#23](https://github.com/TomasPessagno/mapay/issues/23) A21 Typical congestion (2 h) · [#25](https://github.com/TomasPessagno/mapay/issues/25) A23 Deploy hygiene (1 h).
+
+**Both:** [#2](https://github.com/TomasPessagno/mapay/issues/2) T0 kickoff → [#38](https://github.com/TomasPessagno/mapay/issues/38) T1 → [#42](https://github.com/TomasPessagno/mapay/issues/42) T2 → [#43](https://github.com/TomasPessagno/mapay/issues/43) T3 → [#44](https://github.com/TomasPessagno/mapay/issues/44) T4 demo prep.
+
+**Where one of you waits on the other:** Jean's [#17](https://github.com/TomasPessagno/mapay/issues/17) needs Tomas's [#4](https://github.com/TomasPessagno/mapay/issues/4), [#18](https://github.com/TomasPessagno/mapay/issues/18) needs [#10](https://github.com/TomasPessagno/mapay/issues/10), and [#16](https://github.com/TomasPessagno/mapay/issues/16) needs [#5](https://github.com/TomasPessagno/mapay/issues/5), so Tomas hands those three to agents first thing. Everything else meets through the mocks and the checkpoints.
+
+### Prompting your agent
+
+Next task from your queue (swap the name and GitHub login for Tomas):
+
+> Read AGENTS.md and TASKS.md in TomasPessagno/mapay. Take the first open issue in **Jean's queue** (assigned to `Jeanm2005`) whose "Blocked by" issues are all closed and that has no open PR yet. Follow AGENTS.md › "Working on a task": use the branch named in the issue, stay inside its Scope, run the checks, and open a PR into `main` that says `Closes #<issue>`.
+
+For Tomas's agents, add: *skip `needs-mac` issues unless you are running on the Mac.*
+
+One specific issue:
+
+> Read AGENTS.md, then do issue #&lt;N&gt; in TomasPessagno/mapay following "Working on a task".
 
 | | Track A: backend + data | Track B: iPhone app |
 | --- | --- | --- |
-| Who | Jean (lead) + Tomas | Tomas |
 | Code | `backend/**` | `frontend/**`, including `frontend/ios/` |
 | Tests with | `pytest`, `uvicorn` + `/docs`, curl | Browser → iOS Simulator → iPhone (AltStore) |
-
-**Claiming work:** assign yourself on an issue before you start it, or before you hand it to an agent, so you never both work on the same one. Good backend picks for Tomas alongside the app: the `portable` issues ([#4](https://github.com/TomasPessagno/mapay/issues/4), [#7](https://github.com/TomasPessagno/mapay/issues/7), [#8](https://github.com/TomasPessagno/mapay/issues/8)), or any `agent-ready` backend issue handed to an agent.
 
 **Shared files** (small separate PRs, tell the other person): `AGENTS.md`, `README.md`, `TASKS.md`, `docs/**`, `.github/**`, `.env.example`, and the contract: `frontend/public/mocks/**`, `frontend/src/lib/types.ts`, `backend/app/db/models.py`.
 
@@ -78,24 +144,20 @@ The two sides only meet through the API contract, so after the kickoff almost ev
 - [ ] **Apple:** bundle ids `com.<you>.mapay` and `com.<you>.mapay.widget` (fixed for the whole event); check Xcode and AltServer on the Mac and AltStore on the iPhone.
 - [ ] **`frontend/.env`:** Maps browser key, both Map IDs, `VITE_API_BASE_URL`, and `VITE_USE_MOCKS=true` for now.
 
-**Then start** (assign yourselves first):
-- **Jean:** [#11](https://github.com/TomasPessagno/mapay/issues/11) Routes API (critical path), and hand [#3](https://github.com/TomasPessagno/mapay/issues/3), [#5](https://github.com/TomasPessagno/mapay/issues/5), [#6](https://github.com/TomasPessagno/mapay/issues/6), [#9](https://github.com/TomasPessagno/mapay/issues/9) to agents.
-- **Tomas:** [#12](https://github.com/TomasPessagno/mapay/issues/12) app shell → [#19](https://github.com/TomasPessagno/mapay/issues/19) AltStore proof, and hand [#4](https://github.com/TomasPessagno/mapay/issues/4), [#7](https://github.com/TomasPessagno/mapay/issues/7), [#8](https://github.com/TomasPessagno/mapay/issues/8) to agents.
+**Then start** from your queues:
+- **Jean:** [#11](https://github.com/TomasPessagno/mapay/issues/11) Routes API yourself (critical path); hand [#3](https://github.com/TomasPessagno/mapay/issues/3), [#6](https://github.com/TomasPessagno/mapay/issues/6), [#9](https://github.com/TomasPessagno/mapay/issues/9) and, once the AI Studio key exists, [#15](https://github.com/TomasPessagno/mapay/issues/15) to agents.
+- **Tomas:** [#12](https://github.com/TomasPessagno/mapay/issues/12) app shell yourself, then [#19](https://github.com/TomasPessagno/mapay/issues/19); hand [#10](https://github.com/TomasPessagno/mapay/issues/10), [#4](https://github.com/TomasPessagno/mapay/issues/4), [#5](https://github.com/TomasPessagno/mapay/issues/5), [#7](https://github.com/TomasPessagno/mapay/issues/7), [#8](https://github.com/TomasPessagno/mapay/issues/8) to agents first thing (three of Jean's tasks wait on [#10](https://github.com/TomasPessagno/mapay/issues/10), [#4](https://github.com/TomasPessagno/mapay/issues/4), [#5](https://github.com/TomasPessagno/mapay/issues/5)).
 
 ---
 
-## Order at a glance
+## Dependencies
 
-**A:** A1 → A2 → A3 → A4 → A5 → A6 → A7 → **T1** → A8 → A9 → **T2** → A10 → **T3** → A11 … A18 → **T4**
-
-**B:** B1 → B2 → B3 → B4 → **T1** → B5 → B6 → B7 → B8 → B9 → **T2** → B10 → **T3** → B11 → B12 → B13 → **T4**
-
-If you're ahead, grab a task marked *portable* from the other column (no Mac needed, few dependencies).
+The queues above give the order; this shows what depends on what.
 
 ```mermaid
 flowchart LR
     T0[T0 kickoff]
-    subgraph A[Person A: backend + data]
+    subgraph A[Track A: backend + data]
         A1[A1 device id + CORS]
         A2[A2 floods → beliefs]
         A3[A3 /layers]
@@ -108,7 +170,7 @@ flowchart LR
         A10[A10 /customize]
         AD[A11–A18 more layers,<br/>news, satellite]
     end
-    subgraph B[Person B: iPhone app]
+    subgraph B[Track B: iPhone app]
         B1[B1 app shell]
         B2[B2 Capacitor iOS<br/>+ AltStore proof]
         B3[B3 map + legend]
@@ -144,9 +206,9 @@ flowchart LR
 
 ---
 
-## Person A · backend + data
+## Track A · backend + data (reference)
 
-Paths are under `backend/app/` unless noted. "Beliefs" = `register_hazard` / `add_evidence` from `routing/beliefs.py`.
+Owners are in the queues above: A1, A5, A11, A13, A14 and A22 are Tomas's; the rest are Jean's. Paths are under `backend/app/` unless noted. "Beliefs" = `register_hazard` / `add_evidence` from `routing/beliefs.py`.
 
 | Task · branch | What | Main files | Needs | Done when |
 | --- | --- | --- | --- | --- |
@@ -173,9 +235,9 @@ Paths are under `backend/app/` unless noted. "Beliefs" = `register_hazard` / `ad
 
 ---
 
-## Person B · iPhone app
+## Track B · iPhone app (reference)
 
-Paths are under `frontend/` unless noted. Build against the mocks (`VITE_USE_MOCKS=true`) until the real endpoint lands.
+All Tomas's. Paths are under `frontend/` unless noted. Build against the mocks (`VITE_USE_MOCKS=true`) until the real endpoint lands.
 
 | Task · branch | What | Main files | Needs | Done when (where to test) |
 | --- | --- | --- | --- | --- |
@@ -210,7 +272,7 @@ Paths are under `frontend/` unless noted. Build against the mocks (`VITE_USE_MOC
 
 ## Git workflow
 
-- **Claim first:** assign yourself on the issue before you start it or hand it to an agent.
+- **Ownership:** every issue is assigned per the queues. To swap, reassign it on GitHub before starting.
 - **One branch per task**, created when you start it (not up front): `git switch main && git pull && git switch -c a4-routes-api`.
 - **Small PRs into `main`.** CI must be green; then squash-merge it yourself and tell the other person. Ask for a look only when you touch the contract or a shared file.
 - **Stay current:** merge `origin/main` into your branch before opening the PR (or rebase your own branch).
