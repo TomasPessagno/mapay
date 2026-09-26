@@ -7,6 +7,7 @@ export interface Preferences {
   avoid_neighborhoods: string[];
   avoid_tolls?: boolean;
   avoid_highways?: boolean;
+  nav_app?: 'google_maps' | 'apple_maps' | 'waze';
 }
 
 export interface Place {

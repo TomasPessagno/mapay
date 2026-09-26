@@ -1,5 +1,6 @@
 import React from 'react';
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/react';
+import PreferencesTab from '../routines/PreferencesTab';
 
 const PreferencesPage: React.FC = () => {
   return (
@@ -16,10 +17,7 @@ const PreferencesPage: React.FC = () => {
           </IonToolbar>
         </IonHeader>
         
-        {/* Placeholder for Preferences */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '101%' }}>
-          <p>Preferences Settings</p>
-        </div>
+        <PreferencesTab />
       </IonContent>
     </IonPage>
   );
