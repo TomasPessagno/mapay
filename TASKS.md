@@ -18,7 +18,7 @@ Background: [`README.md`](README.md) (product), [`docs/design.md`](docs/design.m
 
 The two sides only meet through the API contract, so after the kickoff almost everything runs in parallel. The together points are T0 (kickoff) and the three integrations (T1–T3), plus demo prep (T4).
 
-**Already on `main`:** the hazard belief model + pre-route check (backend), the CI/CD workflow (now green on both sides), the scaffold routers, and draft mocks for every endpoint. `/route` returns 503 until A4 replaces the OSMnx graph with Routes API.
+**Already on `main`:** the hazard belief model + pre-route check (backend), the CI/CD workflow (lint + tests green on both sides), the scaffold routers, and draft mocks for every endpoint. `/route` returns 503 until A4 replaces the OSMnx graph with Routes API. The Cloud Run deploy job fails until the GitHub secrets are added (T0).
 
 ---
 
@@ -26,7 +26,8 @@ The two sides only meet through the API contract, so after the kickoff almost ev
 
 - [ ] **Routing engine:** confirm Google Routes API (as in AGENTS.md). The current OSMnx engine stays until A4 replaces it. If you pick OSMnx instead, update AGENTS.md now.
 - [ ] **Contract:** walk through `frontend/public/mocks/*.json` together and fix any shape you disagree with. After this, shapes change only through PRs that update mock + `types.ts` + `models.py` together.
-- [ ] **Keys:** fill `.env` (root) and `frontend/.env`: Maps browser key + server key + signing secret, light/dark Map IDs, Gemini, HERE, Atlas URI. Check the GitHub secrets the Cloud Run deploy needs (listed at the top of `.github/workflows/ci-cd.yml`).
+- [ ] **Keys:** fill `.env` (root) and `frontend/.env`: Maps browser key + server key + signing secret, light/dark Map IDs, Gemini, HERE, Atlas URI.
+- [ ] **Deploy secrets:** in GitHub → Settings → Secrets and variables → Actions, add `GCP_SA_KEY` and the other secrets + variables listed at the top of `.github/workflows/ci-cd.yml`. Until then every backend merge shows a red `deploy-backend` job (it fails at the Google Cloud login step).
 - [ ] **Identity + bundle ids:** header `X-Device-Id`; bundle ids `com.<you>.mapay` and `com.<you>.mapay.widget` (fixed for the whole event).
 
 ---
