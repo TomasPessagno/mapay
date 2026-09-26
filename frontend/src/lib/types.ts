@@ -1,27 +1,131 @@
-export type LatLng = [number, number];
+export type HazardType = 'flood' | 'weather' | 'construction' | 'closure' | 'congestion' | 'no_sidewalk' | 'pothole' | 'incident' | 'event';
 
-export interface RouteRequest {
-  origin: LatLng;
-  destination: LatLng;
-  depart_at?: string;
+export type PreferenceCategoryMap = Record<HazardType, 'avoid' | 'prefer_avoid' | 'ignore'>;
+
+export interface Preferences {
+  categories: Partial<PreferenceCategoryMap>;
+  avoid_neighborhoods: string[];
   avoid_tolls?: boolean;
-  mode?: "drive" | "walk";
+  avoid_highways?: boolean;
 }
 
-export interface RouteResponse {
-  route_geojson: GeoJSON.FeatureCollection;
-  baseline_geojson?: GeoJSON.FeatureCollection | null;
-  hazards_avoided: Record<string, unknown>[];
-  briefing?: string | null;
-  deep_links: Record<string, string>;
+export interface Place {
+  _id: string;
+  user_id: string;
+  name: string;
+  address: string;
+  location: {
+    lat: number;
+    lng: number;
+  };
+}
+
+export interface RoutineRepeat {
+  kind: 'daily' | 'weekly' | 'custom';
+  weekdays?: string[]; // 'mon', 'tue', etc.
+}
+
+export interface RoutineWhen {
+  kind: 'at' | 'window';
+  time?: string; // '09:30'
+  start?: string; // '17:00'
+  end?: string; // '19:00'
+}
+
+export interface RoutineLeg {
+  from_place: string;
+  to_place: string;
+  when: RoutineWhen;
+  anchor: 'depart' | 'arrive';
+  days?: string[] | null;
 }
 
 export interface Routine {
-  _id?: string;
+  _id: string;
   user_id: string;
-  origin: LatLng;
-  destination: LatLng;
-  days: string[];
-  time_window: [string, string];
-  preferences: Record<string, unknown>;
+  name: string;
+  active: boolean;
+  repeat: RoutineRepeat;
+  legs: RoutineLeg[];
+  tz: string;
+  heads_up_minutes: number;
+  preferences?: Preferences;
 }
+
+export interface HazardOnRoute {
+  hazard_id: string;
+  hazard_type: HazardType;
+  title: string;
+  probability: number;
+  status?: string; // e.g. "observed"
+}
+
+export interface RouteOption {
+  summary: string;
+  route_geojson: Record<string, unknown>; // GeoJSON FeatureCollection
+  duration_s: number;
+  static_duration_s: number;
+  distance_m: number;
+  score: number;
+  recommended: boolean;
+  hazards_on_route: HazardOnRoute[];
+}
+
+export interface RouteResponse {
+  routes: RouteOption[];
+  waypoints?: [number, number][];
+  hazards_on_route: HazardOnRoute[];
+  deep_links: {
+    google_maps?: string;
+    apple_maps?: string;
+    waze?: string;
+    start?: string;
+    customize?: string;
+  };
+  briefing: string;
+}
+
+export interface UpcomingLegPlace {
+  place_id: string;
+  name: string;
+}
+
+export interface UpcomingLeg {
+  routine_id: string;
+  routine_name: string;
+  leg: number;
+  from: UpcomingLegPlace;
+  to: UpcomingLegPlace;
+  local_date: string;
+  departure_at: string;
+  heads_up_at: string;
+  window: { start: string; end: string } | null;
+  best_departure_at: string | null;
+  duration_s: number;
+  static_duration_s: number;
+  summary: string;
+  top_hazards: HazardOnRoute[];
+  image_url: string | null;
+  deep_links: Record<string, string>;
+}
+
+export interface UpcomingRoutinesResponse {
+  generated_at: string;
+  items: UpcomingLeg[];
+}
+
+export interface Neighborhood {
+  id: string;
+  name: string;
+}
+
+export interface CustomizeResponse {
+  constraints_extracted: Record<string, unknown>;
+  route_response: RouteResponse;
+}
+
+export interface LayersResponse {
+  [layerName: string]: Record<string, unknown>; // GeoJSON FeatureCollections
+}
+
+export type LatLng = [number, number];
