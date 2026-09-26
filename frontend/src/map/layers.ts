@@ -1,17 +1,132 @@
-import { HAZARD_TOKENS } from './legend';
+import { HAZARD_TOKENS, type LegendToken } from './legend';
 import type { HazardType } from '../lib/types';
 
 // Hazard layer renderers: flood, closures, potholes, reports, walk overlay.
 // Each layer is its own google.maps.Data instance so it can be toggled/replaced independently.
 const layers = new Map<string, google.maps.Data>();
+const layerMarkers = new Map<string, google.maps.marker.AdvancedMarkerElement[]>();
 const layerVisibility = new Map<string, boolean>();
+const layerDataCache = new Map<string, GeoJSON.FeatureCollection>();
 
-export function upsertGeoJsonLayer(
+let mapInstance: google.maps.Map | null = null;
+let advancedMarkerLib: google.maps.MarkerLibrary | null = null;
+let zoomListener: google.maps.MapsEventListener | null = null;
+
+let isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+if (window.matchMedia) {
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+    isDark = e.matches;
+    refreshAllLayers();
+  });
+}
+
+function refreshAllLayers() {
+  if (!mapInstance) return;
+  
+  layers.forEach((layer) => {
+    if (layer.getStyle()) {
+      layer.setStyle(layer.getStyle() as google.maps.Data.StylingFunction);
+    }
+  });
+
+  // Re-run upsert for markers to pick up new colors
+  layerDataCache.forEach((data, id) => {
+    upsertGeoJsonLayer(mapInstance!, id, data).catch(console.error);
+  });
+}
+
+function setupMapListeners(map: google.maps.Map) {
+  if (mapInstance === map) return;
+  mapInstance = map;
+  
+  if (zoomListener) {
+    zoomListener.remove();
+  }
+  
+  zoomListener = map.addListener('zoom_changed', () => {
+    const zoom = map.getZoom() ?? 0;
+    
+    // Check no_sidewalk layer visibility based on zoom
+    const nsLayer = layers.get('no_sidewalk');
+    const isVisible = layerVisibility.get('no_sidewalk') !== false && zoom >= 15;
+    if (nsLayer) {
+      nsLayer.setMap(isVisible ? map : null);
+    }
+    
+    const nsMarkers = layerMarkers.get('no_sidewalk');
+    if (nsMarkers) {
+      nsMarkers.forEach(m => { m.map = isVisible ? map : null; });
+    }
+  });
+}
+
+function getCentroid(feature: google.maps.Data.Feature): google.maps.LatLngLiteral | null {
+  const geom = feature.getGeometry();
+  if (!geom) return null;
+  
+  if (geom.getType() === 'Point') {
+    const pt = geom as google.maps.Data.Point;
+    return { lat: pt.get().lat(), lng: pt.get().lng() };
+  }
+  
+  const bounds = new google.maps.LatLngBounds();
+  geom.forEachLatLng((latLng) => {
+    bounds.extend(latLng);
+  });
+  
+  if (bounds.isEmpty()) return null;
+  const center = bounds.getCenter();
+  return { lat: center.lat(), lng: center.lng() };
+}
+
+function createMarkerContent(token: LegendToken, isDark: boolean, opacity: number): HTMLElement {
+  const baseColor = isDark ? token.colorDark : token.colorLight;
+  const haloColor = isDark ? '#000000' : '#FFFFFF';
+  
+  const div = document.createElement('div');
+  div.style.width = '24px';
+  div.style.height = '24px';
+  div.style.display = 'flex';
+  div.style.alignItems = 'center';
+  div.style.justifyContent = 'center';
+  div.style.color = baseColor;
+  div.style.opacity = Math.max(opacity, 0.25).toString();
+  
+  // 1.5px halo using drop-shadow
+  div.style.filter = `drop-shadow(0px 1.5px 0px ${haloColor}) drop-shadow(0px -1.5px 0px ${haloColor}) drop-shadow(1.5px 0px 0px ${haloColor}) drop-shadow(-1.5px 0px 0px ${haloColor})`;
+
+  let svgStr = token.icon as string;
+  if (svgStr.startsWith('data:image/svg+xml;utf8,')) {
+    svgStr = svgStr.substring('data:image/svg+xml;utf8,'.length);
+  }
+  
+  // Convert ionic paths to use currentColor
+  svgStr = svgStr.replace(/class='ionicon-fill-none ionicon-stroke-width'/g, 'fill="none" stroke="currentColor" stroke-width="32"');
+  svgStr = svgStr.replace(/class='ionicon'/g, 'fill="currentColor"');
+  
+  div.innerHTML = svgStr;
+  const svg = div.querySelector('svg');
+  if (svg) {
+    svg.style.width = '100%';
+    svg.style.height = '100%';
+    svg.style.overflow = 'visible';
+  }
+  
+  return div;
+}
+
+export async function upsertGeoJsonLayer(
   map: google.maps.Map,
   id: string,
   data: GeoJSON.FeatureCollection,
-): void {
-  const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+): Promise<void> {
+  setupMapListeners(map);
+  layerDataCache.set(id, data);
+  
+  if (!advancedMarkerLib) {
+    advancedMarkerLib = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary;
+  }
   
   let layer = layers.get(id);
   if (!layer) {
@@ -22,12 +137,52 @@ export function upsertGeoJsonLayer(
     layer.forEach((feature) => layer!.remove(feature));
   }
   
+  let markers = layerMarkers.get(id);
+  if (markers) {
+    markers.forEach(m => { m.map = null; });
+  }
+  markers = [];
+  layerMarkers.set(id, markers);
+  
   layer.addGeoJson(data);
 
+  const zoom = map.getZoom() ?? 0;
+  let isVisible = layerVisibility.get(id) !== false;
+  if (id === 'no_sidewalk' && zoom < 15) {
+    isVisible = false;
+  }
+
+  // Create markers
+  layer.forEach((feature) => {
+    const hazardType = feature.getProperty('hazard_type') as HazardType;
+    const probability = feature.getProperty('probability') as number ?? 1.0;
+    const status = feature.getProperty('status') as string;
+    
+    // Skip markers for congestion and no_sidewalk lines
+    if (hazardType === 'congestion' || hazardType === 'no_sidewalk') return;
+    
+    const centroid = getCentroid(feature);
+    if (!centroid) return;
+    
+    let opacity = probability;
+    if (status === 'predicted') {
+      opacity *= 0.5;
+    }
+    
+    const token = HAZARD_TOKENS[hazardType] || HAZARD_TOKENS.incident;
+    const marker = new advancedMarkerLib!.AdvancedMarkerElement({
+      map: isVisible ? map : null,
+      position: centroid,
+      content: createMarkerContent(token, isDark, opacity),
+      title: feature.getProperty('title') as string,
+    });
+    markers!.push(marker);
+  });
+
   layer.setStyle((feature) => {
-    // Check global visibility
     const visible = layerVisibility.get(id) ?? true;
     if (!visible) return { visible: false };
+    if (id === 'no_sidewalk' && (map.getZoom() ?? 0) < 15) return { visible: false };
 
     const hazardType = feature.getProperty('hazard_type') as HazardType;
     const probability = feature.getProperty('probability') as number ?? 1.0;
@@ -37,17 +192,14 @@ export function upsertGeoJsonLayer(
     const token = HAZARD_TOKENS[hazardType] || HAZARD_TOKENS.incident;
     const baseColor = isDark ? token.colorDark : token.colorLight;
 
-    // probability -> opacity
-    // if predicted, maybe lighter opacity or different stroke.
-    let fillOpacity = probability * 0.4;
-    let strokeOpacity = probability;
+    let fillOpacity = Math.max(probability * 0.4, 0.25);
+    let strokeOpacity = Math.max(probability, 0.25);
 
     if (status === 'predicted') {
-      fillOpacity *= 0.5;
-      strokeOpacity *= 0.5;
+      fillOpacity = Math.max(fillOpacity * 0.5, 0.25);
+      strokeOpacity = Math.max(strokeOpacity * 0.5, 0.25);
     }
 
-    // severity -> width/size
     const strokeWeight = severity * 1.5;
 
     const options: google.maps.Data.StyleOptions = {
@@ -65,10 +217,14 @@ export function upsertGeoJsonLayer(
         break;
       case 'weather':
         options.strokeWeight = 0;
-        options.fillOpacity = 0.25;
+        options.fillOpacity = Math.max(0.25, fillOpacity);
+        break;
+      case 'construction':
+        options.strokeOpacity = 1;
         break;
       case 'closure':
         options.strokeOpacity = 0;
+        // Keep the dashed line using icons along the path
         options.icons = [{
           icon: {
             path: 'M 0,-1 0,1',
@@ -81,6 +237,23 @@ export function upsertGeoJsonLayer(
           repeat: '20px'
         }];
         break;
+      case 'congestion': {
+        const level = (feature.getProperty('level') as string || '').toLowerCase();
+        const ratio = feature.getProperty('ratio') as number;
+        
+        let congColor = '#FFCC00'; // Default yellow
+        if (level === 'severe' || level === 'dark red') congColor = '#A50E0E';
+        else if (level === 'heavy' || level === 'red') congColor = '#FF3B30';
+        else if (ratio !== undefined) {
+          if (ratio > 0.7) congColor = '#A50E0E';
+          else if (ratio > 0.4) congColor = '#FF3B30';
+        }
+        
+        options.strokeColor = congColor;
+        options.strokeWeight = severity * 2 + 1; // 1pt wider per spec
+        options.strokeOpacity = strokeOpacity;
+        break;
+      }
       case 'no_sidewalk':
         options.strokeOpacity = 0;
         options.icons = [{
@@ -97,41 +270,52 @@ export function upsertGeoJsonLayer(
       case 'pothole':
       case 'incident':
       case 'event':
-        options.icon = {
-          path: google.maps.SymbolPath.CIRCLE,
-          scale: severity * 2 + 4,
-          fillColor: baseColor,
-          fillOpacity: strokeOpacity,
-          strokeColor: isDark ? '#000000' : '#FFFFFF',
-          strokeWeight: 1.5,
-          strokeOpacity: 1
-        };
+        // Hide standard Data layer rendering for these since AdvancedMarkerElement handles it
+        options.visible = false;
         break;
     }
 
     return options;
   });
 
-  if (layerVisibility.get(id) !== false) {
+  if (isVisible) {
     layer.setMap(map);
+  } else {
+    layer.setMap(null);
   }
 }
 
 export function toggleLayer(id: string, map: google.maps.Map, visible: boolean): void {
   layerVisibility.set(id, visible);
+  
+  const zoom = map.getZoom() ?? 0;
+  let isVisible = visible;
+  if (id === 'no_sidewalk' && zoom < 15) {
+    isVisible = false;
+  }
+  
   const layer = layers.get(id);
   if (layer) {
-    if (visible) {
-      layer.setMap(map);
-      // Re-trigger style update
+    layer.setMap(isVisible ? map : null);
+    if (isVisible) {
       layer.setStyle(layer.getStyle() as google.maps.Data.StylingFunction);
-    } else {
-      layer.setMap(null);
     }
+  }
+  
+  const markers = layerMarkers.get(id);
+  if (markers) {
+    markers.forEach(m => { m.map = isVisible ? map : null; });
   }
 }
 
 export function removeLayer(id: string): void {
   layers.get(id)?.setMap(null);
   layers.delete(id);
+  
+  const markers = layerMarkers.get(id);
+  if (markers) {
+    markers.forEach(m => { m.map = null; });
+  }
+  layerMarkers.delete(id);
+  layerDataCache.delete(id);
 }

@@ -25,7 +25,16 @@ interface Props {
 }
 
 const LegendSheet: React.FC<Props> = ({ isOpen, onDidDismiss, toggled, onToggle }) => {
-  const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const [isDark, setIsDark] = React.useState(
+    window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+  );
+
+  React.useEffect(() => {
+    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    const handler = (e: MediaQueryListEvent) => setIsDark(e.matches);
+    mediaQuery.addEventListener('change', handler);
+    return () => mediaQuery.removeEventListener('change', handler);
+  }, []);
 
   const hazards = Object.keys(HAZARD_TOKENS) as HazardType[];
 
@@ -63,6 +72,9 @@ const LegendSheet: React.FC<Props> = ({ isOpen, onDidDismiss, toggled, onToggle 
                 <IonLabel>
                   <h2>{token.name}</h2>
                   <p>{token.drawnAs}</p>
+                  {hazard === 'congestion' && (
+                    <div style={{ marginTop: '6px', height: '4px', background: 'linear-gradient(to right, #FFCC00, #FF3B30, #A50E0E)', borderRadius: '2px', width: '100%' }} />
+                  )}
                 </IonLabel>
                 <IonToggle 
                   slot="end" 
