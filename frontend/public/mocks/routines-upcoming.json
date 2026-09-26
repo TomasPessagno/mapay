@@ -1,0 +1,115 @@
+{
+  "generated_at": "2026-09-28T08:40:00-04:00",
+  "items": [
+    {
+      "routine_id": "rt-fiu",
+      "routine_name": "FIU campuses",
+      "leg": 0,
+      "from": {
+        "place_id": "pl-mmc",
+        "name": "MMC"
+      },
+      "to": {
+        "place_id": "pl-bbc",
+        "name": "BBC"
+      },
+      "local_date": "2026-09-28",
+      "departure_at": "2026-09-28T09:30:00-04:00",
+      "heads_up_at": "2026-09-28T09:00:00-04:00",
+      "window": null,
+      "best_departure_at": null,
+      "duration_s": 2460,
+      "static_duration_s": 1980,
+      "summary": "via SR-826 and I-95",
+      "top_hazards": [
+        {
+          "hazard_id": "flood:ne-151st-st",
+          "hazard_type": "flood",
+          "title": "Flooded street on NE 151st St",
+          "probability": 0.88,
+          "status": "observed"
+        },
+        {
+          "hazard_id": "congestion:sr-826-nb-flagler",
+          "hazard_type": "congestion",
+          "title": "Heavy traffic on SR-826",
+          "probability": 0.9,
+          "status": "observed"
+        }
+      ],
+      "image_url": null,
+      "deep_links": {
+        "start": "mapay://start?routine=rt-fiu&leg=0",
+        "customize": "mapay://customize?routine=rt-fiu&leg=0",
+        "google_maps": "https://www.google.com/maps/dir/?api=1&origin=25.7574,-80.3733&destination=25.9104,-80.1392&travelmode=driving&waypoints=25.8350,-80.3310"
+      }
+    },
+    {
+      "routine_id": "rt-fiu",
+      "routine_name": "FIU campuses",
+      "leg": 1,
+      "from": {
+        "place_id": "pl-bbc",
+        "name": "BBC"
+      },
+      "to": {
+        "place_id": "pl-mmc",
+        "name": "MMC"
+      },
+      "local_date": "2026-09-28",
+      "departure_at": "2026-09-28T17:00:00-04:00",
+      "heads_up_at": "2026-09-28T16:30:00-04:00",
+      "window": {
+        "start": "2026-09-28T17:00:00-04:00",
+        "end": "2026-09-28T19:00:00-04:00"
+      },
+      "best_departure_at": "2026-09-28T17:45:00-04:00",
+      "duration_s": 1440,
+      "static_duration_s": 1320,
+      "summary": "via I-95 and SR-836",
+      "top_hazards": [
+        {
+          "hazard_id": "event:kaseya-center-2026-09-28",
+          "hazard_type": "event",
+          "title": "Event at Kaseya Center tonight",
+          "probability": 0.95,
+          "status": "observed"
+        }
+      ],
+      "image_url": null,
+      "deep_links": {
+        "start": "mapay://start?routine=rt-fiu&leg=1",
+        "customize": "mapay://customize?routine=rt-fiu&leg=1",
+        "google_maps": "https://www.google.com/maps/dir/?api=1&origin=25.9104,-80.1392&destination=25.7574,-80.3733&travelmode=driving"
+      }
+    },
+    {
+      "routine_id": "rt-fiu",
+      "routine_name": "FIU campuses",
+      "leg": 0,
+      "from": {
+        "place_id": "pl-mmc",
+        "name": "MMC"
+      },
+      "to": {
+        "place_id": "pl-bbc",
+        "name": "BBC"
+      },
+      "local_date": "2026-09-29",
+      "departure_at": "2026-09-29T09:30:00-04:00",
+      "heads_up_at": "2026-09-29T09:00:00-04:00",
+      "window": null,
+      "best_departure_at": null,
+      "duration_s": 2280,
+      "static_duration_s": 1980,
+      "summary": "via SR-826 and I-95",
+      "top_hazards": [],
+      "image_url": null,
+      "deep_links": {
+        "start": "mapay://start?routine=rt-fiu&leg=0",
+        "customize": "mapay://customize?routine=rt-fiu&leg=0",
+        "google_maps": "https://www.google.com/maps/dir/?api=1&origin=25.7574,-80.3733&destination=25.9104,-80.1392&travelmode=driving&waypoints=25.8350,-80.3310"
+      }
+    }
+  ]
+}

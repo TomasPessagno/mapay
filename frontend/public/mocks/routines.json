@@ -1,0 +1,51 @@
+[
+  {
+    "_id": "rt-fiu",
+    "user_id": "device-demo",
+    "name": "FIU campuses",
+    "active": true,
+    "repeat": {
+      "kind": "custom",
+      "weekdays": [
+        "mon",
+        "tue",
+        "wed",
+        "thu",
+        "fri"
+      ]
+    },
+    "legs": [
+      {
+        "from_place": "pl-mmc",
+        "to_place": "pl-bbc",
+        "when": {
+          "kind": "at",
+          "time": "09:30"
+        },
+        "anchor": "depart",
+        "days": null
+      },
+      {
+        "from_place": "pl-bbc",
+        "to_place": "pl-mmc",
+        "when": {
+          "kind": "window",
+          "start": "17:00",
+          "end": "19:00"
+        },
+        "anchor": "depart",
+        "days": null
+      }
+    ],
+    "tz": "America/New_York",
+    "heads_up_minutes": 30,
+    "preferences": {
+      "categories": {
+        "flood": "avoid"
+      },
+      "avoid_neighborhoods": [
+        "brickell"
+      ]
+    }
+  }
+]

@@ -289,7 +289,7 @@ The detailed data flow and UI flow live in [`docs/architecture.md`](docs/archite
 
 ### ShellHacks 2026 (this weekend)
 
-The hour-by-hour plan, owners and fallbacks are in [`AGENTS.md`](AGENTS.md#roadmap-20-24-hrs).
+**Task board: [`TASKS.md`](TASKS.md)**: the two-person split into task-sized branches, with dependencies, checkpoints and how to test each one. The hour-by-hour plan is in [`AGENTS.md`](AGENTS.md#roadmap-20-24-hrs).
 
 **Must work in the demo (P0)**
 - [ ] Runs on the iPhone (AltStore) and in the iOS Simulator, with the Apple-like design
@@ -335,11 +335,13 @@ The hour-by-hour plan, owners and fallbacks are in [`AGENTS.md`](AGENTS.md#roadm
 ```text
 mapay/
 ├── frontend/          # React + Ionic (iOS mode) app: map, legend, routines, heads-up card
+│   ├── public/mocks/  # API contract: example response for every endpoint
 │   └── ios/           # Capacitor iOS project: the app + the widget extension (planned)
 ├── backend/           # FastAPI: routing, routines, heads-up briefings, ingestion jobs, Gemini agents
 ├── docs/              # design spec, hazard beliefs, architecture diagrams, data sources, legend.svg
 ├── .github/workflows/ # CI/CD: lint, tests, Cloud Run deploy
 ├── AGENTS.md          # Build guide: platform, priorities, algorithms, data sources, schema, hour plan
+├── TASKS.md           # Task board: who does what, branches, dependencies, testing
 └── README.md
 ```
 

@@ -107,12 +107,13 @@ Miami-native hazard-aware navigation for iPhone. Built at ShellHacks 2026, ~20-2
 | `GET /routines/upcoming?days=7` | next leg occurrences with route summary, top hazards, best time (windows) and a signed Static Maps image URL. The app schedules notifications from it; the widget uses `?compact=1&limit=3` for its timeline |
 | `POST /routines/{id}/pre-route-check` | `{departure}`, called 30–60 min before a leg: re-checks the beliefs on the saved route and recalculates (with a Gemini explanation) only if a hazard crossed the threshold. Exists; see `docs/hazard-beliefs.md` |
 | `GET/PUT /me/preferences` | user default preferences |
+| `GET /neighborhoods` | ids + names for the neighbourhood search (polygons stay on the server) |
 | `POST /report`, `GET /report` | user reports; with `hazard_id` (and `cleared`) a report adds crowd / cleared evidence to that hazard's belief |
 | `GET /alerts` | NWS alerts + news items |
 | `POST /demo/heads-up` | `{routine_id, leg}`: makes that leg "due in 30 min" in `/routines/upcoming`, for the live demo |
 | `POST /internal/ingest/{job}` | Cloud Scheduler: `news`, `weather`, `here`, `tides`, `gfm`, `s1`, `s2`, `traffic`, `sidewalks`, `briefings` |
 
-User endpoints take `X-Device-Id` (anonymous device id). `/internal/*` accepts only Cloud Scheduler's OIDC token.
+User endpoints take `X-Device-Id` (anonymous device id). `/internal/*` accepts only Cloud Scheduler's OIDC token. Example responses for every endpoint live in `frontend/public/mocks/` and are the contract both sides build against.
 
 ---
 
@@ -218,8 +219,8 @@ A real objective, not a demo timer. `heads_up_minutes` before each leg (default 
 ## Customize with a prompt
 
 1. Input: the prompt, the leg (origin, destination, departure) and the merged preferences.
-2. Gemini (structured output) returns **constraints only**, e.g. `{"add_stops": [{"query": "Starbucks"}], "avoid_categories": ["flood"], "avoid_neighborhoods": ["brickell"], "avoid_tolls": null, "avoid_highways": null, "depart_at": "18:15", "arrive_by": null, "travel_mode": null, "save_as_preference": false}`.
-3. Stops are resolved with Places Text Search biased to the current route; neighbourhood names are matched to ids.
+2. Gemini (structured output) returns **constraints only**, e.g. `{"add_stops": [{"query": "Starbucks"}], "avoid_categories": ["flood"], "avoid_neighborhoods": ["brickell"], "avoid_roads": ["SR 826"], "avoid_tolls": null, "avoid_highways": null, "depart_at": "18:15", "arrive_by": null, "travel_mode": null, "save_as_preference": false}`.
+3. Stops are resolved with Places Text Search biased to the current route; neighbourhood names are matched to ids; road names ("the Palmetto") are resolved to geometry with the Overpass API (`ref` / `name`) and avoided like neighbourhoods.
 4. The router runs with those constraints ([Routing](#routing)).
 5. Gemini writes a 1–2 sentence explanation from the router's output. The response has old vs new route; the sheet shows both and "Open in Google Maps".
 
@@ -399,6 +400,7 @@ mapay/
       headsup/            # in-app heads-up card, Customize sheet, notification scheduling, mapay:// deep links
       lib/                # API client (X-Device-Id), deep-link builders (Google/Apple/Waze), native bridge
       theme/              # Ionic iOS theme variables, glass materials, typography (docs/design.md)
+    public/mocks/         # API contract: example response for every endpoint
     ios/                  # Capacitor iOS project (Xcode, on the Mac)
       App/                # app target + MapayNative plugin (reload widgets, Live Activity)
       MapayWidget/        # the one widget extension: WidgetKit widgets + Live Activity UI
@@ -439,6 +441,7 @@ mapay/
   .github/workflows/ci-cd.yml   # lint + tests on every push; deploys the backend on pushes to main
   .env.example
   README.md
+  TASKS.md                # two-person task board: tasks, branches, dependencies, testing
 ```
 
 ---
@@ -525,6 +528,8 @@ Backup: a screen recording of the iPhone (and the Simulator) in case the live de
 
 ## Roadmap (~20-24 hrs)
 
+**Two people?** Work from [`TASKS.md`](TASKS.md): person A = backend + data (tracks A and C below), person B = the iPhone app (track B), with task-sized branches, dependencies and checkpoints.
+
 Tracks: **A** = backend core (routing, routines, heads-up briefings, Customize). **B** = iPhone app (Ionic UI in the browser, then Capacitor iOS + the Swift widget on the Mac). **C** = data + AI (ingestion, news → Gemini, weather, satellite) and pitch material. Anything native needs the Mac, so B owns it. Hours count from when we start building; if we're already in, keep the order and re-slot the rest. P1/P2 items are marked; everything else is P0.
 
 | Hours | A: backend core | B: iPhone app | C: data + AI |
@@ -541,4 +546,4 @@ Tracks: **A** = backend core (routing, routines, heads-up briefings, Customize).
 | 17-18 | Backup demo video (iPhone screen recording), Devpost draft | | |
 | 18-20 | Rehearse 90s pitch, buffer |  |  |
 
-**Only two devs:** drop every P1 item and run C's P0 rows on A, in this order: fast layers (once `/route` works), news, GFM flood (once `/routines/upcoming` works), and construction through the permit-site fallback instead of automatic Sentinel-2 detection. B keeps the iPhone column, and pitch material moves to hours 16-18.
+**Only two devs:** [`TASKS.md`](TASKS.md) has the task-by-task split. In short: drop every P1 item and run C's P0 rows on A, in this order: fast layers (once `/route` works), news, GFM flood (once `/routines/upcoming` works), and construction through the permit-site fallback instead of automatic Sentinel-2 detection. B keeps the iPhone column, and pitch material moves to hours 16-18.

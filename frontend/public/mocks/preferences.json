@@ -1,0 +1,19 @@
+{
+  "categories": {
+    "flood": "avoid",
+    "closure": "avoid",
+    "construction": "prefer_avoid",
+    "congestion": "prefer_avoid",
+    "incident": "prefer_avoid",
+    "weather": "prefer_avoid",
+    "pothole": "ignore",
+    "no_sidewalk": "ignore",
+    "event": "ignore"
+  },
+  "avoid_neighborhoods": [
+    "brickell"
+  ],
+  "avoid_tolls": false,
+  "avoid_highways": false,
+  "nav_app": "google_maps"
+}

@@ -1,0 +1,463 @@
+{
+  "t": "2026-09-28T09:00:00-04:00",
+  "freshness": {
+    "tides": "2026-09-28T08:55:00-04:00",
+    "nws": "2026-09-28T08:58:00-04:00",
+    "here": "2026-09-28T08:57:00-04:00",
+    "news": "2026-09-28T08:45:00-04:00",
+    "gfm": "2026-09-27T07:14:00-04:00",
+    "s2": "2026-09-24T12:02:00-04:00",
+    "city_gis": "2026-09-28T06:00:00-04:00",
+    "osm": "2026-09-28T03:00:00-04:00"
+  },
+  "flood": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.1905,
+                25.7605
+              ],
+              [
+                -80.188,
+                25.7605
+              ],
+              [
+                -80.188,
+                25.764
+              ],
+              [
+                -80.1905,
+                25.764
+              ],
+              [
+                -80.1905,
+                25.7605
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "flood:brickell-bay-dr",
+          "hazard_type": "flood",
+          "title": "Flooding expected",
+          "place": "Brickell Bay Dr",
+          "probability": 0.81,
+          "status": "predicted",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "tides",
+              "label": "King tide 1.9 ft over the minor-flood level + FEMA zone AE",
+              "url": null,
+              "observed_at": "2026-09-28T08:55:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:55:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.144,
+              25.9085
+            ],
+            [
+              -80.14,
+              25.909
+            ],
+            [
+              -80.136,
+              25.9092
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "flood:ne-151st-st",
+          "hazard_type": "flood",
+          "title": "Flooded street",
+          "place": "NE 151st St near BBC",
+          "probability": 0.88,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "gfm",
+              "label": "Sentinel-1 flood map (Copernicus GFM)",
+              "url": null,
+              "observed_at": null,
+              "pass_time": "2026-09-27T07:14:00-04:00"
+            },
+            {
+              "kind": "crowd",
+              "label": "2 reports from Mapay users",
+              "url": null,
+              "observed_at": "2026-09-28T08:20:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:20:00-04:00",
+          "expires_at": null
+        }
+      }
+    ]
+  },
+  "weather": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.3,
+                25.86
+              ],
+              [
+                -80.12,
+                25.86
+              ],
+              [
+                -80.12,
+                25.97
+              ],
+              [
+                -80.3,
+                25.97
+              ],
+              [
+                -80.3,
+                25.86
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "weather:nws-flood-advisory",
+          "hazard_type": "weather",
+          "title": "Flood advisory",
+          "place": "North Miami-Dade",
+          "probability": 0.9,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "nws",
+              "label": "NWS Miami: Coastal Flood Advisory until 1 PM",
+              "url": "https://api.weather.gov/alerts/active?point=25.7617,-80.1918",
+              "observed_at": "2026-09-28T06:12:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:58:00-04:00",
+          "expires_at": "2026-09-28T13:00:00-04:00"
+        }
+      }
+    ]
+  },
+  "construction": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.1585,
+                25.8985
+              ],
+              [
+                -80.1555,
+                25.8985
+              ],
+              [
+                -80.1555,
+                25.901
+              ],
+              [
+                -80.1585,
+                25.901
+              ],
+              [
+                -80.1585,
+                25.8985
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:ne-135th-st",
+          "hazard_type": "construction",
+          "title": "Construction",
+          "place": "Biscayne Blvd & NE 135th St",
+          "probability": 0.8,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "city_gis",
+              "label": "Roadway project, status: active",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            },
+            {
+              "kind": "s2",
+              "label": "New site on Sentinel-2, confirmed by Gemini",
+              "url": null,
+              "observed_at": null,
+              "pass_time": "2026-09-24T12:02:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      }
+    ]
+  },
+  "closure": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.221,
+              25.7655
+            ],
+            [
+              -80.218,
+              25.7656
+            ],
+            [
+              -80.215,
+              25.7657
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "closure:sw-8th-st-17th-ave",
+          "hazard_type": "closure",
+          "title": "Road closed",
+          "place": "SW 8th St at SW 17th Ave",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 4,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE incident: road closed for event setup",
+              "url": null,
+              "observed_at": "2026-09-28T07:30:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": "2026-09-28T18:00:00-04:00"
+        }
+      }
+    ]
+  },
+  "congestion": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.339,
+              25.761
+            ],
+            [
+              -80.338,
+              25.775
+            ],
+            [
+              -80.337,
+              25.79
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:sr-826-nb-flagler",
+          "hazard_type": "congestion",
+          "title": "Heavy traffic",
+          "place": "SR-826 northbound near Flagler St",
+          "probability": 0.9,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 18 mph vs 55 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "heavy"
+        }
+      }
+    ]
+  },
+  "no_sidewalk": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.383,
+              25.76
+            ],
+            [
+              -80.383,
+              25.7625
+            ],
+            [
+              -80.383,
+              25.765
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-000001",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "SW 117th Ave",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      }
+    ]
+  },
+  "pothole": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.37,
+            25.761
+          ]
+        },
+        "properties": {
+          "hazard_id": "pothole:311-corridor-sw-8th",
+          "hazard_type": "pothole",
+          "title": "Chronic potholes",
+          "place": "SW 8th St near SW 107th Ave",
+          "probability": 0.62,
+          "status": "predicted",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "311",
+              "label": "Miami-Dade 311: 7 complaints/km (2023)",
+              "url": null,
+              "observed_at": null
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      }
+    ]
+  },
+  "incident": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.204,
+            25.89
+          ]
+        },
+        "properties": {
+          "hazard_id": "incident:news-i95-nb-125th",
+          "hazard_type": "incident",
+          "title": "Crash on I-95",
+          "place": "I-95 northbound near NE 125th St",
+          "probability": 0.7,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "news",
+              "label": "NBC6: crash blocks two lanes on I-95 NB",
+              "url": "https://www.nbcmiami.com/",
+              "observed_at": "2026-09-28T08:40:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:45:00-04:00",
+          "expires_at": null
+        }
+      }
+    ]
+  },
+  "event": {
+    "type": "FeatureCollection",
+    "features": [
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.187,
+            25.7814
+          ]
+        },
+        "properties": {
+          "hazard_id": "event:kaseya-center-2026-09-28",
+          "hazard_type": "event",
+          "title": "Event tonight",
+          "place": "Kaseya Center, 7:30 PM",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "ticketmaster",
+              "label": "Ticketmaster: concert, doors 6:30 PM",
+              "url": "https://www.ticketmaster.com/",
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      }
+    ]
+  }
+}

@@ -1,0 +1,28 @@
+[
+  {
+    "_id": "pl-mmc",
+    "user_id": "device-demo",
+    "name": "MMC",
+    "google_place_id": "mock-place-mmc",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -80.3733,
+        25.7574
+      ]
+    }
+  },
+  {
+    "_id": "pl-bbc",
+    "user_id": "device-demo",
+    "name": "BBC",
+    "google_place_id": "mock-place-bbc",
+    "location": {
+      "type": "Point",
+      "coordinates": [
+        -80.1392,
+        25.9104
+      ]
+    }
+  }
+]

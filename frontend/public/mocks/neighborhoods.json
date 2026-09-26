@@ -1,0 +1,72 @@
+[
+  {
+    "id": "brickell",
+    "name": "Brickell",
+    "source": "city_of_miami"
+  },
+  {
+    "id": "little-havana",
+    "name": "Little Havana",
+    "source": "city_of_miami"
+  },
+  {
+    "id": "downtown",
+    "name": "Downtown",
+    "source": "city_of_miami"
+  },
+  {
+    "id": "wynwood",
+    "name": "Wynwood",
+    "source": "city_of_miami"
+  },
+  {
+    "id": "coconut-grove",
+    "name": "Coconut Grove",
+    "source": "city_of_miami"
+  },
+  {
+    "id": "little-haiti",
+    "name": "Little Haiti",
+    "source": "city_of_miami"
+  },
+  {
+    "id": "allapattah",
+    "name": "Allapattah",
+    "source": "city_of_miami"
+  },
+  {
+    "id": "doral",
+    "name": "Doral",
+    "source": "municipality"
+  },
+  {
+    "id": "sweetwater",
+    "name": "Sweetwater",
+    "source": "municipality"
+  },
+  {
+    "id": "north-miami",
+    "name": "North Miami",
+    "source": "municipality"
+  },
+  {
+    "id": "coral-gables",
+    "name": "Coral Gables",
+    "source": "municipality"
+  },
+  {
+    "id": "westchester",
+    "name": "Westchester",
+    "source": "census_place"
+  },
+  {
+    "id": "kendall",
+    "name": "Kendall",
+    "source": "census_place"
+  },
+  {
+    "id": "university-park",
+    "name": "University Park",
+    "source": "census_place"
+  }
+]

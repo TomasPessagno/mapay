@@ -1,0 +1,142 @@
+{
+  "prompt": "stop at a Starbucks and stay off the Palmetto",
+  "constraints": {
+    "add_stops": [
+      {
+        "query": "Starbucks"
+      }
+    ],
+    "avoid_categories": [],
+    "avoid_neighborhoods": [],
+    "avoid_roads": [
+      "SR 826"
+    ],
+    "avoid_tolls": null,
+    "avoid_highways": null,
+    "depart_at": null,
+    "arrive_by": null,
+    "travel_mode": null,
+    "save_as_preference": false
+  },
+  "old_route": {
+    "summary": "via SR-826 and I-95",
+    "duration_s": 2460,
+    "distance_m": 31800,
+    "route_geojson": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -80.3733,
+                25.7574
+              ],
+              [
+                -80.339,
+                25.761
+              ],
+              [
+                -80.331,
+                25.835
+              ],
+              [
+                -80.3,
+                25.905
+              ],
+              [
+                -80.21,
+                25.92
+              ],
+              [
+                -80.18,
+                25.915
+              ],
+              [
+                -80.1392,
+                25.9104
+              ]
+            ]
+          },
+          "properties": {}
+        }
+      ]
+    }
+  },
+  "new_route": {
+    "summary": "via SW 8th St, I-95 and Biscayne Blvd, stopping at Starbucks (NE 125th St)",
+    "duration_s": 2820,
+    "distance_m": 30400,
+    "route_geojson": {
+      "type": "FeatureCollection",
+      "features": [
+        {
+          "type": "Feature",
+          "geometry": {
+            "type": "LineString",
+            "coordinates": [
+              [
+                -80.3733,
+                25.7574
+              ],
+              [
+                -80.26,
+                25.765
+              ],
+              [
+                -80.205,
+                25.78
+              ],
+              [
+                -80.204,
+                25.87
+              ],
+              [
+                -80.172,
+                25.891
+              ],
+              [
+                -80.16,
+                25.899
+              ],
+              [
+                -80.1392,
+                25.9104
+              ]
+            ]
+          },
+          "properties": {}
+        }
+      ]
+    },
+    "stops": [
+      {
+        "name": "Starbucks",
+        "place_id": "mock-place-starbucks",
+        "location": {
+          "type": "Point",
+          "coordinates": [
+            -80.172,
+            25.891
+          ]
+        }
+      }
+    ],
+    "hazards_on_route": [
+      {
+        "hazard_id": "incident:news-i95-nb-125th",
+        "hazard_type": "incident",
+        "title": "Crash on I-95",
+        "probability": 0.7
+      }
+    ]
+  },
+  "explanation": "Added a stop at the Starbucks on NE 125th St and kept you off the Palmetto by taking SW 8th St and I-95; about 6 minutes longer, with a reported crash on I-95 near 125th St.",
+  "deep_links": {
+    "google_maps": "https://www.google.com/maps/dir/?api=1&origin=25.7574,-80.3733&destination=25.9104,-80.1392&travelmode=driving&waypoints=25.891,-80.172",
+    "apple_maps": "https://maps.apple.com/?saddr=25.7574,-80.3733&daddr=25.9104,-80.1392",
+    "waze": "https://waze.com/ul?ll=25.9104,-80.1392&navigate=yes"
+  }
+}
