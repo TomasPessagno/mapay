@@ -30,7 +30,7 @@ How Tomas runs his queue from [`TASKS.md`](../TASKS.md) with two local coding ag
 **Antigravity CLI** (`agy`, what the orchestrator launches):
 1. Install it from [google-antigravity/antigravity-cli](https://github.com/google-antigravity/antigravity-cli) (see its README).
 2. Run `agy` once and sign in with the Google account that has the student plan. On a remote machine it prints a URL and a one-time code.
-3. Run `agy --help` and note the flag that auto-approves commands; set it in `AGY_FLAGS` so headless runs don't stop to ask.
+3. `scripts/agent-task.sh` runs it with `--dangerously-skip-permissions`, so headless runs don't stop to ask. The agent is confined to its task's worktree by the prompt, not by the tool, so review every diff before merging.
 
 **Antigravity desktop app** (optional, to watch or steer an agent by hand):
 1. Download it from [antigravity.google](https://antigravity.google) (macOS, Windows, Linux) and sign in with the Google account that has the student plan.

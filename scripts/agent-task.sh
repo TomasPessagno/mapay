@@ -5,8 +5,9 @@
 #
 # opencode (default): OpenCode on the Go plan, for backend tasks. OPENCODE_VARIANT=max for more
 #                     reasoning (default high).
-# agy:                the Antigravity CLI (student plan), for the app screens. Extra flags go in
-#                     AGY_FLAGS, e.g. the auto-approve flag from `agy --help`.
+# agy:                the Antigravity CLI (student plan), for the app screens. Runs with
+#                     --dangerously-skip-permissions so headless runs never stop to ask; override
+#                     with AGY_FLAGS.
 #
 # Reads the branch from the issue's "**Branch:**" line, creates ../mapay-<branch> from origin/main
 # (or reuses it), copies the .env files in, prepares the shared Python venv and, for Track B,
@@ -76,7 +77,7 @@ case "$tool" in
     opencode run --model "${model:-opencode-go/deepseek-v4.1-flash}" --variant "${OPENCODE_VARIANT:-high}" "$prompt" ;;
   agy|antigravity)
     # shellcheck disable=SC2086  # AGY_FLAGS is a list of flags
-    if [ -n "$model" ]; then agy ${AGY_FLAGS:-} --model "$model" -p "$prompt"; else agy ${AGY_FLAGS:-} -p "$prompt"; fi ;;
+    if [ -n "$model" ]; then agy ${AGY_FLAGS---dangerously-skip-permissions} --model "$model" -p "$prompt"; else agy ${AGY_FLAGS---dangerously-skip-permissions} -p "$prompt"; fi ;;
   *)
     echo "Unknown tool: $tool (use opencode or agy)" >&2; exit 1 ;;
 esac
