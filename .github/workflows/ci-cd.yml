@@ -120,6 +120,11 @@ jobs:
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
       needs.changes.outputs.backend == 'true'
+    # One deploy at a time: two merges close together otherwise race to create/update the service
+    # ("Resource ... already exists"). Queued, not cancelled, so every merge still deploys in order.
+    concurrency:
+      group: deploy-backend
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
