@@ -2,7 +2,8 @@ import { Device } from '@capacitor/device';
 import type { RouteResponse, Routine, UpcomingRoutinesResponse, Neighborhood, Preferences, LayersResponse } from "./types";
 
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true';
-const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+// Paths start with "/", so drop any trailing slash ("http://localhost:8000/" would call "//route").
+const BASE = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000").replace(/\/+$/, "");
 
 let deviceIdCache: string | null = null;
 
