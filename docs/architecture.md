@@ -14,13 +14,13 @@ flowchart LR
 
     subgraph Backend[FastAPI on Cloud Run]
         ING[Ingestion jobs]
-        LAYA[Laya decision model<br/>news first pass,<br/>its own Cloud Run service]
         GEM[Gemini<br/>news extraction, satellite check,<br/>prompt to constraints, briefing]
         FUSE[Hazard beliefs<br/>Bayesian log-odds per hazard]
         R[Router<br/>Routes API alternatives<br/>+ hazard scoring + via waypoints]
         SCH[Routine scheduling<br/>upcoming legs, pre-route check,<br/>best time, briefings]
     end
 
+    LAYA["Laya decision model<br/>news first pass,<br/>on Jean's laptop via a tunnel"]
     Sources --> ING
     ING --> LAYA --> GEM
     ING --> GEM --> FUSE

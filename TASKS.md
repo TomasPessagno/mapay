@@ -34,7 +34,7 @@ Every task in this file is a GitHub issue, written so either of you or a coding 
 
 ## Who does what
 
-The work is split by rough effort (mostly agent time): **Tomas ≈ 34.5 h, Jean ≈ 29 h of must-have (P0) work**, plus 6 h of should-haves (P1) each. Every issue is assigned to its owner on GitHub. **Tomas** has all the iPhone work (Mac and iPhone access) plus six backend tasks, including the news pipeline (local news → Gemini); **Jean** has the rest of the backend + data, plus the cloud (including the Laya service). The code areas stay the same: `backend/**` and `frontend/**`.
+The work is split by rough effort (mostly agent time): **Tomas ≈ 34.5 h, Jean ≈ 28.5 h of must-have (P0) work**, plus should-haves (P1): 6 h for Tomas, 8.5 h for Jean. Every issue is assigned to its owner on GitHub. **Tomas** has all the iPhone work (Mac and iPhone access) plus six backend tasks, including the news pipeline (local news → Gemini); **Jean** has the rest of the backend + data, the cloud, and Laya (it runs on his laptop). The code areas stay the same: `backend/**` and `frontend/**`.
 
 To **swap a task**, reassign its issue on GitHub first, then update the queues here in a small PR. If you're ahead, take the next unblocked issue from the other queue the same way.
 
@@ -75,7 +75,7 @@ To **swap a task**, reassign its issue on GitHub first, then update the queues h
 | 2 | [#3](https://github.com/TomasPessagno/mapay/issues/3) | A2 · Floods → beliefs (tides + FEMA + hotspots) | 2.5 h | agent |
 | 3 | [#6](https://github.com/TomasPessagno/mapay/issues/6) | A12 · HERE incidents + flow | 1.5 h | agent |
 | 4 | [#9](https://github.com/TomasPessagno/mapay/issues/9) | A17 · Satellite floods (GFM / Earth Engine) | 3 h | agent · accounts from T0 |
-| 5 | [#46](https://github.com/TomasPessagno/mapay/issues/46) | A24 · Laya service on Cloud Run | 1.5 h | an agent writes it, Jean deploys it · Tomas's #15 uses it |
+| 5 | [#46](https://github.com/TomasPessagno/mapay/issues/46) | A24 · Laya service on Jean's laptop | 1 h | an agent writes it, Jean runs it (free, through a tunnel) · Tomas's #15 uses it |
 | 6 | [#13](https://github.com/TomasPessagno/mapay/issues/13) | A3 · `/layers` from beliefs | 1.5 h |  |
 | 7 | [#14](https://github.com/TomasPessagno/mapay/issues/14) | A15 · `/internal/ingest` + Cloud Scheduler | 1.5 h |  |
 | 8 | [#17](https://github.com/TomasPessagno/mapay/issues/17) | A6 · Route scoring | 2 h | needs Tomas's #4 |
@@ -88,7 +88,7 @@ To **swap a task**, reassign its issue on GitHub first, then update the queues h
 | — | [#43](https://github.com/TomasPessagno/mapay/issues/43) | **T3 · Integration: Customize end to end** | | together |
 | 13 | [#16](https://github.com/TomasPessagno/mapay/issues/16) | A18 · Satellite construction (Sentinel-2 + Gemini) | 3 h | agent · needs Tomas's #5 |
 
-**P1:** [#39](https://github.com/TomasPessagno/mapay/issues/39) A19 Best time inside a window (1.5 h) · [#40](https://github.com/TomasPessagno/mapay/issues/40) A20 Precomputed briefings (1.5 h) · [#23](https://github.com/TomasPessagno/mapay/issues/23) A21 Typical congestion (2 h) · [#25](https://github.com/TomasPessagno/mapay/issues/25) A23 Deploy hygiene (1 h).
+**P1:** [#47](https://github.com/TomasPessagno/mapay/issues/47) A25 Fine-tune Laya on Miami news (2.5 h: Claude labels, Kaggle's free GPUs) · [#39](https://github.com/TomasPessagno/mapay/issues/39) A19 Best time inside a window (1.5 h) · [#40](https://github.com/TomasPessagno/mapay/issues/40) A20 Precomputed briefings (1.5 h) · [#23](https://github.com/TomasPessagno/mapay/issues/23) A21 Typical congestion (2 h) · [#25](https://github.com/TomasPessagno/mapay/issues/25) A23 Deploy hygiene (1 h).
 
 **Both:** [#2](https://github.com/TomasPessagno/mapay/issues/2) T0 kickoff → [#38](https://github.com/TomasPessagno/mapay/issues/38) T1 → [#42](https://github.com/TomasPessagno/mapay/issues/42) T2 → [#43](https://github.com/TomasPessagno/mapay/issues/43) T3 → [#44](https://github.com/TomasPessagno/mapay/issues/44) T4 demo prep.
 
@@ -235,9 +235,9 @@ Owners are in the queues above: A1, A5, A11, A13, A14, A16 and A22 are Tomas's; 
 | **A16** [#15](https://github.com/TomasPessagno/mapay/issues/15) · `a16-news-gemini` | News → Gemini → evidence | `ingestion/news.py`, `agents/news_extraction.py`, `agents/news_triage.py` (new), `config.py` | A5 | RSS + GDELT every 15 min; Laya first pass when `LAYA_URL` is set, Gemini-only otherwise; matching news adds evidence; new incidents registered; pins in `/layers.incident` |
 | **A17** [#9](https://github.com/TomasPessagno/mapay/issues/9) · `a17-satellite-floods` | Satellite floods (GFM, Earth Engine fallback) | `ingestion/gfm.py` (new), `ingestion/earth_engine_s1.py` (new), `routing/belief_config.py` (+ `satellite` source), tests | — | GFM flood extents become evidence / new flood hazards, with the pass time |
 | **A18** [#16](https://github.com/TomasPessagno/mapay/issues/16) · `a18-satellite-construction` | Satellite construction (Sentinel-2 + Gemini vision) | `ingestion/earth_engine_s2.py` (new), `agents/satellite_check.py` | A11 | Candidates confirmed by Gemini with before/after images; fallback: image chips at permit sites |
-| **A24** [#46](https://github.com/TomasPessagno/mapay/issues/46) · `a24-laya-service` | Laya decision service (open source, Jev-compatible) on Cloud Run | `services/laya/Dockerfile` (new), `services/laya/README.md` (new), `.github/workflows/ci-cd.yml` | T0 | `mapay-laya` answers `POST /v1/systemone` with the multilingual checkpoint; `LAYA_URL` / `LAYA_API_KEY` reach the backend |
+| **A24** [#46](https://github.com/TomasPessagno/mapay/issues/46) · `a24-laya-service` | Laya decision service (open source, Jev-compatible) on Jean's laptop, through a free tunnel | `services/laya/serve.py` (new), `services/laya/requirements.txt` (new), `services/laya/README.md` (new), `.github/workflows/ci-cd.yml` | — | The tunnel URL answers `POST /v1/systemone` with the multilingual checkpoint behind `LAYA_API_KEY`; `LAYA_URL` / `LAYA_API_KEY` reach the backend |
 
-**P1 (after the P0 above):** A19 [#39](https://github.com/TomasPessagno/mapay/issues/39) `a19-best-time` best time inside a window (`scheduling/best_time.py`, needs A9) · A20 [#40](https://github.com/TomasPessagno/mapay/issues/40) `a20-precomputed-briefings` (needs A9, A15) · A21 [#23](https://github.com/TomasPessagno/mapay/issues/23) `a21-traffic-samples` typical congestion (needs A15) · A22 [#24](https://github.com/TomasPessagno/mapay/issues/24) `a22-potholes-radar` 311 potholes + radar overlay · A23 [#25](https://github.com/TomasPessagno/mapay/issues/25) `a23-deploy-hygiene` pin `requirements.txt`, drop `osmnx`/`networkx` after A4, align the Dockerfile's Python 3.11 with CI's 3.14.
+**P1 (after the P0 above):** A19 [#39](https://github.com/TomasPessagno/mapay/issues/39) `a19-best-time` best time inside a window (`scheduling/best_time.py`, needs A9) · A20 [#40](https://github.com/TomasPessagno/mapay/issues/40) `a20-precomputed-briefings` (needs A9, A15) · A21 [#23](https://github.com/TomasPessagno/mapay/issues/23) `a21-traffic-samples` typical congestion (needs A15) · A22 [#24](https://github.com/TomasPessagno/mapay/issues/24) `a22-potholes-radar` 311 potholes + radar overlay · A23 [#25](https://github.com/TomasPessagno/mapay/issues/25) `a23-deploy-hygiene` pin `requirements.txt`, drop `osmnx`/`networkx` after A4, align the Dockerfile's Python 3.11 with CI's 3.14 · A25 [#47](https://github.com/TomasPessagno/mapay/issues/47) `a25-laya-finetune` fine-tune Laya on Miami news (labels from Claude, Kaggle's free GPUs; needs A24 to serve it).
 
 ---
 
@@ -299,7 +299,7 @@ All Tomas's. Paths are under `frontend/` unless noted. Build against the mocks (
 
 ## If we fall behind, cut in this order
 
-1. All P1 items (A19–A23, B14–B15).
+1. All P1 items (A19–A23, A25, B14–B15).
 2. B13 Vercel preview.
 3. A24 → no Laya; A16 runs Gemini-only.
 4. A18 → only the permit-site fallback.

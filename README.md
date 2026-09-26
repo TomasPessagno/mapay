@@ -235,7 +235,6 @@ flowchart LR
 
     subgraph Backend[Backend: FastAPI on Cloud Run]
         ING[Ingestion jobs]
-        LAYA[Laya]
         GEM[Gemini]
         HAZ[Hazards]
         ROUTER[Router]
@@ -243,6 +242,7 @@ flowchart LR
     end
 
     DB[(MongoDB Atlas)]
+    LAYA["Laya<br/>on Jean's laptop"]
 
     subgraph iPhone[iPhone app + widget]
         MAP[Colour-coded map]

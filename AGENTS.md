@@ -100,7 +100,9 @@ Gemini interprets and explains; routing stays deterministic. Never analyse Googl
 - **Map:** fully on Google Maps Platform. Maps JavaScript API via `@vis.gl/react-google-maps` inside the app's web view, with light + dark cloud-styled Map IDs that follow the system; Google `TrafficLayer` for live congestion; Places API for search, saved places and stops. No MapLibre or MapKit: Google's terms don't allow showing Google routes/places on a non-Google map. Deep links use the Google Maps URLs API (`https://www.google.com/maps/dir/?api=1&origin=...&destination=...&waypoints=...`); only Google Maps preserves multi-waypoint shaping, Apple Maps / Waze get origin → destination.
 - **Routing:** Google Routes API with our own deterministic hazard scoring. See [Routing](#routing). The committed `routing/engine.py` still searches an OSMnx graph (its loader is a stub, so `/route` returns 503); the path search moves to Routes API, while the beliefs and the pre-route check stay.
 - **LLM:** Gemini via the Google GenAI SDK (`google-genai`) with an API key from **Google AI Studio** (`GEMINI_API_KEY`), structured JSON output. Gemini *interprets* (news → events, prompt → constraints, satellite chips → yes/no + description) and *explains*. It never picks the route. AI Studio keys have per-minute and per-day request limits: batch news articles per call, never re-process an article, and cache results.
-- **Decision model:** [Laya](https://github.com/NandhaKishorM/laya), open source (Apache-2.0), which we host ourselves on Cloud Run as `mapay-laya` (A24).
+- **Decision model:** [Laya](https://github.com/NandhaKishorM/laya), open source (Apache-2.0).
+  - It runs for free on Jean's laptop behind a tunnel (A24), so it can be offline.
+  - A25 (P1) fine-tunes it on Miami news labelled by Claude, using Kaggle's free GPUs.
   - It answers typed questions about a text (`noul` = yes/no, `choice`, `score`) with a probability per answer, in about 0.2 s on CPU.
   - It speaks TypeSafe Jev's `POST /v1/systemone` API; the backend reads `LAYA_URL` and `LAYA_API_KEY`.
   - The news pipeline uses it as a first pass before Gemini. Without `LAYA_URL` it runs Gemini-only.
@@ -324,7 +326,7 @@ Limits to be upfront about, including in the pitch:
 | Weather: radar | NOAA/NWS radar mosaic (WMS) | Map overlay | No | P1 |
 | No sidewalk | OpenStreetMap via Overpass API | `sidewalk=no` / `none`; missing tag = unknown | No | P0 |
 | Potholes | Miami-Dade 311 (2023 dataset — frame as "chronic corridors," not live) | opendata.miamidade.gov | No | P1 |
-| Incidents / police / news | RSS (NBC6, WLRN, Local10, Miami Herald, CBS News Miami) + GDELT → Laya first pass → Gemini | `api.gdeltproject.org/api/v2/doc/doc?query=miami+crash&mode=artlist&format=json` | Gemini key; Laya is self-hosted (A24) | P0 |
+| Incidents / police / news | RSS (NBC6, WLRN, Local10, Miami Herald, CBS News Miami) + GDELT → Laya first pass → Gemini | `api.gdeltproject.org/api/v2/doc/doc?query=miami+crash&mode=artlist&format=json` | Gemini key; Laya runs on Jean's laptop (A24) | P0 |
 | Neighbourhoods | City of Miami "Miami Neighborhoods" layer + Miami-Dade municipal boundaries + Census TIGER/Line places (e.g. Westchester, Kendall) | datahub-miamigis.opendata.arcgis.com, gis-mdc.opendata.arcgis.com, census.gov → `data/neighborhoods.geojson` | No | P0 |
 | Routing | Google Routes API (`computeRoutes`, `computeAlternativeRoutes: true`) — only supports avoidTolls/avoidHighways/avoidFerries/avoidIndoor, NOT custom hazard polygons, so hazard-awareness = our scoring + `via` waypoints | developers.google.com/maps/documentation/routes | Yes | P0 |
 | Search, saved places, stops | Google Places API | Autocomplete + Text Search | Yes | P0 |
@@ -460,7 +462,7 @@ mapay/
       data/               # committed static files: flood hotspots, neighborhoods, FEMA export, tolls.json
     tests/                # unit tests (CI requires the belief-math test)
   services/
-    laya/                 # Dockerfile + deploy notes for our self-hosted Laya service (Cloud Run: mapay-laya)
+    laya/                 # Laya on Jean's laptop: launcher + run notes (A24), fine-tuning scripts (A25)
   docs/
     hazard-beliefs.md     # the belief model, evidence sources and pre-route check
     design.md             # design spec (Apple-like)
@@ -491,13 +493,13 @@ flowchart LR
 
     subgraph Backend[FastAPI on Cloud Run]
         ING[Ingestion jobs]
-        LAYA[Laya decision model<br/>news first pass,<br/>its own Cloud Run service]
         GEM[Gemini<br/>news extraction, satellite check,<br/>prompt to constraints, briefing]
         FUSE[Hazard beliefs<br/>Bayesian log-odds per hazard]
         R[Router<br/>Routes API alternatives<br/>+ hazard scoring + via waypoints]
         SCH[Routine scheduling<br/>upcoming legs, pre-route check,<br/>best time, briefings]
     end
 
+    LAYA["Laya decision model<br/>news first pass,<br/>on Jean's laptop via a tunnel"]
     Sources --> ING
     ING --> LAYA --> GEM
     ING --> GEM --> FUSE
