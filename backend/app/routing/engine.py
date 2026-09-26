@@ -1,40 +1,40 @@
-"""Deterministic routing on an already-loaded OSMnx MultiDiGraph."""
-from itertools import pairwise
+"""Deterministic route choice over Google Routes API alternatives.
 
-import networkx as nx
-from shapely.geometry import LineString, mapping, shape
+Google computes the candidate paths; the choice between them never involves an LLM. Until the
+full scoring in A6 lands, an alternative that crosses an active hazard costs its duration times
+`hazard_weight_multiplier`, the same rule the old OSMnx graph search applied per edge.
+"""
+from shapely.geometry import shape
+from shapely.ops import unary_union
 
 from app.routing.belief_config import BELIEF_CONFIG as C
+from app.routing.google_routes import compute_routes
 
 
-def route_on_graph(graph, origin, destination, hazards=(), avoid_tolls=False):
-    graph = graph.copy()
-    active = [shape(h["geometry"]).buffer(C["route_buffer_degrees"])
-              for h in hazards if h["log_odds"] >= C["threshold"]]
-    for u, v, key, edge in list(graph.edges(keys=True, data=True)):
-        if avoid_tolls and str(edge.get("toll", "no")).lower() in ("yes", "true", "1"):
-            graph.remove_edge(u, v, key)
-            continue
-        geometry = edge.get("geometry")
-        if geometry is None:
-            geometry = LineString([(graph.nodes[n]["x"], graph.nodes[n]["y"]) for n in (u, v)])
-        edge["route_geometry"] = geometry
-        cost = float(edge["travel_time"])
-        edge["hazard_weight"] = cost * (C["hazard_weight_multiplier"] if any(geometry.intersects(h) for h in active) else 1)
-    def nearest(point):
-        return min(graph.nodes, key=lambda n: (graph.nodes[n]["y"] - point[0]) ** 2 +
-                   (graph.nodes[n]["x"] - point[1]) ** 2)
-    path = nx.shortest_path(graph, nearest(origin), nearest(destination), weight="hazard_weight")
-    features = []
-    for u, v in pairwise(path):
-        edge = min(graph[u][v].values(), key=lambda e: e["hazard_weight"])
-        features.append({"type": "Feature", "geometry": mapping(edge["route_geometry"]), "properties": {}})
-    return {"type": "FeatureCollection", "features": features}
+def crosses_active_hazard(route: dict, hazards) -> bool:
+    active = [shape(h["geometry"]) for h in hazards if h["log_odds"] >= C["threshold"]]
+    if not active:
+        return False
+    corridor = unary_union([shape(f["geometry"]) for f in route["features"]]).buffer(C["route_buffer_degrees"])
+    return any(corridor.intersects(h) for h in active)
 
 
-def baseline_route(graph, origin, destination):
-    return route_on_graph(graph, origin, destination)
+def pick_route(alternatives: list[dict], hazards=()) -> dict:
+    """The cheapest alternative; ties keep Google's order, so no hazards → Google's first route."""
+    def cost(alt):
+        penalty = C["hazard_weight_multiplier"] if crosses_active_hazard(alt["route_geojson"], hazards) else 1
+        return alt["duration_s"] * penalty
+    return min(alternatives, key=cost)
 
 
-def weighted_route(graph, origin, destination, hazards=(), avoid_tolls=False):
-    return route_on_graph(graph, origin, destination, hazards, avoid_tolls)
+async def route_alternatives(origin, destination, depart_at=None, avoid_tolls=False, avoid_highways=False,
+                             mode="drive"):
+    return await compute_routes(origin, destination, depart_at=depart_at, avoid_tolls=avoid_tolls,
+                                avoid_highways=avoid_highways, mode=mode)
+
+
+async def weighted_route(origin, destination, hazards=(), avoid_tolls=False, depart_at=None,
+                         avoid_highways=False, mode="drive") -> dict:
+    """GeoJSON FeatureCollection of the chosen route."""
+    alternatives = await route_alternatives(origin, destination, depart_at, avoid_tolls, avoid_highways, mode)
+    return pick_route(alternatives, hazards)["route_geojson"]

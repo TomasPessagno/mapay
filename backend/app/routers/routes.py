@@ -1,23 +1,18 @@
 from datetime import datetime, timezone
 
-import networkx as nx
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException
 
-from app.db.models import RouteRequest, RouteResponse
+from app.db.models import RouteAlternative, RouteRequest, RouteResponse
 from app.db.mongo import get_db
-from app.routing.engine import baseline_route, weighted_route
+from app.routing.engine import pick_route, route_alternatives
+from app.routing.google_routes import NoRouteFound, RoutesApiError
 from app.routing.pre_route import current_hazards, on_route
 
 router = APIRouter(prefix="/route", tags=["route"])
 
 
 @router.post("", response_model=RouteResponse)
-async def compute_route(req: RouteRequest, request: Request) -> RouteResponse:
-    graph = getattr(request.app.state, "graph", None)
-    if graph is None:
-        raise HTTPException(503, "Routing graph is not loaded")
-    if req.mode != "drive":
-        raise HTTPException(422, "A walking graph is not available")
+async def compute_route(req: RouteRequest) -> RouteResponse:
     db = get_db()
     if req.routine_id:
         routine = await db.routines.find_one({"_id": req.routine_id})
@@ -32,12 +27,21 @@ async def compute_route(req: RouteRequest, request: Request) -> RouteResponse:
     now = datetime.now(timezone.utc)
     hazards = await current_hazards(db, now)
     try:
-        route = weighted_route(graph, req.origin, req.destination, hazards, req.avoid_tolls)
-        baseline = baseline_route(graph, req.origin, req.destination)
-    except nx.NetworkXNoPath as exc:
+        alternatives = await route_alternatives(req.origin, req.destination, req.depart_at, req.avoid_tolls,
+                                                req.avoid_highways, req.mode)
+    except NoRouteFound as exc:
         raise HTTPException(422, "No route found") from exc
+    except RoutesApiError as exc:
+        raise HTTPException(502, str(exc)) from exc
+    chosen = pick_route(alternatives, hazards)
+    route = chosen["route_geojson"]
     if req.routine_id:
         await db.routines.update_one({'_id': req.routine_id}, {'$set': {'route_state': {
             'departure': req.depart_at, 'computed_at': now, 'route_geojson': route,
             'beliefs': on_route(route, hazards)}}})
-    return RouteResponse(route_geojson=route, baseline_geojson=baseline)
+    return RouteResponse(
+        depart_at=req.depart_at,
+        route_geojson=route,
+        baseline_geojson=alternatives[0]["route_geojson"],
+        alternatives=[RouteAlternative(**alt, recommended=alt is chosen) for alt in alternatives],
+    )

@@ -21,7 +21,7 @@ async def current_hazards(db, now):
     return [await refresh_belief(db, h["hazard_id"], now) for h in docs]
 
 
-async def check_routine(db, routine: dict, departure: datetime, now: datetime, graph) -> dict:
+async def check_routine(db, routine: dict, departure: datetime, now: datetime) -> dict:
     if departure.tzinfo is None:
         raise ValueError("departure must include a timezone")
     local = departure.astimezone(ZoneInfo("America/New_York"))
@@ -42,13 +42,11 @@ async def check_routine(db, routine: dict, departure: datetime, now: datetime, g
     changes = threshold_changes(previous["beliefs"], on_route(previous["route_geojson"], hazards)) if previous else []
     if previous and not changes:
         return {"recalculated": False, "reason": "no_threshold_crossing", "route_geojson": previous["route_geojson"]}
-    if graph is None:
-        raise RuntimeError("Routing graph is not loaded")
     preferences = routine.get("preferences", {})
-    if preferences.get("mode", "drive") != "drive":
-        raise ValueError("A walking graph is not available")
-    route = weighted_route(graph, routine["origin"], routine["destination"], hazards,
-                           avoid_tolls=preferences.get("avoid_tolls", False))
+    route = await weighted_route(routine["origin"], routine["destination"], hazards,
+                                 avoid_tolls=preferences.get("avoid_tolls", False), depart_at=departure,
+                                 avoid_highways=preferences.get("avoid_highways", False),
+                                 mode=preferences.get("mode", "drive"))
     state = {"departure": utc(departure), "computed_at": utc(now), "route_geojson": route,
              "beliefs": on_route(route, hazards)}
     # Prevent concurrent checks from overwriting a newer route state.
