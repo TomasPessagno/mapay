@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, useIonViewWillEnter, useIonViewWillLeave } from '@ionic/react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/react';
+import { useLocation } from 'react-router-dom';
 import { APIProvider } from "@vis.gl/react-google-maps";
 import { Geolocation } from '@capacitor/geolocation';
 import MapView from '../map/MapView';
@@ -14,10 +15,9 @@ const MapPage: React.FC = () => {
   const [departAt] = useState(new Date());
   const [routeResponse, setRouteResponse] = useState<RouteResponse | null>(null);
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
-  const [showSheet, setShowSheet] = useState(false);
-
-  useIonViewWillEnter(() => setShowSheet(true));
-  useIonViewWillLeave(() => setShowSheet(false));
+  // Ionic keeps every tab mounted, so the sheet is mounted only while the Map tab's route is active;
+  // the route state lives here, so leaving and coming back keeps it.
+  const showSheet = useLocation().pathname.startsWith('/map');
 
   const handleSearch = async (destination: {lat: number, lng: number}) => {
     try {
@@ -69,14 +69,16 @@ const MapPage: React.FC = () => {
             selectedRouteIndex={selectedRouteIndex} 
             mapId={MAP_ID}
           />
-          <MapSheet
-            isOpen={showSheet}
-            routeResponse={routeResponse}
-            onSearch={handleSearch}
-            onRouteSelect={setSelectedRouteIndex}
-            selectedRouteIndex={selectedRouteIndex}
-            onClearRoute={handleClearRoute}
-          />
+          {showSheet && (
+            <MapSheet
+              isOpen
+              routeResponse={routeResponse}
+              onSearch={handleSearch}
+              onRouteSelect={setSelectedRouteIndex}
+              selectedRouteIndex={selectedRouteIndex}
+              onClearRoute={handleClearRoute}
+            />
+          )}
         </APIProvider>
       </IonContent>
     </IonPage>
