@@ -200,6 +200,39 @@ Everything the orchestrator needs is in the repo: this file, [`TASKS.md`](../TAS
 - Run `gh pr view <N>`, `gh pr diff <N>` and `gh pr checks <N>`, and apply "Reviewing and merging" above.
 - Reply with `gh pr review <N> --comment` (or `--approve` / `--request-changes`).
 
+**"Run the queue" (a local session, on Tomas's computer)**
+
+Tomas can hand the backend queue to a local Claude Code session: "you're the orchestrator, run the queue". It works through the OpenCode tasks on its own and stops only when it needs him. This session runs on his computer because OpenCode is installed and signed in there. Start it with `claude remote-control` in the `mapay` folder so Tomas can follow it from the Claude app.
+
+1. **Check the tools:** `git pull` in `mapay`, `gh auth status`, `opencode --version`.
+2. **Pick tasks:**
+   - From "Tomas's queue by tool", take the OpenCode tasks whose "Blocked by" issues are closed and that have no open PR.
+   - Respect "Files several tasks edit".
+   - Run at most 3 at once. Run the very first one alone until the shared venv exists.
+   - Current order:
+     - #4, #5 and #8 (Jean waits on #4 and #5);
+     - #7;
+     - #10, once Tomas confirms the `X-Device-Id` header (T0);
+     - #15, after #4 and #7 have merged.
+3. **Launch** each one in the background from `mapay`: `scripts/opencode-task.sh <N> > ../opencode-<N>.log 2>&1`.
+4. **When a run ends,** find its PR with `gh pr list --head <branch>`. If there's none, read the log and the worktree's `git status`, then send a follow-up from the worktree: `opencode run --continue --model opencode-go/deepseek-v4.1-flash "<what's missing>"`.
+5. **Review each PR** with "Reviewing and merging" above:
+   - `gh pr checks <N> --watch`, then `gh pr diff <N>`.
+   - Also check that no keys were committed and that tests don't touch the network.
+   - If something is wrong, send OpenCode the specific fixes (at most two rounds).
+6. **Merge:**
+   - `gh pr merge <N> --squash --delete-branch`, `git worktree remove ../mapay-<branch>`, `git pull`.
+   - If Jean waits on it, comment on his issue: "Unblocked: #N is merged". That's #4 → #17, #5 → #16, #10 → #18.
+   - Give Tomas one line: what merged, and what's next.
+7. **Repeat** until a stop below applies.
+
+**Stop and ask Tomas when:**
+- the next task needs a decision, a key or an account (T0, [#2](https://github.com/TomasPessagno/mapay/issues/2));
+- only Antigravity, Mac or together tasks are left (ask whether to wait for him or give the app screens to OpenCode too);
+- a PR still fails after two follow-ups, or the fix would leave the issue's Scope or change a mock shape (that affects Jean);
+- OpenCode reports that Go's usage limit is reached;
+- anything would touch Jean's queue.
+
 **House rules**
 - Plan and doc changes (README, AGENTS.md, TASKS.md, `docs/`) go straight to `main` as small commits. Code goes through the issue's branch and a PR.
 - When a task changes hands:
