@@ -1,0 +1,164 @@
+{
+  "type": "FeatureCollection",
+  "title": "saved NWS /alerts/active response for offline tests",
+  "features": [
+    {
+      "id": "urn:oid:2.49.0.1.840.0.d629296c457c07a0efd1538977eea81337cf40fa.001.1",
+      "type": "Feature",
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [-80.24, 25.74],
+            [-80.16, 25.74],
+            [-80.16, 25.82],
+            [-80.24, 25.82],
+            [-80.24, 25.74]
+          ]
+        ]
+      },
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.d629296c457c07a0efd1538977eea81337cf40fa.001.1",
+        "id": "urn:oid:2.49.0.1.840.0.d629296c457c07a0efd1538977eea81337cf40fa.001.1",
+        "areaDesc": "Metropolitan Miami Dade",
+        "geocode": {"UGC": ["FLZ074"]},
+        "affectedZones": [],
+        "sent": "2026-09-26T10:00:00-04:00",
+        "effective": "2026-09-26T10:00:00-04:00",
+        "onset": "2026-09-26T10:00:00-04:00",
+        "expires": "2026-09-26T23:00:00-04:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Alert",
+        "severity": "Severe",
+        "certainty": "Observed",
+        "urgency": "Immediate",
+        "event": "Flood Warning",
+        "headline": "Flood Warning issued September 26 at 10:00AM EDT by NWS Miami FL"
+      }
+    },
+    {
+      "id": "urn:oid:2.49.0.1.840.0.b11d61c0efcce07c0173cab89ca092d0ac2bdd62.003.1",
+      "type": "Feature",
+      "geometry": null,
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b11d61c0efcce07c0173cab89ca092d0ac2bdd62.003.1",
+        "id": "urn:oid:2.49.0.1.840.0.b11d61c0efcce07c0173cab89ca092d0ac2bdd62.003.1",
+        "areaDesc": "Coastal Miami Dade County",
+        "geocode": {"UGC": ["FLZ173"]},
+        "affectedZones": ["https://api.weather.gov/zones/forecast/FLZ173"],
+        "sent": "2026-09-26T02:30:00-04:00",
+        "effective": "2026-09-26T02:30:00-04:00",
+        "onset": "2026-09-26T02:30:00-04:00",
+        "expires": "2026-09-26T20:00:00-04:00",
+        "ends": "2026-09-27T13:00:00-04:00",
+        "status": "Actual",
+        "messageType": "Update",
+        "severity": "Minor",
+        "certainty": "Likely",
+        "urgency": "Expected",
+        "event": "Coastal Flood Statement",
+        "headline": "Coastal Flood Statement issued September 26 at 2:30AM EDT until September 27 at 1:00PM EDT by NWS Miami FL"
+      }
+    },
+    {
+      "id": "urn:oid:2.49.0.1.840.0.b11d61c0efcce07c0173cab89ca092d0ac2bdd62.002.1",
+      "type": "Feature",
+      "geometry": null,
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b11d61c0efcce07c0173cab89ca092d0ac2bdd62.002.1",
+        "id": "urn:oid:2.49.0.1.840.0.b11d61c0efcce07c0173cab89ca092d0ac2bdd62.002.1",
+        "areaDesc": "Inland Miami-Dade County; Metropolitan Miami Dade",
+        "geocode": {"UGC": ["FLZ073", "FLZ074"]},
+        "affectedZones": [
+          "https://api.weather.gov/zones/forecast/FLZ073",
+          "https://api.weather.gov/zones/forecast/FLZ074"
+        ],
+        "sent": "2026-09-26T03:00:00-04:00",
+        "effective": "2026-09-26T03:00:00-04:00",
+        "onset": "2026-09-26T03:00:00-04:00",
+        "expires": "2026-09-26T21:00:00-04:00",
+        "ends": "2026-09-27T08:00:00-04:00",
+        "status": "Actual",
+        "messageType": "Alert",
+        "severity": "Moderate",
+        "certainty": "Possible",
+        "urgency": "Future",
+        "event": "Flood Watch",
+        "headline": "Flood Watch issued September 26 at 3:00AM EDT by NWS Miami FL"
+      }
+    },
+    {
+      "id": "urn:oid:2.49.0.1.840.0.b11d61c0efcce07c0173cab89ca092d0ac2bdd62.001.1",
+      "type": "Feature",
+      "geometry": null,
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b11d61c0efcce07c0173cab89ca092d0ac2bdd62.001.1",
+        "id": "urn:oid:2.49.0.1.840.0.b11d61c0efcce07c0173cab89ca092d0ac2bdd62.001.1",
+        "areaDesc": "Metropolitan Miami Dade",
+        "geocode": {"UGC": ["FLZ074"]},
+        "affectedZones": ["https://api.weather.gov/zones/forecast/FLZ074"],
+        "sent": "2026-09-25T02:00:00-04:00",
+        "effective": "2026-09-25T02:00:00-04:00",
+        "onset": "2026-09-25T02:00:00-04:00",
+        "expires": "2026-09-26T00:00:00-04:00",
+        "ends": "2026-09-26T00:00:00-04:00",
+        "status": "Actual",
+        "messageType": "Alert",
+        "severity": "Minor",
+        "certainty": "Likely",
+        "urgency": "Expected",
+        "event": "Coastal Flood Statement",
+        "headline": "Coastal Flood Statement issued September 25 at 2:00AM EDT by NWS Miami FL"
+      }
+    },
+    {
+      "id": "urn:oid:2.49.0.1.840.0.b11d61c0efcce07c0173cab89ca092d0ac2bdd62.005.1",
+      "type": "Feature",
+      "geometry": null,
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b11d61c0efcce07c0173cab89ca092d0ac2bdd62.005.1",
+        "id": "urn:oid:2.49.0.1.840.0.b11d61c0efcce07c0173cab89ca092d0ac2bdd62.005.1",
+        "areaDesc": "Metropolitan Miami Dade",
+        "geocode": {"UGC": ["FLZ074"]},
+        "affectedZones": ["https://api.weather.gov/zones/forecast/FLZ074"],
+        "sent": "2026-09-26T04:00:00-04:00",
+        "effective": "2026-09-26T04:00:00-04:00",
+        "onset": "2026-09-26T04:00:00-04:00",
+        "expires": "2026-09-27T08:00:00-04:00",
+        "ends": "2026-09-27T08:00:00-04:00",
+        "status": "Actual",
+        "messageType": "Cancel",
+        "severity": "Minor",
+        "certainty": "Likely",
+        "urgency": "Expected",
+        "event": "Coastal Flood Statement",
+        "headline": "Coastal Flood Statement cancelled September 26 at 4:00AM EDT by NWS Miami FL"
+      }
+    },
+    {
+      "id": "urn:oid:2.49.0.1.840.0.b11d61c0efcce07c0173cab89ca092d0ac2bdd62.009.1",
+      "type": "Feature",
+      "geometry": null,
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b11d61c0efcce07c0173cab89ca092d0ac2bdd62.009.1",
+        "id": "urn:oid:2.49.0.1.840.0.b11d61c0efcce07c0173cab89ca092d0ac2bdd62.009.1",
+        "areaDesc": "Unknown",
+        "geocode": {},
+        "affectedZones": [],
+        "sent": "2026-09-26T04:00:00-04:00",
+        "effective": "2026-09-26T04:00:00-04:00",
+        "onset": "2026-09-26T04:00:00-04:00",
+        "expires": "2026-09-26T12:00:00-04:00",
+        "ends": null,
+        "status": "Actual",
+        "messageType": "Alert",
+        "severity": "Unknown",
+        "certainty": "Unknown",
+        "urgency": "Unknown",
+        "event": "Special Weather Statement",
+        "headline": "Special Weather Statement issued September 26 at 4:00AM EDT"
+      }
+    }
+  ]
+}
