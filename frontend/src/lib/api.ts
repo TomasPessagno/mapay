@@ -67,8 +67,8 @@ export const api = {
   route: (body: unknown) => request<RouteResponse>("/route", { method: "POST", body: JSON.stringify(body) }),
   layers: (t: Date) => request<LayersResponse>(`/layers?t=${t.toISOString()}`),
   alerts: () => request<{ nws: unknown[]; news: unknown[] }>("/alerts"),
-  report: (type: string, lat: number, lng: number) =>
-    request("/report", { method: "POST", body: JSON.stringify({ type, lat, lng }) }),
+  report: (data: { type: string; lat: number; lng: number; hazard_id?: string; cleared?: boolean }) =>
+    request("/report", { method: "POST", body: JSON.stringify(data) }),
   routines: () => request<Routine[]>(`/routines`),
   saveRoutine: (r: Routine) => request<Routine>("/routines", { method: "POST", body: JSON.stringify(r) }),
   upcomingRoutines: (days: number = 7) => request<UpcomingRoutinesResponse>(`/routines/upcoming?days=${days}`),

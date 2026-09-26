@@ -9,6 +9,7 @@ import {
   IonNote,
 } from '@ionic/react';
 import { HAZARD_TOKENS } from '../map/legend';
+import { api } from '../lib/api';
 
 export interface HazardSource {
   kind: string;
@@ -29,6 +30,8 @@ export interface HazardProperties {
   sources: HazardSource[];
   last_updated: string;
   expires_at: string | null;
+  lat: number;
+  lng: number;
 }
 
 interface HazardSheetProps {
@@ -61,22 +64,12 @@ export default function HazardSheet({ isOpen, hazard, onDidDismiss }: HazardShee
   const handleReport = async (cleared: boolean) => {
     setReporting(true);
     try {
-      let deviceId = localStorage.getItem('mapay_device_id');
-      if (!deviceId) {
-        try {
-          const { Device } = await import('@capacitor/device');
-          const info = await Device.getId();
-          deviceId = info.identifier;
-        } catch {
-          deviceId = crypto.randomUUID();
-          localStorage.setItem('mapay_device_id', deviceId);
-        }
-      }
-      const BASE = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000").replace(/\/+$/, "");
-      await fetch(`${BASE}/report`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "X-Device-Id": deviceId },
-        body: JSON.stringify({ hazard_id: hazard.hazard_id, cleared })
+      await api.report({
+        type: hazard.hazard_type,
+        lat: hazard.lat,
+        lng: hazard.lng,
+        hazard_id: hazard.hazard_id,
+        cleared
       });
       onDidDismiss();
     } catch (e) {

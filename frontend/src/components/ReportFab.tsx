@@ -21,7 +21,7 @@ export default function ReportFab() {
         console.warn("Geolocation failed, using fallback", e);
       }
       
-      await api.report(type, lat, lng);
+      await api.report({ type, lat, lng });
       presentToast({
         message: 'Report submitted. Thanks!',
         duration: 2000,

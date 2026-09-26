@@ -12,6 +12,11 @@ let mapInstance: google.maps.Map | null = null;
 let advancedMarkerLib: google.maps.MarkerLibrary | null = null;
 let geometryLib: google.maps.GeometryLibrary | null = null;
 let zoomListener: google.maps.MapsEventListener | null = null;
+let hazardClickHandler: ((hazard: Record<string, unknown>) => void) | null = null;
+
+export function setOnHazardClick(handler: ((hazard: Record<string, unknown>) => void) | null) {
+  hazardClickHandler = handler;
+}
 
 let focusPolyline: google.maps.Polyline | null = null;
 
@@ -156,6 +161,21 @@ export async function upsertGeoJsonLayer(
   if (!layer) {
     layer = new google.maps.Data();
     layers.set(id, layer);
+    
+    layer.addListener('click', (e: google.maps.Data.MouseEvent) => {
+      if (!hazardClickHandler) return;
+      const feature = e.feature;
+      const hazard: Record<string, unknown> = {};
+      feature.forEachProperty((value, key) => {
+        hazard[key] = value;
+      });
+      const centroid = getCentroid(feature);
+      if (centroid) {
+        hazard.lat = centroid.lat;
+        hazard.lng = centroid.lng;
+      }
+      hazardClickHandler(hazard);
+    });
   } else {
     // Clear existing features
     layer.forEach((feature) => layer!.remove(feature));
@@ -202,7 +222,20 @@ export async function upsertGeoJsonLayer(
       position: centroid,
       content: createMarkerContent(token, isDark, opacity),
       title: feature.getProperty('title') as string,
+      gmpClickable: true,
     });
+    
+    marker.addListener('gmp-click', () => {
+      if (!hazardClickHandler) return;
+      const hazard: Record<string, unknown> = {};
+      feature.forEachProperty((value, key) => {
+        hazard[key] = value;
+      });
+      hazard.lat = centroid.lat;
+      hazard.lng = centroid.lng;
+      hazardClickHandler(hazard);
+    });
+
     markers!.push(marker);
   });
 
