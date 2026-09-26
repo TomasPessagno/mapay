@@ -547,7 +547,7 @@ Backup: a screen recording of the iPhone (and the Simulator) in case the live de
 
 ## Roadmap (~20-24 hrs)
 
-**Two people?** Work from [`TASKS.md`](TASKS.md): Tomas's and Jean's queues split the tasks evenly (Tomas: the iPhone app + five backend tasks; Jean: the rest of the backend + data), and every issue is assigned to its owner.
+**Two people?** Work from [`TASKS.md`](TASKS.md): Tomas's and Jean's queues split the tasks evenly (Tomas: the iPhone app + six backend tasks, including the news pipeline; Jean: the rest of the backend + data), and every issue is assigned to its owner.
 
 Tracks: **A** = backend core (routing, routines, heads-up briefings, Customize). **B** = iPhone app (Ionic UI in the browser, then Capacitor iOS + the Swift widget on the Mac). **C** = data + AI (ingestion, news → Gemini, weather, satellite) and pitch material. Anything native needs the Mac, so B owns it. Hours count from when we start building; if we're already in, keep the order and re-slot the rest. P1/P2 items are marked; everything else is P0.
 
