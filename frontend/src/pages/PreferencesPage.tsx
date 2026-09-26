@@ -1,5 +1,6 @@
 import React from 'react';
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/react';
+import PreferencesTab from '../routines/PreferencesTab';
 
 const PreferencesPage: React.FC = () => {
   return (
@@ -9,17 +10,14 @@ const PreferencesPage: React.FC = () => {
           <IonTitle>Preferences</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent fullscreen={true}>
+      <IonContent fullscreen={true} style={{ '--background': 'var(--ion-color-step-50, var(--system-grouped-background))' } as React.CSSProperties}>
         <IonHeader collapse="condense">
           <IonToolbar>
             <IonTitle size="large">Preferences</IonTitle>
           </IonToolbar>
         </IonHeader>
         
-        {/* Placeholder for Preferences */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '101%' }}>
-          <p>Preferences Settings</p>
-        </div>
+        <PreferencesTab />
       </IonContent>
     </IonPage>
   );

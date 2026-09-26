@@ -2,7 +2,8 @@ import { Device } from '@capacitor/device';
 import type { RouteResponse, Routine, UpcomingRoutinesResponse, Neighborhood, Preferences, LayersResponse, Place } from "./types";
 
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true';
-const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+// Paths start with "/", so drop any trailing slash ("http://localhost:8000/" would call "//route").
+const BASE = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000").replace(/\/+$/, "");
 
 let deviceIdCache: string | null = null;
 
@@ -73,7 +74,13 @@ export const api = {
   upcomingRoutines: (days: number = 7) => request<UpcomingRoutinesResponse>(`/routines/upcoming?days=${days}`),
   places: () => request<Place[]>("/places"),
   savePlace: (p: Partial<Place>) => request<Place>("/places", { method: "POST", body: JSON.stringify(p) }),
-  neighborhoods: () => request<Neighborhood[]>("/neighborhoods"),
+  neighborhoods: async (q?: string) => {
+    let res = await request<Neighborhood[]>(`/neighborhoods${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+    if (USE_MOCKS && q) {
+      res = res.filter(n => n.name.toLowerCase().includes(q.toLowerCase()));
+    }
+    return res;
+  },
   getPreferences: () => request<Preferences>("/me/preferences"),
   savePreferences: (p: Preferences) => request<Preferences>("/me/preferences", { method: "PUT", body: JSON.stringify(p) }),
   customize: (body: unknown) => request<unknown>("/customize", { method: "POST", body: JSON.stringify(body) }),

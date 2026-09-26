@@ -2,11 +2,12 @@ import { useState } from 'react';
 import {
   IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent,
   IonList, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-  IonIcon, IonItemGroup, IonNote
+  IonIcon, IonItemGroup, IonToggle
 } from '@ionic/react';
 import { add, trash } from 'ionicons/icons';
 import type { Routine, RoutineLeg, Place } from '../lib/types';
 import LegEditor from './LegEditor';
+import PreferenceControls from '../components/PreferenceControls';
 
 interface RoutineEditorProps {
   routine: Routine;
@@ -196,9 +197,31 @@ export default function RoutineEditor({ routine, places, onSave, onCancel }: Rou
         <h2 style={{ marginLeft: '16px', marginTop: '24px', fontSize: '14px', textTransform: 'uppercase', color: 'var(--ion-color-medium)' }}>Preferences Override</h2>
         <IonList inset>
           <IonItem>
-            <IonNote>Preference controls from B6 goes here.</IonNote>
+            <IonLabel>Use my defaults</IonLabel>
+            <IonToggle 
+              checked={!edited.preferences} 
+              onIonChange={e => {
+                if (e.detail.checked) {
+                  handleChange('preferences', undefined);
+                } else {
+                  handleChange('preferences', {
+                    categories: {},
+                    avoid_neighborhoods: [],
+                    avoid_tolls: false,
+                    avoid_highways: false
+                  });
+                }
+              }}
+            />
           </IonItem>
         </IonList>
+        {edited.preferences && (
+          <PreferenceControls 
+            preferences={edited.preferences} 
+            onChange={p => handleChange('preferences', p)}
+            showNavApp={false}
+          />
+        )}
       </IonContent>
     </>
   );
