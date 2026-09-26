@@ -31,6 +31,11 @@ MUNICIPALITIES_URL = (
     "Municipalitypoly_gdb/FeatureServer/0"
 )
 CENSUS_PLACES_URL = "https://www2.census.gov/geo/tiger/TIGER2024/PLACE/tl_2024_12_place.zip"
+# The 2020 Census merged the University Park CDP into Westchester, so the latest
+# TIGER place file no longer has it. The endpoint contract still lists
+# university-park, so restore its last published boundary from the 2019 vintage.
+CENSUS_PLACES_RETIRED_URL = "https://www2.census.gov/geo/tiger/TIGER2019/PLACE/tl_2019_12_place.zip"
+RETIRED_CENSUS_PLACE_GEOIDS = {"1273287"}  # University Park CDP, discontinued in 2020
 CENSUS_COUNTY_URL = "https://www2.census.gov/geo/tiger/GENZ2024/shp/cb_2024_us_county_5m.zip"
 
 ARCGIS_PAGE_SIZE = 2000
@@ -38,6 +43,33 @@ MIAMI_DADE_COUNTY_FP = "086"
 SIMPLIFY_TOLERANCE = 0.0002  # ~20 m at Miami's latitude
 # Lower number wins when two sources share a slug (a city place shadows the county polygon).
 SOURCE_PRIORITY = {"city_of_miami": 0, "municipality": 1, "census_place": 2}
+
+# The City's public layers are fine-grained sub-areas (Brickell Business District,
+# Latin Quarter, ...). The coarser official layers we checked (NET Areas, Police
+# Neighborhoods) merge Brickell with Downtown and Wynwood with Edgewater, which
+# cannot be split cleanly. So the contract names below are unions of the fine
+# sub-areas that make up each well-known neighbourhood. The fine sub-areas stay
+# in the file too; ids match frontend/public/mocks/neighborhoods.json.
+COMPOSITES = {
+    "brickell": ("Brickell", [
+        "brickell-business-district", "brickell-key", "brickell-residential-district",
+        "brickell-village", "west-brickell",
+    ]),
+    "little-havana": ("Little Havana", [
+        "east-little-havana", "latin-quarter", "la-pastorita",
+    ]),
+    "downtown": ("Downtown", [
+        "cbd", "government-center", "bayside", "bayfront", "bicentennial-park",
+        "miami-avenue", "parkwest", "lummus-park", "omni-pac", "riverfront",
+    ]),
+    "wynwood": ("Wynwood", ["wynwood-industrial-district"]),
+    "coconut-grove": ("Coconut Grove", [
+        "east-grove", "grove-center", "north-grove", "oakland-grove", "palm-grove",
+        "south-grove", "south-grove-bayside", "west-grove",
+    ]),
+    "little-haiti": ("Little Haiti", ["lemon-city-little-haiti"]),
+    "allapattah": ("Allapattah", ["allapattah-industrial-district"]),
+}
 
 
 def slugify(name: str) -> str:
@@ -89,21 +121,33 @@ def download(url: str, directory: str, filename: str) -> Path:
     return archive
 
 
-def load_census_places() -> list[dict]:
-    """Download the Florida places shapefile and keep Miami-Dade cities / CDPs."""
-    with tempfile.TemporaryDirectory() as tmp:
-        places = gpd.read_file(download(CENSUS_PLACES_URL, tmp, "places.zip"))
-        counties = gpd.read_file(download(CENSUS_COUNTY_URL, tmp, "counties.zip"))
-    county = counties[(counties["STATEFP"] == "12") & (counties["COUNTYFP"] == MIAMI_DADE_COUNTY_FP)]
-    if county.empty:
-        raise RuntimeError("Miami-Dade County (12/086) missing from the TIGER county layer")
-    frame = places.to_crs(county.crs)
-    inside = frame.geometry.representative_point().within(county.geometry.iloc[0])
-    frame = frame[inside].to_crs(4326)
+def _census_place_records(frame) -> list[dict]:
     return [
         {"name": title_case(row["NAME"]), "geometry": mapping(row.geometry)}
         for _, row in frame.iterrows()
     ]
+
+
+def _miami_dade(frame, county):
+    """Keep places whose representative point falls inside the county polygon."""
+    frame = frame.to_crs(county.crs)
+    inside = frame.geometry.representative_point().within(county.geometry.iloc[0])
+    return frame[inside].to_crs(4326)
+
+
+def load_census_places() -> list[dict]:
+    """Florida places filtered to Miami-Dade, plus retired CDPs the contract still lists."""
+    with tempfile.TemporaryDirectory() as tmp:
+        places = gpd.read_file(download(CENSUS_PLACES_URL, tmp, "places.zip"))
+        retired = gpd.read_file(download(CENSUS_PLACES_RETIRED_URL, tmp, "places_2019.zip"))
+        counties = gpd.read_file(download(CENSUS_COUNTY_URL, tmp, "counties.zip"))
+    county = counties[(counties["STATEFP"] == "12") & (counties["COUNTYFP"] == MIAMI_DADE_COUNTY_FP)]
+    if county.empty:
+        raise RuntimeError("Miami-Dade County (12/086) missing from the TIGER county layer")
+    records = _census_place_records(_miami_dade(places, county))
+    retired = retired[retired["GEOID"].isin(RETIRED_CENSUS_PLACE_GEOIDS)]
+    records += _census_place_records(_miami_dade(retired, county))
+    return records
 
 
 def arcgis_records(features: list[dict], name_field: str, source: str) -> list[dict]:
@@ -138,6 +182,21 @@ def merge(records: list[dict]) -> dict[str, dict]:
     return by_id
 
 
+def composite_records(by_id: dict[str, dict]) -> list[dict]:
+    """Well-known City neighbourhoods as unions of their fine sub-areas."""
+    records = []
+    for slug, (name, parts) in COMPOSITES.items():
+        missing = [part for part in parts if part not in by_id]
+        if missing:
+            raise KeyError(f"{slug} references unknown sub-areas: {missing}")
+        geometry = by_id[parts[0]]["geometry"]
+        for part in parts[1:]:
+            geometry = geometry.union(by_id[part]["geometry"])
+        records.append({"id": slug, "name": name, "source": "city_of_miami",
+                        "geometry": simplify(geometry)})
+    return records
+
+
 def write(by_id: dict[str, dict]) -> None:
     features = [
         {
@@ -161,7 +220,10 @@ def main() -> None:
         {"name": place["name"], "geometry": place["geometry"], "source": "census_place"}
         for place in load_census_places()
     ]
-    write(merge(records))
+    by_id = merge(records)
+    for composite in composite_records(by_id):
+        by_id[composite["id"]] = composite
+    write(by_id)
 
 
 if __name__ == "__main__":

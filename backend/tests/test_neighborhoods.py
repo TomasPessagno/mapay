@@ -1,3 +1,4 @@
+import json
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -58,3 +59,14 @@ class NeighborhoodEndpointTests(unittest.TestCase):
             response = self.client.get("/neighborhoods", params={"q": "brickell"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual([r["id"] for r in response.json()], ["brickell"])
+
+
+class NeighborhoodContractTests(unittest.TestCase):
+    def test_every_mock_id_exists_in_committed_geojson(self):
+        repo_root = Path(__file__).resolve().parents[2]
+        mock = json.loads(
+            (repo_root / "frontend" / "public" / "mocks" / "neighborhoods.json").read_text(encoding="utf-8")
+        )
+        committed = {entry["id"] for entry in neighborhoods.search()}
+        missing = sorted({entry["id"] for entry in mock} - committed)
+        self.assertEqual(missing, [], f"mock ids missing from the committed geojson: {missing}")
