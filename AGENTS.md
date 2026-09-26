@@ -121,7 +121,50 @@ Gemini interprets and explains; routing stays deterministic. Never analyse Googl
 
 ---
 
+<<<<<<< HEAD
 ## API contract
+=======
+## Gemini fallback plan (Vertex AI) — switch implemented, config only
+
+**How it works:** `backend/app/agents/genai_client.py` is the only place that builds the Gemini client. Every agent calls `get_genai_client()` and uses `settings.gemini_model` (`GEMINI_MODEL`, default `gemini-3.8-flash`). Switching backends is an env-var change plus a redeploy; no code changes, and no automatic live failover.
+
+**Currently active: Vertex AI (bottom row).** "Default" on the AI Studio row only means what the code uses when `GOOGLE_GENAI_USE_VERTEXAI` is unset; that path is parked.
+
+| Mode | Env vars | Auth | Billed to |
+|---|---|---|---|
+| AI Studio (default) | `GOOGLE_GENAI_USE_VERTEXAI=false`, `GEMINI_API_KEY` | API key | The AI Studio key's project |
+| Vertex AI | `GOOGLE_GENAI_USE_VERTEXAI=true`, `GOOGLE_CLOUD_PROJECT`, `GOOGLE_CLOUD_LOCATION=global` | Service account (Cloud Run) or `gcloud auth application-default login` (local) | `GOOGLE_CLOUD_PROJECT`'s billing / $300 trial credit |
+
+**Status (2026-09-26):** Vertex AI is the active path. `GOOGLE_GENAI_USE_VERTEXAI=true` is set in the local `.env` and in the GitHub deploy variables, and it's confirmed working against the $300 trial credit (tested locally with `application-default login`; the Cloud Run `gemini-runner` path gets exercised on the first deploy). The AI Studio `GEMINI_API_KEY` path is parked: that key's project has billing linked and returns `402 Your prepayment credits are depleted`. If there's ever a reason to switch back, fix it by generating a fresh key in a project with no billing attached. That isn't required now, since Vertex is working. If Gemini fails, the app returns fixed fallback text and logs `Gemini out of quota/credits ... (HTTP 402/429)`.
+
+**Credit pools:** one $300 trial per teammate, each in their own Google account and project. Vertex usage in a project draws on that project's trial credit.
+
+**One-time setup, per project** (run in Cloud Shell, the terminal button in console.cloud.google.com, which is already logged in; or any machine with the gcloud CLI after `gcloud auth login`):
+
+```bash
+PROJECT_ID=<your-project-id>
+gcloud config set project $PROJECT_ID
+gcloud services enable aiplatform.googleapis.com run.googleapis.com cloudbuild.googleapis.com artifactregistry.googleapis.com
+gcloud iam service-accounts create gemini-runner
+gcloud projects add-iam-policy-binding $PROJECT_ID \
+  --member="serviceAccount:gemini-runner@$PROJECT_ID.iam.gserviceaccount.com" \
+  --role="roles/aiplatform.user"
+```
+
+No key file is needed. Cloud Run runs as `gemini-runner` (GitHub variable `GEMINI_SERVICE_ACCOUNT`), and locally `gcloud auth application-default login` covers it. If a key file is ever unavoidable, keep it outside the repo (`.gitignore` excludes `sa-key*.json` as a backstop) and set `GOOGLE_APPLICATION_CREDENTIALS` to its path.
+
+**Using the second teammate's credit** (Cloud Run stays in the first project):
+1. The teammate enables `aiplatform.googleapis.com` in their project.
+2. The teammate grants the first project's runner access to their Vertex AI:
+   `gcloud projects add-iam-policy-binding <THEIR_PROJECT> --member="serviceAccount:gemini-runner@<FIRST_PROJECT>.iam.gserviceaccount.com" --role="roles/aiplatform.user"`
+3. Set the GitHub variable `GOOGLE_CLOUD_PROJECT=<THEIR_PROJECT>` and redeploy. Calls then bill their project.
+
+**Switching procedure:** set the GitHub repo variables `GOOGLE_GENAI_USE_VERTEXAI=true`, `GOOGLE_CLOUD_PROJECT`, and `GEMINI_SERVICE_ACCOUNT`, then redeploy (push to `main` or re-run the workflow). Locally, set the same values in `.env`.
+
+---
+
+## Pre-route widget + push notifications
+>>>>>>> 4e06855 (Add switchable Gemini client (AI Studio / Vertex AI) and deploy wiring)
 
 | Method + path | What |
 |---|---|

@@ -2,6 +2,9 @@
 import json
 import logging
 
+from google.genai import errors
+
+from app.agents.genai_client import gemini_configured, get_genai_client, log_api_error
 from app.config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -11,15 +14,13 @@ async def explain_recalculation(changes: list[dict]) -> str:
     fallback = "Route recalculated — hazard confidence crossed the routing threshold following updated evidence."
     if not changes:
         return fallback
-    settings = get_settings()
-    if not settings.gemini_api_key:
+    if not gemini_configured():
         return fallback
     try:
-        from google import genai
         from google.genai import types
-        async with genai.Client(api_key=settings.gemini_api_key).aio as client:
+        async with get_genai_client().aio as client:
             response = await client.models.generate_content(
-                model="gemini-2.5-flash",
+                model=get_settings().gemini_model,
                 contents="Explain this already-completed route recalculation in one short sentence. "
                          "Use only supplied facts, describe probability changes and evidence sources. "
                          "Do not make any routing decision or claim a hazard is certain. Data: " + json.dumps(changes),
@@ -30,6 +31,9 @@ async def explain_recalculation(changes: list[dict]) -> str:
                 ),
             )
         return json.loads(response.text)["explanation"]
+    except errors.APIError as exc:
+        log_api_error("Recalculation explanation", exc)
+        return fallback
     except Exception:
         logger.exception("Recalculation explanation failed")
         return fallback

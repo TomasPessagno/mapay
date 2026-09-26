@@ -6,6 +6,7 @@
 service-account*.json
 *credentials*.json
 gcloud-key*.json
+sa-key*.json
 
 # ---- Python ----
 __pycache__/

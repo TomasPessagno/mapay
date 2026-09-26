@@ -24,6 +24,12 @@
 #   GCP_PROJECT_ID
 #   GCP_REGION
 #   CLOUD_RUN_SERVICE_NAME
+#   Gemini backend (optional; unset = AI Studio via GEMINI_API_KEY). See AGENTS.md "Gemini fallback plan".
+#   GOOGLE_GENAI_USE_VERTEXAI   "true" to use Vertex AI
+#   GOOGLE_CLOUD_PROJECT        project whose Vertex AI (and $300 credit) is used; can differ from GCP_PROJECT_ID
+#   GOOGLE_CLOUD_LOCATION       defaults to "global"
+#   GEMINI_SERVICE_ACCOUNT      e.g. gemini-runner@PROJECT.iam.gserviceaccount.com; Cloud Run runs as it, so
+#                               no key file is needed. The GCP_SA_KEY account needs Service Account User on it.
 #
 # RISK: backend/requirements.txt pins no versions (fastapi, motor, pydantic, geopandas, ...), and
 # pytest/ruff are not in it at all (installed unpinned below). Any upstream release can change CI
@@ -135,15 +141,22 @@ jobs:
           VAPID_PUBLIC_KEY: ${{ secrets.VAPID_PUBLIC_KEY }}
           VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
           VAPID_SUBJECT: ${{ secrets.VAPID_SUBJECT }}
+          GOOGLE_GENAI_USE_VERTEXAI: ${{ vars.GOOGLE_GENAI_USE_VERTEXAI || 'false' }}
+          GOOGLE_CLOUD_PROJECT: ${{ vars.GOOGLE_CLOUD_PROJECT }}
+          GOOGLE_CLOUD_LOCATION: ${{ vars.GOOGLE_CLOUD_LOCATION || 'global' }}
+          GEMINI_SERVICE_ACCOUNT: ${{ vars.GEMINI_SERVICE_ACCOUNT }}
         run: |
           # Values can contain ',' and '@' (e.g. CORS_ORIGINS, MONGODB_URI), so use gcloud's
           # custom-delimiter syntax (^##^) instead of the default comma separator.
           vars=""
           for name in MONGODB_URI MONGODB_DB_NAME CORS_ORIGINS GEMINI_API_KEY GOOGLE_MAPS_API_KEY \
                       HERE_API_KEY TICKETMASTER_API_KEY EIA_API_KEY NWS_USER_AGENT \
-                      VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT; do
+                      VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT \
+                      GOOGLE_GENAI_USE_VERTEXAI GOOGLE_CLOUD_PROJECT GOOGLE_CLOUD_LOCATION; do
             vars+="##${name}=${!name}"
           done
+          sa_flag=()
+          if [ -n "$GEMINI_SERVICE_ACCOUNT" ]; then sa_flag=(--service-account "$GEMINI_SERVICE_ACCOUNT"); fi
           # No --allow-unauthenticated: new services are private by default. The frontend needs a
           # public API, so grant allUsers the Cloud Run Invoker role once (console or gcloud) or add the flag.
           gcloud run deploy "${{ vars.CLOUD_RUN_SERVICE_NAME }}" \
@@ -151,4 +164,5 @@ jobs:
             --region "${{ vars.GCP_REGION }}" \
             --source backend/ \
             --set-env-vars "^##^${vars#\#\#}" \
+            "${sa_flag[@]}" \
             --quiet
