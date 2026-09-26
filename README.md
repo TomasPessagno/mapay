@@ -1,10 +1,10 @@
 # Mapay
 
-**A colour-coded map of what's wrong with Miami's streets, and a heads-up before your daily trips.**
+**A colour-coded map of what's wrong with Miami's streets, and a heads-up on your iPhone before your daily trips.**
 
-Mapay puts street problems on one colour-coded map: flooded streets, construction, congestion, closures, missing sidewalks and more. You save your routine trips (say, MMC → BBC at 9:30 and back between 17:00 and 19:00), tell it what you'd rather avoid, and before each trip a big Duolingo-style widget pops up on your phone: **Start** the route in Google Maps, or **Customize** it with a prompt.
+Mapay puts street problems on one colour-coded map: flooded streets, construction, congestion, closures, missing sidewalks and more. You save your routine trips (say, MMC → BBC at 9:30 and back between 17:00 and 19:00), tell it what you'd rather avoid, and before each trip a big Duolingo-style widget pops up on your iPhone: **Start** the route in Google Maps, or **Customize** it with a prompt.
 
-> **Status:** being built at ShellHacks 2026 in Miami. This README is the product spec; [`AGENTS.md`](AGENTS.md) is the build guide (priorities, algorithms, data sources, schema, hour-by-hour plan).
+> **Status:** being built at ShellHacks 2026 in Miami as an **iPhone app**, tested in the iOS Simulator on a Mac and demoed on an iPhone via AltStore. This README is the product spec; [`docs/design.md`](docs/design.md) is the design spec (Apple-like); [`AGENTS.md`](AGENTS.md) is the build guide (platform, priorities, algorithms, data sources, schema, hour-by-hour plan).
 
 ---
 
@@ -16,6 +16,8 @@ Mapay puts street problems on one colour-coded map: flooded streets, constructio
 - [Preferences](#preferences)
 - [The heads-up widget](#the-heads-up-widget)
 - [Where the data comes from](#where-the-data-comes-from)
+- [Design](#design)
+- [Platform: iPhone](#platform-iphone)
 - [Also planned](#also-planned)
 - [Architecture](#architecture)
 - [Roadmap](#roadmap)
@@ -46,22 +48,25 @@ flowchart LR
 
 ## The map
 
-![Map legend: flooded street blue, heavy rain light blue, construction orange, road closure black dashed, congestion amber to dark red, no sidewalk purple dotted, pothole brown, incident magenta pin, event teal pin](docs/legend.svg)
+![Map legend: your route blue, flooded street cyan, heavy rain indigo, construction orange, road closure black dashed, congestion yellow to dark red, no sidewalk purple dotted, pothole brown, incident pink pin, event green pin](docs/legend.svg)
+
+Colours are Apple's system colours, with dark-mode variants (see [`docs/design.md`](docs/design.md#colour)).
 
 | Category | Colour | Where the data comes from |
 | --- | --- | --- |
-| Flooded street | Blue | Tide + rain predictions on known flood spots, satellite radar (Sentinel-1), news, user reports |
-| Heavy rain / weather alert | Light blue | NWS alerts, radar |
+| Flooded street | Cyan | Tide + rain predictions on known flood spots, satellite radar (Sentinel-1), news, user reports |
+| Heavy rain / weather alert | Indigo | NWS alerts, radar |
 | Construction | Orange | City of Miami projects and permits, HERE roadworks, satellite (Sentinel-2), news |
-| Road closure | Black, dashed | HERE incidents, city data, news |
-| Congestion | Amber → red → dark red | Google live traffic; typical traffic from Google's predictions |
+| Road closure | Black (white in dark mode), dashed | HERE incidents, city data, news |
+| Congestion | Yellow → red → dark red | Google live traffic; typical traffic from Google's predictions |
 | No sidewalk | Purple, dotted | OpenStreetMap sidewalk data |
 | Pothole | Brown | Miami-Dade 311, user reports |
-| Incident / police / news | Magenta pin | Local news read by Gemini |
-| Event / holiday | Teal pin | Ticketmaster, holiday calendar, news |
+| Incident / police / news | Pink pin | Local news read by Gemini |
+| Event / holiday | Green pin | Ticketmaster, holiday calendar, news |
 
 - Colour is never the only signal: each category also has its own icon and line style.
-- Thicker or bigger means more severe; fainter means less certain. Predicted problems (e.g. a flood expected at high tide) are lighter and labelled "predicted".
+- Thicker or bigger means more severe; fainter means less certain. Certainty is a Bayesian score per problem that rises and falls as evidence comes in (news, reports, satellite, tides); see [`docs/hazard-beliefs.md`](docs/hazard-beliefs.md). Predicted problems (e.g. a flood expected at high tide) are lighter and labelled "predicted".
+- When a route is on screen, problems away from it fade and the ones on it get a badge along the line.
 - Tap anything to see what it is, where it came from (with links), how sure we are, when it was seen (or when the satellite passed) and when it expires.
 - The legend doubles as the layer on/off switches.
 - You can report problems yourself: flood, construction, closure, pothole, no sidewalk.
@@ -92,6 +97,7 @@ Tell Mapay what you'd rather avoid. You set defaults for yourself and can overri
 - **Per problem type:** *avoid*, *prefer to avoid* or *don't care* (e.g. avoid flooded areas, prefer to avoid construction, don't care about potholes).
 - **Neighbourhoods by name:** "avoid Brickell", "avoid Little Havana". Covers City of Miami neighbourhoods, Miami-Dade cities and places like Westchester or Kendall.
 - **Tolls and highways:** avoid them or not.
+- **Navigation app:** Google Maps by default, because it keeps Mapay's waypoints; Apple Maps and Waze only get the origin and destination.
 
 **How it's applied:** Google's routing API can only avoid tolls, highways and ferries, not a flooded street or a neighbourhood. So Mapay asks Google for alternative routes, scores each one against the map and your preferences, and picks the best. If needed, it adds a waypoint to steer around a problem, and those waypoints go with the route when it opens in Google Maps. If a problem can't be avoided (say, your destination is inside an avoided neighbourhood), Mapay tells you.
 
@@ -99,7 +105,7 @@ Tell Mapay what you'd rather avoid. You set defaults for yourself and can overri
 
 ## The heads-up widget
 
-Inspired by Duolingo's streak reminder. Before each leg (default **30 minutes** before; for a time range, before it starts), a big card appears on your phone:
+Inspired by Duolingo's streak reminder. Before each leg (default **30 minutes** before; for a time range, before it starts), your iPhone shows the heads-up:
 
 ```
 ┌──────────────────────────────────────────────┐
@@ -115,31 +121,36 @@ Inspired by Duolingo's streak reminder. Before each leg (default **30 minutes** 
 
 - **Start route** opens the route in the **Google Maps** app right away, including any waypoints Mapay added.
 - **Customize** opens a prompt: *"stop at a Starbucks and stay off the Palmetto"*. Gemini turns it into constraints, Mapay's router builds the new route, and you see the old and new routes side by side before opening Google Maps.
+- **Re-check before you leave:** 30–60 minutes before a leg, Mapay re-checks the problems on your saved route. If one became likely (or cleared), it recalculates the route and Gemini explains what changed.
 - **Where it shows up:**
-  - a **push notification** with a map preview of the route and both buttons;
+  - a **notification** with a map of the route; long-press it for Start / Customize;
+  - the **large home-screen widget**, which switches into heads-up mode with a live countdown (medium and small sizes too);
   - a **huge card** at the top of the app;
-  - a **home-screen widget** on Android (iPhone later).
-- **iPhone note:** web push only works after adding Mapay to the Home Screen, and iPhone notifications don't show the two buttons, so tapping opens the card instead.
+  - later: a **Live Activity** on the Lock Screen and in the Dynamic Island.
+- **Why the phone schedules it:** the demo build is sideloaded with a free Apple ID, which can't receive push notifications from a server. So the app schedules the reminders itself, and the app and widget refresh the route and hazards whenever iOS lets them. A paid Apple Developer account would add server push.
 
 ```mermaid
 sequenceDiagram
-    participant S as Cloud Scheduler
+    participant A as Mapay app
     participant B as Mapay backend
-    participant P as Phone
+    participant W as Widget
+    participant N as iOS notification
     participant G as Gemini
     participant M as Google Maps app
-    S->>B: every minute: any legs starting soon?
-    B->>B: route + hazards on it (+ best time for a range)
-    B->>P: push: summary, map preview, Start / Customize
+    A->>B: upcoming legs (route, hazards, best time)
+    A->>N: schedule a heads-up 30 min before each leg
+    W->>B: upcoming legs (widget timeline)
+    Note over W,N: 30 min before: the notification fires<br/>and the widget switches to heads-up mode
     alt Start
-        P->>M: open route (origin, destination, waypoints)
+        N->>A: Start
+        A->>M: open route (origin, destination, waypoints)
     else Customize
-        P->>B: prompt
+        N->>A: Customize
+        A->>B: prompt + leg
         B->>G: prompt + leg + preferences
         G-->>B: constraints (stops, things to avoid, time)
-        B->>B: router builds the new route
-        B-->>P: new route + one-line explanation
-        P->>M: open the new route
+        B-->>A: new route + one-line explanation
+        A->>M: open the new route
     end
 ```
 
@@ -167,7 +178,7 @@ NWS weather alerts and hourly forecasts, plus a radar overlay. Rain and tides al
 
 | Source | Used for |
 | --- | --- |
-| Google Maps Platform | The map, live traffic, routing and alternatives, typical-traffic predictions, place search and saved places, geocoding news, the map image in notifications |
+| Google Maps Platform | The map, live traffic, routing and alternatives, typical-traffic predictions, place search and saved places, geocoding news, the route image in notifications and the widget |
 | HERE Traffic | Closures, roadworks, accidents, traffic flow |
 | OpenStreetMap | Sidewalk data |
 | Apple Maps, TomTom | Optional travel-time cross-checks (later) |
@@ -178,12 +189,36 @@ NWS weather alerts and hourly forecasts, plus a radar overlay. Rain and tides al
 
 ---
 
+## Design
+
+**Apple-like.** Mapay should feel like it came with the iPhone: Apple Maps' layout (full-screen map with a bottom sheet), the calm of Weather, and Duolingo's friendly nudge. It follows Apple's Human Interface Guidelines and the current iOS look (Liquid Glass): SF Pro type with Dynamic Type, system colours with dark mode, glass controls floating over the map, iOS sheets and haptics.
+
+- **Tabs:** Map, Routines, Preferences.
+- **Quiet interface, loud data:** the interface stays grey and glass with one blue tint; colour is saved for hazards and the route.
+- **The heads-up** looks the same on the notification, the widget and the in-app card: route, countdown, top hazards, Start / Customize.
+
+The full spec (layouts, widget states, colour and type tokens, motion, copy, accessibility) is in [`docs/design.md`](docs/design.md). IBM Carbon's data-viz style is parked as a maybe for dense data screens later.
+
+---
+
+## Platform: iPhone
+
+- **iPhone only.** The app is React + Ionic (iOS mode) inside Capacitor. The widget and Live Activity are native SwiftUI.
+- **Development:** UI work runs in the browser on any laptop; the Mac builds the app for the **iOS Simulator** (widgets and notifications work there too).
+- **Demo:** the app is sideloaded onto an iPhone with **AltStore**, using a free Apple ID. That means:
+  - no push notifications from a server, so the phone schedules its own reminders;
+  - room for exactly one extension (AltStore allows 3 apps, and the widget counts), so all widgets and the Live Activity share it;
+  - the install expires after 7 days, so refresh it in AltStore before judging.
+- **A public web preview** on Vercel lets judges without the iPhone click around.
+
+---
+
 ## Also planned
 
 - **Holidays and events:** a heads-up ahead of time when a holiday or big event changes traffic on your routine ("Monday is a holiday: your 9:30 leg will be lighter").
 - **Walk and run:** *"I want to run 5 km on quiet streets"*: routes that use the sidewalk layer, parks and the same hazard data.
 - **Smarter reminders:** show up earlier when there's trouble on the route; learn preferences from your prompts.
-- **Later:** arrive-by routines, iPhone widget, in-app navigation, CarPlay / Android Auto.
+- **Later:** arrive-by routines, server push and TestFlight with a paid Apple Developer account, in-app navigation, CarPlay.
 
 ---
 
@@ -203,15 +238,15 @@ flowchart LR
         GEM[Gemini]
         HAZ[Hazards]
         ROUTER[Router]
-        NOTIF[Heads-up notifier]
+        UP[Upcoming legs<br/>+ briefings]
     end
 
     DB[(MongoDB Atlas)]
 
-    subgraph App[Mapay app: PWA + Android]
+    subgraph iPhone[iPhone app + widget]
         MAP[Colour-coded map]
         ROUT[Routines + preferences]
-        CARD[Heads-up card + widget]
+        HEADS[Notification, widget,<br/>in-app card]
     end
 
     Data --> ING
@@ -220,12 +255,12 @@ flowchart LR
     HAZ --> DB
     DB --> MAP
     ROUT --> DB
-    DB --> NOTIF --> FCM[Firebase Cloud Messaging] --> CARD
+    DB --> UP --> HEADS
     DB --> ROUTER
-    CARD -->|Customize| GEM
+    HEADS -->|Customize| GEM
     GEM --> ROUTER
     ROUTER --> GMAPS[Google Maps app]
-    CARD -->|Start| GMAPS
+    HEADS -->|Start| GMAPS
 ```
 
 The detailed data flow and UI flow live in [`docs/architecture.md`](docs/architecture.md) and [`AGENTS.md`](AGENTS.md).
@@ -234,15 +269,19 @@ The detailed data flow and UI flow live in [`docs/architecture.md`](docs/archite
 
 | Area | Choice |
 | --- | --- |
-| App | React + Vite + TypeScript, installable PWA; Capacitor for the Android app and widget |
+| iPhone app | React + Vite + TypeScript with Ionic React (iOS mode), wrapped with Capacitor |
+| Widget + Live Activity | SwiftUI (WidgetKit, ActivityKit) in one widget extension |
+| Reminders | iOS local notifications with Start / Customize actions |
 | Map and routing | Google Maps Platform: Maps JavaScript, Routes, Places, Geocoding, Static Maps |
 | Backend | FastAPI (Python) on Cloud Run |
 | Database | MongoDB Atlas |
+| Hazard confidence | Bayesian log-odds score per hazard, updated by evidence ([`docs/hazard-beliefs.md`](docs/hazard-beliefs.md)) |
 | AI | Gemini: reading news, turning prompts into route constraints, checking satellite images, explaining routes |
 | Satellite | Copernicus Global Flood Monitoring + Google Earth Engine (Sentinel-1, Sentinel-2) |
-| Push and accounts | Firebase Cloud Messaging + Anonymous Auth |
+| Accounts | Anonymous device id for the hackathon |
 | Scheduled jobs | Cloud Scheduler |
-| Hosting | Vercel (app), Cloud Run (API) |
+| CI/CD | GitHub Actions: lint + tests on every push; the backend deploys to Cloud Run on pushes to `main` |
+| Build and demo | Xcode + iOS Simulator on a Mac; AltStore sideload on the iPhone; web preview on Vercel |
 
 ---
 
@@ -253,34 +292,37 @@ The detailed data flow and UI flow live in [`docs/architecture.md`](docs/archite
 The hour-by-hour plan, owners and fallbacks are in [`AGENTS.md`](AGENTS.md#roadmap-20-24-hrs).
 
 **Must work in the demo (P0)**
+- [ ] Runs on the iPhone (AltStore) and in the iOS Simulator, with the Apple-like design
 - [ ] Colour-coded map with legend: flood, construction, congestion, closure, no sidewalk, weather, news incidents
 - [ ] Hazard-aware routing with preferences (problem types + neighbourhoods) and "Open in Google Maps"
 - [ ] Routine routes: legs both ways, at / between times, every day / every week / custom days
-- [ ] Heads-up: push notification + huge card with Start / Customize
+- [ ] Heads-up: notification + large home-screen widget + huge in-app card, with Start / Customize
 - [ ] Customize with a prompt (Gemini)
 - [ ] News → Gemini → map
 - [ ] Satellite floods (Sentinel-1) and construction (Sentinel-2 + Gemini) on the map, with pass times
 - [ ] Tide + rain flood predictions
-- [ ] Deployed at a public URL
+- [ ] Backend deployed, public web preview
 
-**Should have (P1):** Android home-screen widget · best time to leave in a range · typical congestion · radar overlay · 311 potholes
+**Should have (P1):** Live Activity + Lock Screen widgets · best time to leave in a range · precomputed briefings · typical congestion · radar overlay · 311 potholes
 
 **If time allows (P2):** time scrubber · holiday and event warnings · walk/run mode · toll and gas context · chronic-spot memory · learned preferences
 
 ### After ShellHacks
 
-1. **Solid foundation:** real accounts (Google sign-in), more reliable pipelines, iPhone widget.
+1. **Solid foundation:** paid Apple Developer account (server push, TestFlight, Sign in with Apple), more reliable pipelines.
 2. **Smarter routines:** arrive-by, earlier reminders when there's trouble, learned preferences, holiday and event warnings.
 3. **More ways to move:** walk/run mode, commercial high-res imagery for sharper flood and construction detection.
-4. **In the car:** in-app navigation, CarPlay / Android Auto.
+4. **In the car:** in-app navigation, CarPlay.
 
 ---
 
 ## Open questions
 
+- **Apple Developer account:** do we get a paid one after ShellHacks? It unlocks server push (fresh hazards at T−30 without opening the app), TestFlight and Sign in with Apple.
 - **Satellite coverage:** how much of Miami's streets does Copernicus flood monitoring actually cover? It masks out areas radar can't read, like dense blocks. Check in hour 0.
 - **Sidewalk data:** is OpenStreetMap's sidewalk tagging good enough around MMC and BBC? If not, look for a county layer.
 - **Heads-up lead time:** 30 minutes per routine is the default; do we want a different lead time per leg?
+- **Design:** stay purely Apple-like, or add IBM Carbon-style data views for dense screens later?
 - **Police reports:** which sources, and how do we avoid showing sensitive or unverified information?
 - **User reports:** moderation and spam.
 - **Privacy:** routines reveal where people live and study. Decide storage and retention before real accounts.
@@ -292,11 +334,12 @@ The hour-by-hour plan, owners and fallbacks are in [`AGENTS.md`](AGENTS.md#roadm
 
 ```text
 mapay/
-├── frontend/          # React + Vite PWA: map, legend, routines, heads-up card, service worker
-│   └── android/       # Capacitor Android app + home-screen widget (planned)
-├── backend/           # FastAPI: routing, routines, push, ingestion jobs, Gemini agents
-├── docs/              # Architecture diagrams, data sources, legend.svg
-├── AGENTS.md          # Build guide: priorities, algorithms, data sources, schema, hour plan
+├── frontend/          # React + Ionic (iOS mode) app: map, legend, routines, heads-up card
+│   └── ios/           # Capacitor iOS project: the app + the widget extension (planned)
+├── backend/           # FastAPI: routing, routines, heads-up briefings, ingestion jobs, Gemini agents
+├── docs/              # design spec, hazard beliefs, architecture diagrams, data sources, legend.svg
+├── .github/workflows/ # CI/CD: lint, tests, Cloud Run deploy
+├── AGENTS.md          # Build guide: platform, priorities, algorithms, data sources, schema, hour plan
 └── README.md
 ```
 
@@ -349,15 +392,20 @@ mapay/
 </details>
 
 <details>
-<summary>Decisions and spec update (Sept 26)</summary>
+<summary>Decisions and spec updates (Sept 26)</summary>
 
-**Decisions:** the map and routing run fully on Google Maps Platform; the database is MongoDB; push notifications and the widget are real objectives, not demos; historical traffic comes from Google Maps.
+**Decisions:** the map and routing run fully on Google Maps Platform; the database is MongoDB; the heads-up reminders and the widget are real objectives, not demos; historical traffic comes from Google Maps.
 
 **Spec update:**
 
 > remember, what we want to do is a map app that shows visually on the map various reports like flooded street, no sidewalk, congestion, construction, etc. all colour-coded. Also, we want to have a routinary routes section where you can preset directions (from x to y and later from y to x) at specific times, time ranges, or combination of both (e.g. going from MMC to BBC at 9:30 and going from BBC to MMC between 5:00 and 7:00), and make it per day, every week, or custom days of the week. we should also add an option of when you want to arrive, not only when you want to go out, but that's for later and aspirational. Another setting is the user's preferences: if they want to avoid flooded areas, constructions, the specific name of a neighbourhood, etc. Then, some time before the routinary route starts, a huge duolingo-like widget appears on the phone prompting you to start the route or to customize it with a prompt.
 >
 > For the data itself, the idea is to scrape local news across miami and make them be interpreted with gemini. we are also getting weather data, and for the flooded areas and construction, we should also use a live satelite feed. Then for the rest it is pure data got from google maps api, apple maps api, whatever maps api, and other sources.
+
+**Platform and design update:**
+
+> we are strictly using apple by the way, i have access to a mac where we can test the iphone sim, but for the demo i have altstore on my iphone so we can sideload it there.
+> The design spec should be "apple like" but maybe also have the ibm data style? or maybe not? for now apple like.
 
 </details>
 

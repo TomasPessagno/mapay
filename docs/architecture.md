@@ -11,15 +11,13 @@ flowchart LR
     end
 
     CS[Cloud Scheduler] -->|/internal/ingest| ING
-    CS -->|/internal/tick every minute| NT
 
     subgraph Backend[FastAPI on Cloud Run]
         ING[Ingestion jobs]
         GEM[Gemini<br/>news extraction, satellite check,<br/>prompt to constraints, briefing]
-        FUSE[Hazard fusion<br/>category, severity, confidence, expiry]
+        FUSE[Hazard beliefs<br/>Bayesian log-odds per hazard]
         R[Router<br/>Routes API alternatives<br/>+ hazard scoring + via waypoints]
-        SCH[Routine scheduling<br/>next leg, best time]
-        NT[Pre-route notifier]
+        SCH[Routine scheduling<br/>upcoming legs, pre-route check,<br/>best time, briefings]
     end
 
     Sources --> ING
@@ -27,39 +25,41 @@ flowchart LR
     ING --> FUSE
     FUSE --> DB[(MongoDB Atlas)]
     DB --> R
-    DB --> SCH --> NT
-    NT --> R
-    NT --> FCM[Firebase Cloud Messaging]
+    DB --> SCH --> R
 
-    subgraph Client[React PWA + Capacitor Android]
+    subgraph iPhone[iPhone: Capacitor app + widget extension]
         MAP[Colour-coded Google map]
         RUI[Routines + preferences]
-        CARD[Push + huge card<br/>+ home-screen widget]
-        CUST[Customize prompt]
+        NOTIF[Local notifications]
+        WID[Home-screen widget<br/>+ Live Activity]
+        CARD[Huge in-app card]
+        CUST[Customize sheet]
     end
 
     DB --> MAP
     RUI --> DB
-    FCM --> CARD
-    CARD -->|Customize| CUST --> GEM
-    GEM --> R
-    R --> GM[Google Maps app<br/>deep link with waypoints]
-    CARD -->|Start| GM
+    SCH -->|/routines/upcoming| NOTIF
+    SCH -->|/routines/upcoming| WID
+    SCH --> CARD
+    NOTIF & WID & CARD -->|Customize| CUST
+    CUST --> GEM --> R
+    NOTIF & WID & CARD -->|Start| GM[Google Maps app<br/>deep link with waypoints]
+    R --> GM
 ```
 
 ## UI flow
 
 ```mermaid
 flowchart TD
-    Home[Home: colour-coded map + legend] --> Search[Where to?<br/>Places search]
-    Search --> Route[Route card:<br/>alternatives + hazards on route]
+    Map[Map tab:<br/>colour-coded map + bottom sheet] --> Search[Where to?<br/>Places search]
+    Search --> Route[Route options:<br/>alternatives + hazards on route]
     Route --> Open[Open in Google Maps]
-    Home --> Detail[Tap a hazard:<br/>what, source, confidence, pass time]
-    Home --> Report[Report FAB:<br/>flood / construction / closure / pothole / no sidewalk]
-    Home --> Routines[Routines:<br/>places, legs, at / between, repeat]
-    Routines --> Prefs[Preferences:<br/>categories + neighbourhoods]
-    Routines --> Heads[30 min before a leg:<br/>push + huge card + home-screen widget]
+    Map --> Detail[Hazard detail sheet:<br/>what, source, confidence, pass time]
+    Map --> Report[Report +:<br/>flood / construction / closure / pothole / no sidewalk]
+    Routines[Routines tab] --> Editor[Routine editor:<br/>places, legs, at / between, repeat, heads-up time]
+    Prefs[Preferences tab:<br/>hazard types, neighbourhoods, tolls, nav app]
+    Editor --> Heads[30 min before a leg:<br/>notification + widget + in-app card]
     Heads -->|Start| Open
-    Heads -->|Customize| Prompt[Prompt:<br/>'stop at Starbucks, avoid Brickell']
+    Heads -->|Customize| Prompt[Customize sheet:<br/>'stop at Starbucks, avoid Brickell']
     Prompt --> Route
 ```
