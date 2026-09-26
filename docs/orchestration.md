@@ -117,13 +117,25 @@ python -m venv ~/.venvs/mapay && source ~/.venvs/mapay/bin/activate
 pip install -r backend/requirements.txt pytest ruff
 ```
 
-Run `opencode` in that folder, or open it as the Antigravity workspace. When the PR has merged: `git worktree remove ../mapay-a1`.
+Run `opencode` in that folder, or open it as the Antigravity workspace. For OpenCode tasks, `scripts/opencode-task.sh <N>` does all of this for you. When the PR has merged: `git worktree remove ../mapay-a1`.
 
 ---
 
 ## Prompts
 
-**OpenCode** (from the task's worktree; `gh` pastes the issue into the prompt for you):
+**OpenCode:** from the `mapay` folder, one terminal per task:
+
+```bash
+scripts/opencode-task.sh <N>      # e.g. scripts/opencode-task.sh 4
+```
+
+The script does the whole set-up:
+- reads the branch name from the issue;
+- creates `../mapay-<branch>` from `origin/main`, or reuses it;
+- activates the shared venv, creating it the first time;
+- runs OpenCode with the prompt below.
+
+By hand, from the task's worktree (`gh` pastes the issue into the prompt for you):
 
 ```bash
 opencode run --model opencode-go/deepseek-v4.1-flash "Read AGENTS.md and follow 'Working on a task'. Implement the GitHub issue below on the current branch. Only touch the files in its Scope, keep tests offline, and run the checks it lists. Then commit, push the branch (git push -u origin HEAD) and open a PR into main whose body says 'Closes #<issue number>' (gh pr create --base main). If you can't open the PR, stop after pushing and say so.
