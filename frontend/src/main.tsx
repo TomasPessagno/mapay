@@ -22,6 +22,9 @@ import '@ionic/react/css/display.css';
 /* Theme variables */
 import './theme/variables.css';
 
+/* Dark mode */
+import '@ionic/react/css/palettes/dark.system.css';
+
 setupIonicReact({ mode: 'ios' });
 
 createRoot(document.getElementById('root')!).render(

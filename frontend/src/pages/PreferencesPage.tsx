@@ -4,12 +4,12 @@ import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/rea
 const PreferencesPage: React.FC = () => {
   return (
     <IonPage>
-      <IonHeader className="ion-no-border">
+      <IonHeader translucent={true} className="ion-no-border">
         <IonToolbar className="glass">
           <IonTitle>Preferences</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent fullscreen>
+      <IonContent fullscreen={true}>
         <IonHeader collapse="condense">
           <IonToolbar>
             <IonTitle size="large">Preferences</IonTitle>
@@ -17,7 +17,7 @@ const PreferencesPage: React.FC = () => {
         </IonHeader>
         
         {/* Placeholder for Preferences */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '101%' }}>
           <p>Preferences Settings</p>
         </div>
       </IonContent>

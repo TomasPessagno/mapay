@@ -8,67 +8,99 @@
   --ion-color-primary: #007AFF;
   --ion-color-primary-rgb: 0,122,255;
 
-  /* Typography */
+  /* iOS System Colors (Light) */
+  --label: #000000;
+  --secondary-label: rgba(60, 60, 67, 0.6);
+  --tertiary-label: rgba(60, 60, 67, 0.3);
+  --system-background: #ffffff;
+  --secondary-system-background: #f2f2f7;
+  --system-grouped-background: #f2f2f7;
+  --separator: rgba(60, 60, 67, 0.29);
+
+  /* Typography (iOS points translated to CSS px, 1:1 in web) */
   --font-rounded: ui-rounded, 'SF Pro Rounded', -apple-system, sans-serif;
   
-  --text-large-title-size: 34pt;
-  --text-large-title-line: 41pt;
+  --text-large-title-size: 34px;
+  --text-large-title-line: 41px;
   --text-large-title-weight: bold;
 
-  --text-title2-size: 22pt;
-  --text-title2-line: 28pt;
+  --text-title2-size: 22px;
+  --text-title2-line: 28px;
   --text-title2-weight: bold;
 
-  --text-title3-size: 20pt;
-  --text-title3-line: 25pt;
+  --text-title3-size: 20px;
+  --text-title3-line: 25px;
   --text-title3-weight: 600;
 
-  --text-headline-size: 17pt;
-  --text-headline-line: 22pt;
+  --text-headline-size: 17px;
+  --text-headline-line: 22px;
   --text-headline-weight: 600;
 
-  --text-body-size: 17pt;
-  --text-body-line: 22pt;
+  --text-body-size: 17px;
+  --text-body-line: 22px;
   --text-body-weight: normal;
 
-  --text-callout-size: 16pt;
-  --text-callout-line: 21pt;
+  --text-callout-size: 16px;
+  --text-callout-line: 21px;
   --text-callout-weight: normal;
 
-  --text-subheadline-size: 15pt;
-  --text-subheadline-line: 20pt;
+  --text-subheadline-size: 15px;
+  --text-subheadline-line: 20px;
   --text-subheadline-weight: normal;
 
-  --text-footnote-size: 13pt;
-  --text-footnote-line: 18pt;
+  --text-footnote-size: 13px;
+  --text-footnote-line: 18px;
   --text-footnote-weight: normal;
 
-  --text-caption1-size: 12pt;
-  --text-caption1-line: 16pt;
+  --text-caption1-size: 12px;
+  --text-caption1-line: 16px;
   --text-caption1-weight: normal;
 
-  --text-caption2-size: 11pt;
-  --text-caption2-line: 13pt;
+  --text-caption2-size: 11px;
+  --text-caption2-line: 13px;
   --text-caption2-weight: normal;
 }
 
-/* Dark mode overrides for system blue */
+/* Dark mode overrides */
 @media (prefers-color-scheme: dark) {
   :root {
     --ion-color-primary: #0A84FF;
     --ion-color-primary-rgb: 10,132,255;
+
+    /* iOS System Colors (Dark) */
+    --label: #ffffff;
+    --secondary-label: rgba(235, 235, 245, 0.6);
+    --tertiary-label: rgba(235, 235, 245, 0.3);
+    --system-background: #000000;
+    --secondary-system-background: #1c1c1e;
+    --system-grouped-background: #000000;
+    --separator: rgba(84, 84, 88, 0.65);
   }
 }
 
 /* Glass Material Utility */
 .glass {
-  background: rgb(255 255 255 / 0.72);
+  --background: rgb(255 255 255 / 0.72) !important;
+  background: var(--background) !important;
   -webkit-backdrop-filter: saturate(180%) blur(20px);
   backdrop-filter: saturate(180%) blur(20px);
 }
 
 @media (prefers-color-scheme: dark) {
   .glass {
-    background: rgb(28 28 30 / 0.72);
+    --background: rgb(28 28 30 / 0.72) !important;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .glass {
+    --background: #ffffff !important;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+  @media (prefers-color-scheme: dark) {
+    .glass {
+      --background: #1c1c1e !important;
+    }
   }
 }
