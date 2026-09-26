@@ -99,7 +99,7 @@ Gemini interprets and explains; routing stays deterministic. Never analyse Googl
 - **Native (Swift, on the Mac):** one widget extension `MapayWidget` (WidgetKit widgets + ActivityKit Live Activity UI) and a small local Capacitor plugin `MapayNative` (reload widget timelines, start/end the Live Activity).
 - **Map:** fully on Google Maps Platform. Maps JavaScript API via `@vis.gl/react-google-maps` inside the app's web view, with light + dark cloud-styled Map IDs that follow the system; Google `TrafficLayer` for live congestion; Places API for search, saved places and stops. No MapLibre or MapKit: Google's terms don't allow showing Google routes/places on a non-Google map. Deep links use the Google Maps URLs API (`https://www.google.com/maps/dir/?api=1&origin=...&destination=...&waypoints=...`); only Google Maps preserves multi-waypoint shaping, Apple Maps / Waze get origin → destination.
 - **Routing:** Google Routes API with our own deterministic hazard scoring. See [Routing](#routing). The committed `routing/engine.py` still searches an OSMnx graph (its loader is a stub, so `/route` returns 503); the path search moves to Routes API, while the beliefs and the pre-route check stay.
-- **LLM:** Gemini via the Google GenAI SDK (`google-genai`) with an API key from **Google AI Studio** (`GEMINI_API_KEY`), structured JSON output. Gemini *interprets* (news → events, prompt → constraints, satellite chips → yes/no + description) and *explains*. It never picks the route. AI Studio keys have per-minute and per-day request limits: batch news articles per call, never re-process an article, and cache results.
+- **LLM:** Gemini via the Google GenAI SDK (`google-genai`) with an API key from **Google AI Studio** (`GEMINI_API_KEY`), structured JSON output. Gemini *interprets* (news → events, prompt → constraints, satellite chips → yes/no + description) and *explains*. It never picks the route. AI Studio keys have per-minute and per-day request limits: batch news articles per call, never re-process an article, and cache results. **Currently runs on Vertex AI** (the $300 trial credit) through `agents/genai_client.py`; see [Gemini fallback plan](#gemini-fallback-plan-vertex-ai--switch-implemented-config-only).
 - **Decision model:** [Laya](https://github.com/NandhaKishorM/laya), open source (Apache-2.0).
   - It runs for free on Jean's laptop behind a tunnel (A24), so it can be offline.
   - A25 (P1) fine-tunes it on Miami news labelled by Claude, using Kaggle's free GPUs.
@@ -117,13 +117,10 @@ Gemini interprets and explains; routing stays deterministic. Never analyse Googl
 - Apple: Xcode on the Mac, AltServer on the Mac, AltStore with a free Apple ID on the demo iPhone.
 - Earth Engine: register the GCP project for noncommercial use (Community tier, 150 EECU-hours/month) and give the Cloud Run service account access.
 - Copernicus GFM account (free) for flood-map API/WMS-T access.
-- Gemini API key from Google AI Studio (`GEMINI_API_KEY`), HERE API key, NWS `User-Agent` string. P2 only: Ticketmaster, EIA.
+- Gemini: Vertex AI on the GCP project (see Gemini fallback plan; the AI Studio `GEMINI_API_KEY` path is parked), HERE API key, NWS `User-Agent` string. P2 only: Ticketmaster, EIA.
 
 ---
 
-<<<<<<< HEAD
-## API contract
-=======
 ## Gemini fallback plan (Vertex AI) — switch implemented, config only
 
 **How it works:** `backend/app/agents/genai_client.py` is the only place that builds the Gemini client. Every agent calls `get_genai_client()` and uses `settings.gemini_model` (`GEMINI_MODEL`, default `gemini-3.8-flash`). Switching backends is an env-var change plus a redeploy; no code changes, and no automatic live failover.
@@ -163,8 +160,7 @@ No key file is needed. Cloud Run runs as `gemini-runner` (GitHub variable `GEMIN
 
 ---
 
-## Pre-route widget + push notifications
->>>>>>> 4e06855 (Add switchable Gemini client (AI Studio / Vertex AI) and deploy wiring)
+## API contract
 
 | Method + path | What |
 |---|---|
