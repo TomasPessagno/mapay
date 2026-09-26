@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+pydantic
+pydantic-settings
+motor
+httpx
+geopandas
+shapely
+osmnx
+networkx
+google-genai
+feedparser
+python-dotenv
