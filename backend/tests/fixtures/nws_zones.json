@@ -70,5 +70,24 @@
       ]
     },
     "properties": {"@id": "https://api.weather.gov/zones/forecast/FLZ174", "id": "FLZ174", "name": "Far South Miami-Dade County"}
+  },
+  "FLC086": {
+    "id": "https://api.weather.gov/zones/county/FLC086",
+    "type": "Feature",
+    "geometry": {
+      "type": "MultiPolygon",
+      "coordinates": [
+        [
+          [
+            [-80.45, 25.55],
+            [-80.05, 25.55],
+            [-80.05, 25.98],
+            [-80.45, 25.98],
+            [-80.45, 25.55]
+          ]
+        ]
+      ]
+    },
+    "properties": {"@id": "https://api.weather.gov/zones/county/FLC086", "id": "FLC086", "name": "Miami-Dade"}
   }
 }

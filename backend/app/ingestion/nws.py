@@ -1,10 +1,12 @@
 """Ingestion: NWS active alerts for the Miami-Dade forecast zones -> ``weather`` beliefs.
 
 Alerts come from ``/alerts/active`` filtered by the four Miami-Dade forecast zones
-(FLZ073, FLZ074, FLZ173, FLZ174). Storm-based alerts already carry a polygon;
-zone-based alerts do not, so their polygon is the union of the affected zones'
-geometries, fetched from ``/zones/forecast/<id>`` and cached on disk because zone
-boundaries change very rarely.
+(FLZ073, FLZ074, FLZ173, FLZ174) plus the Miami-Dade county zone (FLC086), so
+county-based watches and warnings are included too. Storm-based alerts already
+carry a polygon; zone-based alerts do not, so their polygon is the union of the
+affected zones' geometries, fetched from each ``affectedZones`` URL (forecast or
+county) and cached on disk because zone boundaries change very rarely. A zone that
+fails to fetch is skipped, and an alert with no resolvable geometry is skipped.
 
 Each alert becomes a ``weather`` belief with the stable id ``nws:<alert id>``, a
 ``probability`` prior derived from its ``certainty`` (Observed > Likely > Possible)
@@ -29,10 +31,10 @@ from app.routing.beliefs import log_odds, register_hazard, utc
 
 NWS_BASE_URL = "https://api.weather.gov"
 ALERTS_URL = f"{NWS_BASE_URL}/alerts/active"
-ZONE_URL = f"{NWS_BASE_URL}/zones/forecast/{{zone_id}}"
+ZONE_URL_PREFIX = f"{NWS_BASE_URL}/zones/"
 
-# The four public forecast zones that together cover Miami-Dade County.
-MIAMI_DADE_ZONES = ("FLZ073", "FLZ074", "FLZ173", "FLZ174")
+# The four public forecast zones plus the county zone that cover Miami-Dade.
+MIAMI_DADE_ZONES = ("FLZ073", "FLZ074", "FLZ173", "FLZ174", "FLC086")
 
 ZONE_CACHE_PATH = Path(__file__).resolve().parents[1] / "data" / "cache" / "nws_zones.json"
 ZONE_CACHE_TTL_SECONDS = 30 * 24 * 60 * 60  # zone boundaries are near-static
@@ -85,16 +87,19 @@ async def fetch_active_alerts(*, client: httpx.AsyncClient | None = None,
     return response.json()
 
 
-async def fetch_zone_geometry(zone_id: str, *, client: httpx.AsyncClient | None = None,
+async def fetch_zone_geometry(zone_url: str, *, client: httpx.AsyncClient | None = None,
                               user_agent: str | None = None) -> dict | None:
-    """The zone's GeoJSON geometry, or None when NWS returns no polygon for it."""
+    """The zone's GeoJSON geometry from its own ``affectedZones`` URL, or None.
+
+    The URL decides the zone kind (forecast, county, ...), so it is fetched as-is
+    rather than rebuilt from an id.
+    """
     headers = {"User-Agent": user_agent or resolve_user_agent(), "Accept": "application/geo+json"}
-    url = ZONE_URL.format(zone_id=zone_id)
     if client is not None:
-        response = await client.get(url, headers=headers)
+        response = await client.get(zone_url, headers=headers)
     else:
         async with httpx.AsyncClient(timeout=20.0) as owned:
-            response = await owned.get(url, headers=headers)
+            response = await owned.get(zone_url, headers=headers)
     response.raise_for_status()
     return response.json().get("geometry")
 
@@ -121,9 +126,10 @@ def cache_is_fresh(path: Path = ZONE_CACHE_PATH, now: datetime | None = None) ->
     return (moment - written).total_seconds() < ZONE_CACHE_TTL_SECONDS
 
 
-def affected_zone_ids(feature: dict) -> list[str]:
+def affected_zone_urls(feature: dict) -> list[str]:
+    """The NWS zone URLs an alert affects, ignoring any non-NWS links."""
     zones = feature.get("properties", {}).get("affectedZones") or []
-    return [zone.rsplit("/", 1)[-1] for zone in zones]
+    return [str(zone) for zone in zones if str(zone).startswith(ZONE_URL_PREFIX)]
 
 
 def combine_geometries(geometries: list[dict]) -> dict | None:
@@ -143,7 +149,7 @@ def alert_geometry(feature: dict, zones: dict) -> dict | None:
     geometry = feature.get("geometry")
     if geometry:
         return geometry
-    return combine_geometries([zones.get(zone_id) for zone_id in affected_zone_ids(feature)])
+    return combine_geometries([zones.get(url) for url in affected_zone_urls(feature)])
 
 
 def alert_hazard_id(alert_id: str) -> str:
@@ -209,13 +215,16 @@ async def ensure_zones(features: list[dict], *, client: httpx.AsyncClient | None
     """Zone geometries for the alerts, refreshing the disk cache only when needed."""
     moment = utc(now or datetime.now(timezone.utc))
     zones = load_zone_cache(path) if cache_is_fresh(path, moment) else {}
-    needed = {zone_id for feature in features for zone_id in affected_zone_ids(feature)
+    needed = {url for feature in features for url in affected_zone_urls(feature)
               if not feature.get("geometry")}
-    missing = sorted(zone_id for zone_id in needed if zone_id not in zones)
-    for zone_id in missing:
-        geometry = await fetch_zone_geometry(zone_id, client=client)
+    missing = sorted(url for url in needed if url not in zones)
+    for url in missing:
+        try:
+            geometry = await fetch_zone_geometry(url, client=client)
+        except (httpx.HTTPError, ValueError):
+            continue  # one bad zone must not fail the whole run
         if geometry:
-            zones[zone_id] = geometry
+            zones[url] = geometry
     if missing:
         save_zone_cache(zones, path)
     return zones

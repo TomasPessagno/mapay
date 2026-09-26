@@ -159,6 +159,30 @@
         "event": "Special Weather Statement",
         "headline": "Special Weather Statement issued September 26 at 4:00AM EDT"
       }
+    },
+    {
+      "id": "urn:oid:2.49.0.1.840.0.b11d61c0efcce07c0173cab89ca092d0ac2bdd62.007.1",
+      "type": "Feature",
+      "geometry": null,
+      "properties": {
+        "@id": "https://api.weather.gov/alerts/urn:oid:2.49.0.1.840.0.b11d61c0efcce07c0173cab89ca092d0ac2bdd62.007.1",
+        "id": "urn:oid:2.49.0.1.840.0.b11d61c0efcce07c0173cab89ca092d0ac2bdd62.007.1",
+        "areaDesc": "Miami-Dade",
+        "geocode": {"UGC": ["FLC086"]},
+        "affectedZones": ["https://api.weather.gov/zones/county/FLC086"],
+        "sent": "2026-09-26T03:30:00-04:00",
+        "effective": "2026-09-26T03:30:00-04:00",
+        "onset": "2026-09-26T03:30:00-04:00",
+        "expires": "2026-09-26T22:00:00-04:00",
+        "ends": "2026-09-27T09:00:00-04:00",
+        "status": "Actual",
+        "messageType": "Alert",
+        "severity": "Moderate",
+        "certainty": "Possible",
+        "urgency": "Future",
+        "event": "Flood Watch",
+        "headline": "Flood Watch issued September 26 at 3:30AM EDT by NWS Miami FL"
+      }
     }
   ]
 }

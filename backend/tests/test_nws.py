@@ -28,7 +28,12 @@ def alert_features() -> list[dict]:
 
 
 def zone_geometries() -> dict:
-    return {zone_id: feature["geometry"] for zone_id, feature in load(ZONES_FIXTURE).items()}
+    """Zone geometries keyed by their own NWS URL, as the cache stores them."""
+    return {feature["id"]: feature["geometry"] for feature in load(ZONES_FIXTURE).values()}
+
+
+def zone_url(zone_id: str) -> str:
+    return load(ZONES_FIXTURE)[zone_id]["id"]
 
 
 class FakeCursor:
@@ -49,11 +54,17 @@ def fake_db(docs=()):
 
 
 class QueryTests(unittest.TestCase):
-    def test_alerts_cover_the_miami_dade_forecast_zones(self):
-        self.assertEqual(nws.MIAMI_DADE_ZONES, ("FLZ073", "FLZ074", "FLZ173", "FLZ174"))
+    def test_alerts_cover_the_miami_dade_forecast_and_county_zones(self):
+        self.assertEqual(nws.MIAMI_DADE_ZONES, ("FLZ073", "FLZ074", "FLZ173", "FLZ174", "FLC086"))
         params = nws.alerts_params()
         for zone_id in nws.MIAMI_DADE_ZONES:
             self.assertIn(zone_id, params["zone"])
+
+    def test_affected_zone_urls_ignores_non_nws_links(self):
+        feature = {"properties": {"affectedZones": [
+            "https://api.weather.gov/zones/county/FLC086", "https://example.com/zones/1"]}}
+        self.assertEqual(nws.affected_zone_urls(feature),
+                         ["https://api.weather.gov/zones/county/FLC086"])
 
     def test_user_agent_fallback_is_descriptive(self):
         self.assertIn("MAPAY", nws.FALLBACK_USER_AGENT)
@@ -104,7 +115,7 @@ class ParseTests(unittest.TestCase):
     def test_zone_alert_gets_polygon_from_affected_zones(self):
         feature = alert_features()[1]
         alert = nws.parse_alert(feature, zone_geometries())
-        self.assertEqual(alert["geometry"], zone_geometries()["FLZ173"])
+        self.assertEqual(alert["geometry"], zone_geometries()[zone_url("FLZ173")])
         self.assertEqual(alert["properties"]["certainty"], "Likely")
 
     def test_multiple_affected_zones_union_into_multipolygon(self):
@@ -114,6 +125,14 @@ class ParseTests(unittest.TestCase):
         self.assertEqual(len(alert["geometry"]["coordinates"]), 2)
         self.assertEqual(alert["properties"]["probability"], 0.5)
         self.assertEqual(alert["properties"]["severity"], 3)
+
+    def test_county_zone_alert_gets_county_polygon(self):
+        feature = alert_features()[6]
+        self.assertEqual(feature["properties"]["affectedZones"],
+                         ["https://api.weather.gov/zones/county/FLC086"])
+        alert = nws.parse_alert(feature, zone_geometries())
+        self.assertEqual(alert["geometry"], zone_geometries()[zone_url("FLC086")])
+        self.assertEqual(alert["properties"]["probability"], 0.5)
 
     def test_unplaceable_alert_is_skipped(self):
         self.assertIsNone(nws.parse_alert(alert_features()[5], zone_geometries()))
@@ -134,7 +153,7 @@ class HttpTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(captured["params"]["zone"], ",".join(nws.MIAMI_DADE_ZONES))
         self.assertEqual(captured["user_agent"], "MAPAY test (a@b.c)")
 
-    async def test_fetch_zone_geometry_reads_the_zone_polygon(self):
+    async def test_fetch_zone_geometry_reads_the_zone_polygon_from_its_own_url(self):
         zone = load(ZONES_FIXTURE)["FLZ074"]
         captured = {}
 
@@ -143,16 +162,30 @@ class HttpTests(unittest.IsolatedAsyncioTestCase):
             return httpx.Response(200, json=zone)
 
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-            geometry = await nws.fetch_zone_geometry("FLZ074", client=client, user_agent="MAPAY test")
+            geometry = await nws.fetch_zone_geometry(zone["id"], client=client, user_agent="MAPAY test")
         self.assertEqual(geometry, zone["geometry"])
-        self.assertIn("/zones/forecast/FLZ074", captured["url"])
+        self.assertEqual(captured["url"], zone["id"])
+
+    async def test_county_zone_geometry_is_fetched_from_the_county_url(self):
+        zone = load(ZONES_FIXTURE)["FLC086"]
+        captured = {}
+
+        def handler(request):
+            captured["url"] = str(request.url)
+            return httpx.Response(200, json=zone)
+
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            geometry = await nws.fetch_zone_geometry(zone["id"], client=client, user_agent="MAPAY test")
+        self.assertIn("/zones/county/FLC086", captured["url"])
+        self.assertEqual(geometry, zone["geometry"])
 
     async def test_zone_without_geometry_returns_none(self):
         def handler(request):
             return httpx.Response(200, json={"type": "Feature", "geometry": None, "properties": {}})
 
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-            self.assertIsNone(await nws.fetch_zone_geometry("FLZ999", client=client, user_agent="t"))
+            self.assertIsNone(await nws.fetch_zone_geometry(
+                "https://api.weather.gov/zones/forecast/FLZ999", client=client, user_agent="t"))
 
 
 class CacheTests(unittest.IsolatedAsyncioTestCase):
@@ -175,24 +208,25 @@ class CacheTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(nws.load_zone_cache(path), {})
 
     async def test_ensure_zones_fetches_once_then_reuses_cache(self):
-        fetch = AsyncMock(side_effect=lambda zone_id, **kwargs: zone_geometries().get(zone_id))
+        fetch = AsyncMock(side_effect=lambda zone_url, **kwargs: zone_geometries().get(zone_url))
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "nws_zones.json"
             with patch.object(nws, "fetch_zone_geometry", fetch):
                 first = await nws.ensure_zones(alert_features(), path=path, now=NOW)
                 second = await nws.ensure_zones(alert_features(), path=path, now=NOW)
-        self.assertEqual(set(first), {"FLZ073", "FLZ074", "FLZ173"})
+        needed = {zone_url(zone_id) for zone_id in ("FLZ073", "FLZ074", "FLZ173", "FLC086")}
+        self.assertEqual(set(first), needed)
         self.assertEqual(second, first)
-        self.assertEqual(fetch.await_count, 3)
+        self.assertEqual(fetch.await_count, 4)
 
     async def test_stale_cache_refetches_zones(self):
-        fetch = AsyncMock(side_effect=lambda zone_id, **kwargs: zone_geometries().get(zone_id))
+        fetch = AsyncMock(side_effect=lambda zone_url, **kwargs: zone_geometries().get(zone_url))
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp) / "nws_zones.json"
             with patch.object(nws, "fetch_zone_geometry", fetch):
                 await nws.ensure_zones(alert_features(), path=path, now=NOW)
                 await nws.ensure_zones(alert_features(), path=path, now=NOW + timedelta(days=60))
-        self.assertEqual(fetch.await_count, 6)
+        self.assertEqual(fetch.await_count, 8)
 
 
 class RegisterTests(unittest.IsolatedAsyncioTestCase):
@@ -236,7 +270,7 @@ class RunTests(unittest.IsolatedAsyncioTestCase):
         stale = {"_id": "belief:nws:old", "type": "hazard_belief", "hazard_type": "weather",
                  "hazard_id": "nws:old", "geometry": {"type": "Point", "coordinates": [-80.19, 25.76]},
                  "prior_log_odds": log_odds(0.8), "severity": 2}
-        fetch_zone = AsyncMock(side_effect=lambda zone_id, **kwargs: zone_geometries().get(zone_id))
+        fetch_zone = AsyncMock(side_effect=lambda zone_url, **kwargs: zone_geometries().get(zone_url))
         with tempfile.TemporaryDirectory() as tmp, \
                 patch.object(nws, "fetch_active_alerts", AsyncMock(return_value=load(ALERTS_FIXTURE))), \
                 patch.object(nws, "fetch_zone_geometry", fetch_zone), \
@@ -244,7 +278,7 @@ class RunTests(unittest.IsolatedAsyncioTestCase):
             summary = await nws.run(fake_db([stale]), NOW, client=object(),
                                     zone_cache_path=Path(tmp) / "nws_zones.json")
 
-        self.assertEqual(summary, {"active": 3, "ended": 2, "closed": 1})
+        self.assertEqual(summary, {"active": 4, "ended": 2, "closed": 1})
         by_id = {call.args[1]: call for call in register.call_args_list}
 
         active_feature = alert_features()[0]
@@ -258,6 +292,33 @@ class RunTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(ended_call.args[4]["probability"], nws.ENDED_PROBABILITY)
 
         self.assertEqual(by_id["nws:old"].args[4]["probability"], nws.ENDED_PROBABILITY)
+
+    async def test_run_skips_a_zone_that_fails_to_fetch(self):
+        def handler(request):
+            path = request.url.path
+            if path.endswith("/alerts/active"):
+                return httpx.Response(200, json=load(ALERTS_FIXTURE))
+            zone_id = path.rsplit("/", 1)[-1]
+            if zone_id == "FLZ173":
+                return httpx.Response(500, text="zone unavailable")
+            return httpx.Response(200, json=load(ZONES_FIXTURE)[zone_id])
+
+        client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        try:
+            with tempfile.TemporaryDirectory() as tmp, \
+                    patch.object(nws, "register_hazard", AsyncMock()) as register:
+                summary = await nws.run(fake_db(), NOW, client=client,
+                                        zone_cache_path=Path(tmp) / "nws_zones.json")
+        finally:
+            await client.aclose()
+
+        self.assertEqual(summary, {"active": 3, "ended": 2, "closed": 0})
+        by_id = {call.args[1]: call for call in register.call_args_list}
+        dropped = nws.alert_hazard_id(alert_features()[1]["properties"]["id"])  # FLZ173-only alert
+        self.assertNotIn(dropped, by_id)
+        county = nws.alert_hazard_id(alert_features()[6]["properties"]["id"])
+        self.assertIn(county, by_id)
+        self.assertEqual(by_id[county].args[2], "weather")
 
 
 if __name__ == "__main__":
