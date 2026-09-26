@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="416" viewBox="0 0 640 416" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title>Mapay map legend</title>
+  <defs>
+    <linearGradient id="congestion" gradientUnits="userSpaceOnUse" x1="24" x2="108" y1="0" y2="0">
+      <stop offset="0" stop-color="#F9A825"/>
+      <stop offset="0.5" stop-color="#E53935"/>
+      <stop offset="1" stop-color="#8E0000"/>
+    </linearGradient>
+  </defs>
+
+  <rect x="0.5" y="0.5" width="639" height="415" rx="12" fill="#FFFFFF" stroke="#D0D7DE"/>
+  <text x="24" y="36" font-size="17" font-weight="600" fill="#1F2328">Map legend</text>
+  <text x="616" y="36" font-size="12" fill="#57606A" text-anchor="end">colour + icon + line style per category</text>
+
+  <!-- 1. flood -->
+  <g transform="translate(0,56)">
+    <rect x="24" y="4" width="84" height="24" rx="4" fill="#1565C0" fill-opacity="0.3" stroke="#1565C0" stroke-width="2"/>
+    <line x1="24" y1="16" x2="108" y2="16" stroke="#1565C0" stroke-width="5"/>
+    <text x="132" y="21" font-size="14" fill="#1F2328">Flooded street</text>
+    <text x="616" y="21" font-size="12" fill="#57606A" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">flood · #1565C0</text>
+  </g>
+
+  <!-- 2. weather -->
+  <g transform="translate(0,92)">
+    <rect x="24" y="4" width="84" height="24" rx="12" fill="#4FC3F7" fill-opacity="0.55"/>
+    <text x="132" y="21" font-size="14" fill="#1F2328">Heavy rain / weather alert</text>
+    <text x="616" y="21" font-size="12" fill="#57606A" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">weather · #4FC3F7</text>
+  </g>
+
+  <!-- 3. construction -->
+  <g transform="translate(0,128)">
+    <rect x="24" y="4" width="84" height="24" rx="4" fill="#EF6C00" fill-opacity="0.15" stroke="#EF6C00" stroke-width="2"/>
+    <path d="M66 7 L74 25 L58 25 Z" fill="#EF6C00"/>
+    <rect x="61" y="17" width="10" height="3" fill="#FFFFFF"/>
+    <text x="132" y="21" font-size="14" fill="#1F2328">Construction</text>
+    <text x="616" y="21" font-size="12" fill="#57606A" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">construction · #EF6C00</text>
+  </g>
+
+  <!-- 4. closure -->
+  <g transform="translate(0,164)">
+    <line x1="24" y1="16" x2="84" y2="16" stroke="#212121" stroke-width="5" stroke-dasharray="10 6"/>
+    <circle cx="98" cy="16" r="9" fill="#212121"/>
+    <rect x="92" y="14" width="12" height="4" fill="#FFFFFF"/>
+    <text x="132" y="21" font-size="14" fill="#1F2328">Road closure</text>
+    <text x="616" y="21" font-size="12" fill="#57606A" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">closure · #212121</text>
+  </g>
+
+  <!-- 5. congestion -->
+  <g transform="translate(0,200)">
+    <line x1="24" y1="16" x2="108" y2="16" stroke="url(#congestion)" stroke-width="7" stroke-linecap="round"/>
+    <text x="132" y="21" font-size="14" fill="#1F2328">Congestion (moderate → severe)</text>
+    <text x="616" y="21" font-size="12" fill="#57606A" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">congestion · #F9A825 → #8E0000</text>
+  </g>
+
+  <!-- 6. no sidewalk -->
+  <g transform="translate(0,236)">
+    <line x1="27" y1="16" x2="105" y2="16" stroke="#8E24AA" stroke-width="5" stroke-dasharray="0.1 9" stroke-linecap="round"/>
+    <text x="132" y="21" font-size="14" fill="#1F2328">No sidewalk</text>
+    <text x="616" y="21" font-size="12" fill="#57606A" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">no_sidewalk · #8E24AA</text>
+  </g>
+
+  <!-- 7. pothole -->
+  <g transform="translate(0,272)">
+    <circle cx="66" cy="16" r="6" fill="#6D4C41"/>
+    <text x="132" y="21" font-size="14" fill="#1F2328">Pothole</text>
+    <text x="616" y="21" font-size="12" fill="#57606A" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">pothole · #6D4C41</text>
+  </g>
+
+  <!-- 8. incident -->
+  <g transform="translate(0,308)">
+    <circle cx="66" cy="16" r="10" fill="#D81B60"/>
+    <rect x="64.5" y="9" width="3" height="9" rx="1" fill="#FFFFFF"/>
+    <circle cx="66" cy="21.5" r="1.7" fill="#FFFFFF"/>
+    <text x="132" y="21" font-size="14" fill="#1F2328">Incident / police / news</text>
+    <text x="616" y="21" font-size="12" fill="#57606A" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">incident · #D81B60</text>
+  </g>
+
+  <!-- 9. event -->
+  <g transform="translate(0,344)">
+    <circle cx="66" cy="16" r="10" fill="#00897B"/>
+    <rect x="60" y="11" width="12" height="11" rx="1.5" fill="#FFFFFF"/>
+    <rect x="60" y="11" width="12" height="3" fill="#004D40"/>
+    <text x="132" y="21" font-size="14" fill="#1F2328">Event / holiday</text>
+    <text x="616" y="21" font-size="12" fill="#57606A" text-anchor="end" font-family="ui-monospace, SFMono-Regular, Menlo, monospace">event · #00897B</text>
+  </g>
+
+  <text x="24" y="400" font-size="12" fill="#57606A">Width / size = severity · opacity = confidence · predicted hazards are lighter and labelled "predicted"</text>
+</svg>

@@ -1,167 +1,189 @@
 # Mapay
 
-**A map that knows what's wrong with the streets before you drive them.**
+**A colour-coded map of what's wrong with Miami's streets, and a heads-up before your daily trips.**
 
-Mapay is a mobile app + web app that puts every street problem (potholes, floods, closures, construction, heavy traffic, local news and more) on a single map. You save your routine routes, and before each one Mapay nudges you with a big widget to **start it now** or **change it with a prompt**.
+Mapay puts street problems on one colour-coded map: flooded streets, construction, congestion, closures, missing sidewalks and more. You save your routine trips (say, MMC → BBC at 9:30 and back between 17:00 and 19:00), tell it what you'd rather avoid, and before each trip a big Duolingo-style widget pops up on your phone: **Start** the route in Google Maps, or **Customize** it with a prompt.
 
-> **Status:** planning. This README is where we keep scope and decisions. It covers the fundamentals first; more features are planned and will be added once the fundamentals ship.
+> **Status:** being built at ShellHacks 2026 in Miami. This README is the product spec; [`AGENTS.md`](AGENTS.md) is the build guide (priorities, algorithms, data sources, schema, hour-by-hour plan).
 
 ---
 
 ## Contents
 
-- [Core concepts](#core-concepts)
-- [Fundamentals (MVP scope)](#fundamentals-mvp-scope)
-- [Features](#features)
-  - [1. Main map: Inconvenientes](#1-main-map-inconvenientes)
-  - [2. Routine routes](#2-routine-routes)
-  - [3. Heads-up widget](#3-heads-up-widget)
-  - [4. Holidays and festivities](#4-holidays-and-festivities)
-  - [5. Run and walk](#5-run-and-walk)
-- [Platforms](#platforms)
+- [How it works](#how-it-works)
+- [The map](#the-map)
+- [Routine routes](#routine-routes)
+- [Preferences](#preferences)
+- [The heads-up widget](#the-heads-up-widget)
+- [Where the data comes from](#where-the-data-comes-from)
+- [Also planned](#also-planned)
 - [Architecture](#architecture)
-- [Data model (draft)](#data-model-draft)
 - [Roadmap](#roadmap)
 - [Open questions](#open-questions)
 - [Repository layout](#repository-layout)
-- [Original spec (ES)](#original-spec-es)
+- [Spec history](#spec-history)
 - [Setup and scaffold notes](#setup-and-scaffold-notes)
 
 ---
 
-## Core concepts
+## How it works
 
-| Term | Meaning |
-| --- | --- |
-| **Inconveniente** | Anything on or near a street that makes a trip worse: pothole, flood, closure, reduced lanes, heavy rain, police report, news event, construction, historically heavy traffic. Every Inconveniente has a location, a type, a source, a confidence score and an expiry. |
-| **Routine route** | A saved trip (origin → destination, plus optional stops) with a schedule and preferences. |
-| **Schedule** | Either **specific times** (e.g. Mon–Fri 08:15) or a **time range** (e.g. "sometime between 17:30 and 19:00"). |
-| **Preferences** | Per-route rules about Inconvenientes ("avoid floods", "don't care about potholes", "avoid Av. X after 18:00"). Mapay also **learns** preferences from the prompts you use to change routes. |
-| **Heads-up widget** | The Duolingo-style widget/notification that shows up before a routine route starts, with two actions: **Start** and **Customize**. |
-| **Daily Mind** | A daily summary built by agents. It combines news, reports and past Inconvenientes into a per-street/per-intersection picture of the city. |
+```mermaid
+flowchart LR
+    D[News, weather,<br/>satellite, maps APIs] --> M[Colour-coded map]
+    R[Routine routes<br/>+ preferences] --> W[Heads-up widget<br/>30 min before]
+    M --> W
+    W -->|Start| G[Google Maps app]
+    W -->|Customize| P[Prompt → Gemini<br/>→ new route]
+    P --> G
+```
+
+1. **The map** shows every street problem we know about, colour-coded by type.
+2. **Routine routes** know where you go, when, and what you want to avoid.
+3. **The heads-up widget** brings both together before each trip: here's your route, here's what's on it, start it or change it.
 
 ---
 
-## Fundamentals (MVP scope)
+## The map
 
-These come first. Everything else waits until they work end to end.
+![Map legend: flooded street blue, heavy rain light blue, construction orange, road closure black dashed, congestion amber to dark red, no sidewalk purple dotted, pothole brown, incident magenta pin, event teal pin](docs/legend.svg)
 
-| # | Fundamental | Done when |
+| Category | Colour | Where the data comes from |
 | --- | --- | --- |
-| 1 | **Map with Inconvenientes** | Google map shows Inconvenientes from at least a first set of sources (user reports, weather, closures/news, holidays), with a filterable legend. |
-| 2 | **Routine routes** | User can create/edit/delete routes with specific times or time ranges, plus per-route preferences. |
-| 3 | **Heads-up widget + push notifications** | A real push notification and a home-screen widget show up N minutes before a route (default **30 min**, configurable), with **Start** (opens Google Maps) and **Customize** (prompt → Gemini → new route → Google Maps). |
-| 4 | **Holiday awareness** | Mapay tells you ahead of time when a holiday/festivity affects a routine route. |
-| 5 | **Backend + agents skeleton** | MongoDB Atlas, API, push scheduler and at least one scheduled agent (news → Inconvenientes) in production. |
+| Flooded street | Blue | Tide + rain predictions on known flood spots, satellite radar (Sentinel-1), news, user reports |
+| Heavy rain / weather alert | Light blue | NWS alerts, radar |
+| Construction | Orange | City of Miami projects and permits, HERE roadworks, satellite (Sentinel-2), news |
+| Road closure | Black, dashed | HERE incidents, city data, news |
+| Congestion | Amber → red → dark red | Google live traffic; typical traffic from Google's predictions |
+| No sidewalk | Purple, dotted | OpenStreetMap sidewalk data |
+| Pothole | Brown | Miami-Dade 311, user reports |
+| Incident / police / news | Magenta pin | Local news read by Gemini |
+| Event / holiday | Teal pin | Ticketmaster, holiday calendar, news |
 
-**Not in the MVP:** satellite scanning, the run/walk section, CarPlay, in-app turn-by-turn navigation, Apple Maps/Waze integration beyond a basic "open in" link.
+- Colour is never the only signal: each category also has its own icon and line style.
+- Thicker or bigger means more severe; fainter means less certain. Predicted problems (e.g. a flood expected at high tide) are lighter and labelled "predicted".
+- Tap anything to see what it is, where it came from (with links), how sure we are, when it was seen (or when the satellite passed) and when it expires.
+- The legend doubles as the layer on/off switches.
+- You can report problems yourself: flood, construction, closure, pothole, no sidewalk.
 
 ---
 
-## Features
+## Routine routes
 
-### 1. Main map: Inconvenientes
+Save the places you go (e.g. **MMC** and **BBC**, FIU's two campuses) and the trips between them. Each direction is a **leg** with its own time:
 
-One map that shows all our data. Each layer can be turned on and off, and each marker/area opens a card with a **visual + short text** explanation, the source, and when it was last confirmed.
-
-| Inconveniente | Candidate sources | Notes |
+| Leg | When | Repeat |
 | --- | --- | --- |
-| Potholes | User reports, city open data, news | Free satellite imagery is **not** high enough resolution for potholes. Later: detection from phone accelerometer data while driving. |
-| Floods | Weather/rain data, news, user reports, satellite (radar) for large floods | Short-lived, needs an aggressive expiry. |
-| Closed streets | News agent, city open data, user reports | |
-| Reduced lanes | News agent, city open data, user reports | |
-| Very heavy rain zones | Weather radar / nowcasting API | Area overlay rather than points. |
-| Police reports | News agent, official open data where it exists | Handle carefully (see [Open questions](#open-questions)). |
-| Local news | News scraping agent → Daily Mind | Geocoded to streets/intersections. |
-| Construction zones | City permits/open data, news, satellite change detection (later) | Satellite needs high-res imagery. |
-| Historically heavy traffic | Google Maps: Routes API traffic-aware durations for future departure times (Google's typical traffic for that hour/day), compared against no-traffic duration. FDOT AADT as fallback. | Per corridor and time of day. Google's terms limit how long we can store its data, so check caching rules before keeping samples. |
+| MMC → BBC | at 9:30 | Mon–Fri |
+| BBC → MMC | between 17:00 and 19:00 (5–7 pm) | Mon–Fri |
 
-**Display principles**
+- **Time per leg:** a specific time (*at 9:30*), a time range (*between 17:00 and 19:00*), or a mix of both across legs, like the example.
+- **Repeat:** every day, every week, or custom days of the week (e.g. Mon, Wed, Fri).
+- **The way back:** one tap adds the reverse leg (Y → X) with its own time.
+- **Time ranges:** Mapay checks predicted traffic and hazards across the range and suggests the best moment to leave ("Leave at 17:45: 24 min instead of 38").
+- **Arrive by** *(later, aspirational)*: say when you need to be there instead of when to leave, and Mapay works out the departure time. Google's routing API only accepts arrival times for transit, so for driving we'll search departure times ourselves.
 
-- Every Inconveniente shows **source**, **confidence** and **last seen**, so users can judge it.
-- Expired Inconvenientes fade out instead of disappearing without notice.
-- A glossary/legend explains each icon and colour.
+---
 
-### 2. Routine routes
+## Preferences
 
-A section to set up routes you take regularly.
+Tell Mapay what you'd rather avoid. You set defaults for yourself and can override them per routine.
 
-- **Schedule:** specific times (`Mon–Fri 08:15`) or time ranges (`Sat 10:00–12:00`).
-- **Preferences on our data:** the same Inconveniente types as the map, each with a weight: *avoid*, *prefer to avoid*, *don't care*.
-- **Memory:** when a user customizes a route with a prompt ("avoid the viaduct, it floods"), the agent turns that into a stored preference, and the user can see and edit it.
-- **Preferred navigation app:** Google Maps (default), later Waze / Apple Maps.
+- **Per problem type:** *avoid*, *prefer to avoid* or *don't care* (e.g. avoid flooded areas, prefer to avoid construction, don't care about potholes).
+- **Neighbourhoods by name:** "avoid Brickell", "avoid Little Havana". Covers City of Miami neighbourhoods, Miami-Dade cities and places like Westchester or Kendall.
+- **Tolls and highways:** avoid them or not.
 
-### 3. Heads-up widget
+**How it's applied:** Google's routing API can only avoid tolls, highways and ferries, not a flooded street or a neighbourhood. So Mapay asks Google for alternative routes, scores each one against the map and your preferences, and picks the best. If needed, it adds a waypoint to steer around a problem, and those waypoints go with the route when it opens in Google Maps. If a problem can't be avoided (say, your destination is inside an avoided neighbourhood), Mapay tells you.
 
-Inspired by Duolingo's streak widget, which shows up hours before you lose your streak.
+---
+
+## The heads-up widget
+
+Inspired by Duolingo's streak reminder. Before each leg (default **30 minutes** before; for a time range, before it starts), a big card appears on your phone:
 
 ```
-┌──────────────────────────────────────────┐
-│  Home → Office · leaves in 30 min        │
-│                                          │
-│  ! Flood reported on Av. Example         │
-│  ! Holiday tomorrow: lighter traffic     │
-│                                          │
-│   [ ▶ Start route ]    [ ✎ Customize ]   │
-└──────────────────────────────────────────┘
+┌──────────────────────────────────────────────┐
+│  MMC → BBC · leave in 30 min (9:30)          │
+│  41 min with traffic                         │
+│                                              │
+│  ! Flooding expected near BBC (king tide)    │
+│  ! Construction on your usual route          │
+│                                              │
+│     [ Start route ]      [ Customize ]       │
+└──────────────────────────────────────────────┘
 ```
 
-- **When:** N minutes before the scheduled time (default 30, configurable per route). For time-range routes, at the start of the range, or at the best departure time we suggest.
-- **Later:** smart lead time, shown earlier when there are Inconvenientes on the route.
-- **Start route:** opens the route in **Google Maps** right away (see [handoff](#map-providers-and-navigation-handoff)).
-- **Customize:** opens a prompt ("I need to stop at the pharmacy", "avoid the center, there's a march"). Gemini + our data build a new route, then it opens in Google Maps.
-- **Surfaces:**
-  - **Push notification** via Firebase Cloud Messaging (Web Push), with **Start** / **Customize** action buttons where the browser supports them.
-  - **In-app widget card**, the big Duolingo-style card on the home screen of the app.
-  - **Home-screen widget**: Android first (the web app wrapped with Capacitor + a native Android widget), iOS WidgetKit after.
-- **Platform limits:** on iPhone, web push only works once the app is added to the Home Screen (iOS 16.4+), and Safari doesn't show notification action buttons, so tapping opens the in-app card with both buttons.
+- **Start route** opens the route in the **Google Maps** app right away, including any waypoints Mapay added.
+- **Customize** opens a prompt: *"stop at a Starbucks and stay off the Palmetto"*. Gemini turns it into constraints, Mapay's router builds the new route, and you see the old and new routes side by side before opening Google Maps.
+- **Where it shows up:**
+  - a **push notification** with a map preview of the route and both buttons;
+  - a **huge card** at the top of the app;
+  - a **home-screen widget** on Android (iPhone later).
+- **iPhone note:** web push only works after adding Mapay to the Home Screen, and iPhone notifications don't show the two buttons, so tapping opens the card instead.
 
 ```mermaid
 sequenceDiagram
-    participant S as Scheduler
-    participant B as Backend
-    participant P as Phone (widget/notification)
-    participant G as Gemini agent
-    participant M as Google Maps
-    S->>B: route starts in 30 min
-    B->>B: check Inconvenientes + holidays on route
-    B->>P: push heads-up (summary + actions)
-    alt Start route
-        P->>M: deep link (origin, destination, waypoints)
+    participant S as Cloud Scheduler
+    participant B as Mapay backend
+    participant P as Phone
+    participant G as Gemini
+    participant M as Google Maps app
+    S->>B: every minute: any legs starting soon?
+    B->>B: route + hazards on it (+ best time for a range)
+    B->>P: push: summary, map preview, Start / Customize
+    alt Start
+        P->>M: open route (origin, destination, waypoints)
     else Customize
-        P->>G: user prompt + route + preferences
-        G->>B: query Inconvenientes / router
-        G->>P: new route + explanation
-        P->>M: deep link with new waypoints
-        G->>B: save learned preference
+        P->>B: prompt
+        B->>G: prompt + leg + preferences
+        G-->>B: constraints (stops, things to avoid, time)
+        B->>B: router builds the new route
+        B-->>P: new route + one-line explanation
+        P->>M: open the new route
     end
 ```
 
-### 4. Holidays and festivities
+---
 
-- Mapay shows when there's a **holiday (feriado)** or **festivity/event** coming up.
-- **Warns ahead of time** when one affects a routine route ("Monday is a holiday: your 08:15 route will likely be empty", "Marathon Sunday: Av. X is closed 07:00–13:00").
-- Adjusts expected traffic for those days.
-- Sources: official holiday calendar + event info from the news agent.
+## Where the data comes from
 
-### 5. Run and walk
+### Local news, read by Gemini
 
-A separate section for running and walking routes.
+Mapay scrapes Miami's local news (NBC6, WLRN, Local10, Miami Herald, CBS News Miami, plus the GDELT news index) every 15 minutes. Gemini reads each story and pulls out what matters for the street: what happened (flood, crash, closure, construction, police activity), where, when and how serious. Google geocoding puts it on the map, with a link to the story. Over time this builds a memory of which streets and intersections keep having problems.
 
-- Prompt-based: *"I want to run 5 km"*, plus a surface choice: **street**, **park/plaza**, or **internal/quiet streets**.
-- A vision-capable LLM (Gemini) reads the prompt and uses **satellite imagery** + Google Maps data (Places for parks, Routes API walking directions) to suggest loops.
-- Uses the same Inconvenientes (e.g. avoid flooded parks).
+### Weather
+
+NWS weather alerts and hourly forecasts, plus a radar overlay. Rain and tides also drive the flood predictions.
+
+### Satellite (near-real-time feed)
+
+- **Floods:** Copernicus Global Flood Monitoring publishes flood maps automatically for every pass of the Sentinel-1 radar satellites, which see through clouds. We also run our own Sentinel-1 flood detection in Google Earth Engine.
+- **Construction:** Sentinel-2 images in Earth Engine are compared over time to find new construction sites, and Gemini checks each candidate from before/after images.
+- **What "live" means:** each pass reaches the map hours to about 2 days after the satellite flies over, and passes come every few days. No free satellite source shows street-level images minute by minute, so every satellite item shows when the pass happened.
+- **Limits:** radar can miss water between buildings, and Sentinel-2's 10 m pixels only catch large sites. That's why floods also come from tides, rain, news and reports, and construction also comes from city permits.
+- Google Maps satellite imagery isn't used for analysis: it isn't live, and Google's terms don't allow deriving data from it.
+
+### Maps APIs and open data
+
+| Source | Used for |
+| --- | --- |
+| Google Maps Platform | The map, live traffic, routing and alternatives, typical-traffic predictions, place search and saved places, geocoding news, the map image in notifications |
+| HERE Traffic | Closures, roadworks, accidents, traffic flow |
+| OpenStreetMap | Sidewalk data |
+| Apple Maps, TomTom | Optional travel-time cross-checks (later) |
+| NOAA, NWS, FEMA | Tides, flood thresholds, weather, flood zones |
+| City of Miami, Miami-Dade | Construction projects, permits, 311 potholes, neighbourhood boundaries |
+| Ticketmaster, holiday calendar | Events and holidays |
+| You | Reports from the app |
 
 ---
 
-## Platforms
+## Also planned
 
-| Platform | Priority | Notes |
-| --- | --- | --- |
-| Web app (React + Vite), installable as a PWA | **MVP** | Main experience, hosted on **Vercel**. Service worker receives push notifications. |
-| Push notifications | **MVP** | Firebase Cloud Messaging (Web Push). |
-| Home-screen widget | **MVP** (Android), later (iOS) | Same web app wrapped with **Capacitor**, plus a native widget (Android App Widget; iOS WidgetKit later). |
-| CarPlay / Android Auto | Maybe, later | Needs platform approval and a navigation entitlement. |
+- **Holidays and events:** a heads-up ahead of time when a holiday or big event changes traffic on your routine ("Monday is a holiday: your 9:30 leg will be lighter").
+- **Walk and run:** *"I want to run 5 km on quiet streets"*: routes that use the sidewalk layer, parks and the same hazard data.
+- **Smarter reminders:** show up earlier when there's trouble on the route; learn preferences from your prompts.
+- **Later:** arrive-by routines, iPhone widget, in-app navigation, CarPlay / Android Auto.
 
 ---
 
@@ -169,175 +191,100 @@ A separate section for running and walking routes.
 
 ```mermaid
 flowchart LR
-    subgraph Clients
-        A[Mobile app]
-        W[Widget / notifications]
-        WEB[Web app<br/>Vercel or Cloudflare Pages]
+    subgraph Data
+        NEWS[Local news]
+        WX[Weather]
+        SAT[Satellite]
+        MAPS[Maps APIs + open data]
     end
 
-    subgraph Cloud["Google Cloud"]
-        API[API service]
-        DB[(MongoDB Atlas)]
-        SCHED[Cloud Scheduler]
-        PUSH[Firebase Cloud Messaging]
-        subgraph Agents["Agents (Google ADK, proposed)"]
-            NEWS[News agent]
-            MIND[Daily Mind agent]
-            SAT[Satellite agent]
-            ROUTE[Route customizer agent]
-            RUN[Run/walk agent]
-            HOL[Holiday agent]
-        end
-        LLM[Gemini]
+    subgraph Backend[Backend: FastAPI on Cloud Run]
+        ING[Ingestion jobs]
+        GEM[Gemini]
+        HAZ[Hazards]
+        ROUTER[Router]
+        NOTIF[Heads-up notifier]
     end
 
-    subgraph External
-        GMAPI[Google Maps Platform<br/>Maps JS, Routes, Places]
-        GMAPS[Google Maps app]
-        WX[Weather / radar]
-        SRC[News sites / open data]
-        IMG[Satellite imagery]
+    DB[(MongoDB Atlas)]
+
+    subgraph App[Mapay app: PWA + Android]
+        MAP[Colour-coded map]
+        ROUT[Routines + preferences]
+        CARD[Heads-up card + widget]
     end
 
-    A & WEB --> API
-    W --> API
-    API --> DB
-    SCHED --> Agents
-    SCHED --> PUSH --> W
-    Agents --> LLM
-    Agents --> DB
-    NEWS --> SRC
-    SAT --> IMG
-    HOL --> SRC
-    A & WEB --> GMAPI
-    ROUTE --> GMAPI
-    RUN --> GMAPI
-    A -. deep link .-> GMAPS
-    API --> WX
+    Data --> ING
+    ING --> GEM --> HAZ
+    ING --> HAZ
+    HAZ --> DB
+    DB --> MAP
+    ROUT --> DB
+    DB --> NOTIF --> FCM[Firebase Cloud Messaging] --> CARD
+    DB --> ROUTER
+    CARD -->|Customize| GEM
+    GEM --> ROUTER
+    ROUTER --> GMAPS[Google Maps app]
+    CARD -->|Start| GMAPS
 ```
 
-### Agents
-
-| Agent | Runs | Does |
-| --- | --- | --- |
-| **News agent** | Every few hours | Scrapes local news, extracts events (closures, floods, marches, police reports), geocodes them and writes Inconvenientes. |
-| **Daily Mind agent** | Nightly | Merges the day's news + user reports + past Inconvenientes into one per-street/intersection summary; recomputes confidence and expiry; refreshes "historically heavy" traffic from Google Routes API. |
-| **Holiday agent** | Daily | Keeps the holiday/festivity calendar up to date and flags routine routes that will be affected. |
-| **Route customizer agent** | On demand | Takes the prompt from the widget, checks Inconvenientes + preferences, asks Google Routes API for alternatives, explains the choice and saves learned preferences. |
-| **Satellite agent** | Weekly/daily (later) | Scans imagery for construction and large floods, then writes Inconvenientes with visual evidence. |
-| **Run/walk agent** | On demand (later) | Vision LLM + satellite + Google Places/Routes → running/walking loops. |
-
-### Map providers and navigation handoff
-
-- **In-app map:** fully on the **Google Maps JavaScript API** (`@vis.gl/react-google-maps`). Inconvenientes are drawn as our own layers on top; live traffic uses Google's traffic layer.
-- **Routing:** Google Routes API. It can't avoid custom areas (only tolls, highways, ferries, indoor), so we:
-  1. ask for **alternative routes**,
-  2. score each one against the Inconvenientes on our side and pick the best,
-  3. if every alternative hits a serious Inconveniente, add a **via waypoint** that pulls the route around it and ask again.
-  The LLM explains the choice; it doesn't make it.
-- **Handoff:** Google Maps deep links can't express "avoid this street", only origin, destination, **waypoints** and a few avoid flags (tolls, highways, ferries). So a customized route is turned into a small set of **waypoints** that steer Google Maps onto our route.
-  - Google Maps: origin + destination + waypoints ✅
-  - Waze: destination only ⚠️ (customized routes can't be fully passed on)
-  - Apple Maps: waypoint support to be checked
-- **Later:** in-app turn-by-turn (Google Navigation SDK), needed for CarPlay anyway.
+The detailed data flow and UI flow live in [`docs/architecture.md`](docs/architecture.md) and [`AGENTS.md`](AGENTS.md).
 
 ### Tech stack
 
-| Area | Choice | Status |
-| --- | --- | --- |
-| LLM | Gemini (fast model for bulk agent work, stronger model for route reasoning, vision for satellite/run) | Almost decided |
-| Agent framework | Google ADK | Proposed |
-| Cloud | Google Cloud (Cloud Run for API + agents, Cloud Scheduler, Cloud Storage for imagery) | Proposed |
-| Database | MongoDB Atlas (`2dsphere` indexes for geo queries, TTL indexes for expiring data) | Decided |
-| Backend | FastAPI (Python) on Cloud Run | Decided |
-| Push | Firebase Cloud Messaging (Web Push), triggered by Cloud Scheduler | Decided |
-| Map + routing | Google Maps Platform: Maps JavaScript API, Routes API, Places API | Decided |
-| Frontend | React + Vite + TypeScript, installable PWA | Decided |
-| Home-screen widget | Capacitor wrapper + native Android widget (iOS later) | Decided |
-| Web hosting | Vercel | Decided |
-
----
-
-## Data model (draft)
-
-Stored in MongoDB; the exact collections live in `AGENTS.md`.
-
-```text
-Inconveniente
-  id, type, geometry (point | line | polygon), severity (1–5),
-  confidence (0–1), source (user | news | weather | open_data | satellite | traffic),
-  evidence (urls, image refs, text), title, description,
-  first_seen_at, last_seen_at, expires_at
-
-RoutineRoute
-  id, user_id, name, origin, destination, stops[],
-  schedule: { kind: "times" | "range", days[], times[] | {start, end} },
-  preferences: { [inconveniente_type]: "avoid" | "prefer_avoid" | "ignore" },
-  heads_up_minutes (default 30), nav_app (google_maps | waze | apple_maps)
-
-Device
-  id, user_id, fcm_token, platform (web | android | ios), last_seen_at
-
-LearnedPreference
-  id, user_id, route_id?, rule (text + structured form),
-  origin_prompt, created_at, active
-
-DailyMind
-  date, area_id, summary, per_segment_scores[], sources[]
-
-CalendarEvent
-  date, kind (holiday | festivity | event), name, affected_area?, source
-```
+| Area | Choice |
+| --- | --- |
+| App | React + Vite + TypeScript, installable PWA; Capacitor for the Android app and widget |
+| Map and routing | Google Maps Platform: Maps JavaScript, Routes, Places, Geocoding, Static Maps |
+| Backend | FastAPI (Python) on Cloud Run |
+| Database | MongoDB Atlas |
+| AI | Gemini: reading news, turning prompts into route constraints, checking satellite images, explaining routes |
+| Satellite | Copernicus Global Flood Monitoring + Google Earth Engine (Sentinel-1, Sentinel-2) |
+| Push and accounts | Firebase Cloud Messaging + Anonymous Auth |
+| Scheduled jobs | Cloud Scheduler |
+| Hosting | Vercel (app), Cloud Run (API) |
 
 ---
 
 ## Roadmap
 
-**Phase 0: Foundations**
-- [ ] Monorepo, CI, GCP project, MongoDB Atlas collections + indexes
-- [ ] Google map screen
-- [ ] Auth and user profile
+### ShellHacks 2026 (this weekend)
 
-**Phase 1: MVP (the fundamentals)**
-- [ ] Inconvenientes API + map layers + legend
-- [ ] User reports
-- [ ] Weather / heavy-rain overlay
-- [ ] News agent → Inconvenientes
-- [ ] Holiday calendar + advance warnings
-- [ ] Routine routes (times and ranges) + preferences
-- [ ] Push notifications (FCM + scheduler) with Start / Customize
-- [ ] In-app widget card + Android home-screen widget
-- [ ] Route customizer agent (Gemini) + Google Maps handoff with waypoints
+The hour-by-hour plan, owners and fallbacks are in [`AGENTS.md`](AGENTS.md#roadmap-20-24-hrs).
 
-**Phase 2: Intelligence**
-- [ ] Daily Mind
-- [ ] Historically heavy traffic per street/intersection
-- [ ] Learned preferences (memory)
-- [ ] Smart heads-up timing
-- [ ] Waze / Apple Maps handoff
-- [ ] iOS home-screen widget
+**Must work in the demo (P0)**
+- [ ] Colour-coded map with legend: flood, construction, congestion, closure, no sidewalk, weather, news incidents
+- [ ] Hazard-aware routing with preferences (problem types + neighbourhoods) and "Open in Google Maps"
+- [ ] Routine routes: legs both ways, at / between times, every day / every week / custom days
+- [ ] Heads-up: push notification + huge card with Start / Customize
+- [ ] Customize with a prompt (Gemini)
+- [ ] News → Gemini → map
+- [ ] Satellite floods (Sentinel-1) and construction (Sentinel-2 + Gemini) on the map, with pass times
+- [ ] Tide + rain flood predictions
+- [ ] Deployed at a public URL
 
-**Phase 3: Eyes in the sky**
-- [ ] Satellite agent (construction, large floods)
-- [ ] Run and walk section with vision LLM
+**Should have (P1):** Android home-screen widget · best time to leave in a range · typical congestion · radar overlay · 311 potholes
 
-**Phase 4: In the car**
-- [ ] In-app navigation
-- [ ] CarPlay / Android Auto
+**If time allows (P2):** time scrubber · holiday and event warnings · walk/run mode · toll and gas context · chronic-spot memory · learned preferences
+
+### After ShellHacks
+
+1. **Solid foundation:** real accounts (Google sign-in), more reliable pipelines, iPhone widget.
+2. **Smarter routines:** arrive-by, earlier reminders when there's trouble, learned preferences, holiday and event warnings.
+3. **More ways to move:** walk/run mode, commercial high-res imagery for sharper flood and construction detection.
+4. **In the car:** in-app navigation, CarPlay / Android Auto.
 
 ---
 
 ## Open questions
 
-- **Start button:** is handing off to the Google Maps app enough for now, or do we want deeper integration (in-app navigation) sooner?
-- **Heads-up lead time:** fixed 30 min, per-route, or dynamic based on conditions?
-- **Time-range routes:** notify at the start of the range, or suggest the best time inside it?
-- **Satellite imagery:** free (lower resolution) vs. commercial high-res. This decides whether construction detection is realistic.
-- **Inconvenientes display:** icons + text card, a glossary, or both?
-- **Police reports:** which sources, and how do we avoid showing sensitive or unverified info?
-- **User reports:** moderation and spam/abuse handling.
-- **Privacy:** routine routes reveal home/work locations. Decide on storage, encryption and retention early.
-- **Costs:** Gemini, Google Maps Platform and traffic API usage per active user.
+- **Satellite coverage:** how much of Miami's streets does Copernicus flood monitoring actually cover? It masks out areas radar can't read, like dense blocks. Check in hour 0.
+- **Sidewalk data:** is OpenStreetMap's sidewalk tagging good enough around MMC and BBC? If not, look for a county layer.
+- **Heads-up lead time:** 30 minutes per routine is the default; do we want a different lead time per leg?
+- **Police reports:** which sources, and how do we avoid showing sensitive or unverified information?
+- **User reports:** moderation and spam.
+- **Privacy:** routines reveal where people live and study. Decide storage and retention before real accounts.
+- **Costs:** Routes API calls (alternatives, time-range checks, traffic samples) and Gemini usage per user.
 
 ---
 
@@ -345,20 +292,20 @@ CalendarEvent
 
 ```text
 mapay/
-├── frontend/          # React + Vite PWA (map, routines, widget card, service worker)
-│   └── android/       # Capacitor Android project + native home-screen widget (planned)
-├── backend/           # FastAPI: routes, layers, alerts, reports, routines, notifications
-│   └── app/agents/    # Gemini agents: briefing, news extraction, satellite check
-├── docs/              # Architecture and data sources
-└── AGENTS.md          # Build guide: scope, data sources, schema, roadmap
+├── frontend/          # React + Vite PWA: map, legend, routines, heads-up card, service worker
+│   └── android/       # Capacitor Android app + home-screen widget (planned)
+├── backend/           # FastAPI: routing, routines, push, ingestion jobs, Gemini agents
+├── docs/              # Architecture diagrams, data sources, legend.svg
+├── AGENTS.md          # Build guide: priorities, algorithms, data sources, schema, hour plan
+└── README.md
 ```
 
 ---
 
-## Original spec (ES)
+## Spec history
 
 <details>
-<summary>Speclist original</summary>
+<summary>Original spec (ES)</summary>
 
 **IDEA GENERAL**
 
@@ -398,6 +345,19 @@ mapay/
 - QUIZA carplay
 - La opcion de caminar que una llm con vision interprete el prompt y que recomiende en base a info satelital.
 - adapta el transito acorde con feriados y festividades y te AVISA DE ANTEMANO
+
+</details>
+
+<details>
+<summary>Decisions and spec update (Sept 26)</summary>
+
+**Decisions:** the map and routing run fully on Google Maps Platform; the database is MongoDB; push notifications and the widget are real objectives, not demos; historical traffic comes from Google Maps.
+
+**Spec update:**
+
+> remember, what we want to do is a map app that shows visually on the map various reports like flooded street, no sidewalk, congestion, construction, etc. all colour-coded. Also, we want to have a routinary routes section where you can preset directions (from x to y and later from y to x) at specific times, time ranges, or combination of both (e.g. going from MMC to BBC at 9:30 and going from BBC to MMC between 5:00 and 7:00), and make it per day, every week, or custom days of the week. we should also add an option of when you want to arrive, not only when you want to go out, but that's for later and aspirational. Another setting is the user's preferences: if they want to avoid flooded areas, constructions, the specific name of a neighbourhood, etc. Then, some time before the routinary route starts, a huge duolingo-like widget appears on the phone prompting you to start the route or to customize it with a prompt.
+>
+> For the data itself, the idea is to scrape local news across miami and make them be interpreted with gemini. we are also getting weather data, and for the flooded areas and construction, we should also use a live satelite feed. Then for the rest it is pure data got from google maps api, apple maps api, whatever maps api, and other sources.
 
 </details>
 

@@ -2,62 +2,64 @@
 
 ```mermaid
 flowchart LR
-    subgraph Ingestion
-        A1[NOAA Tides]
-        A2[NWS Alerts]
-        A3[FEMA / City GIS]
-        A4[311 Potholes]
-        A5[News / GDELT]
-        A9[HERE Traffic Incidents]
-        A6[Ticketmaster]
-        A7[Nager.Date Holidays]
-        A8[FDOT AADT - fallback]
-        A10[Google Routes API<br/>typical traffic samples]
+    subgraph Sources
+        NEWS[Local news RSS + GDELT]
+        WX[NWS alerts + forecast<br/>radar]
+        SAT[Satellite<br/>Copernicus GFM<br/>Sentinel-1/2 via Earth Engine]
+        MAPS[Maps APIs<br/>Google, HERE, OSM]
+        GOV[Miami open data<br/>City GIS, 311, FEMA, NOAA tides]
     end
 
-    Ingestion --> W[Ingestion Workers]
-    W --> M1[(intel_cache TTL)]
-    W --> S[Static GeoJSON files]
+    CS[Cloud Scheduler] -->|/internal/ingest| ING
+    CS -->|/internal/tick every minute| NT
 
-    subgraph Backend[FastAPI Backend]
-        R[Routing Engine\nGoogle Routes API alternatives\n+ hazard scoring + via waypoints]
-        LB[LLM Briefing Agent]
-        SC[Satellite Spot-Check Agent]
-        NT[Pre-route Notifier\n/internal/tick]
+    subgraph Backend[FastAPI on Cloud Run]
+        ING[Ingestion jobs]
+        GEM[Gemini<br/>news extraction, satellite check,<br/>prompt to constraints, briefing]
+        FUSE[Hazard fusion<br/>category, severity, confidence, expiry]
+        R[Router<br/>Routes API alternatives<br/>+ hazard scoring + via waypoints]
+        SCH[Routine scheduling<br/>next leg, best time]
+        NT[Pre-route notifier]
     end
 
-    M1 --> Backend
-    S --> Backend
-    Backend --> M2[(routes_cache TTL)]
-    Backend --> M3[(hazard_reports)]
-    Backend --> M4[(routines)]
-    Backend --> M5[(devices + notifications_sent)]
-    CS[Cloud Scheduler - every minute] --> NT
+    Sources --> ING
+    ING --> GEM --> FUSE
+    ING --> FUSE
+    FUSE --> DB[(MongoDB Atlas)]
+    DB --> R
+    DB --> SCH --> NT
+    NT --> R
     NT --> FCM[Firebase Cloud Messaging]
 
-    Backend --> F[React PWA + Google Maps JS API]
-    F -->|Open in...| Ext[Google Maps / Apple Maps / Waze deep link]
-    F -->|Report hazard| Backend
-    FCM --> SW[Service worker push\nStart / Customize actions]
-    FCM --> AW[Android home-screen widget\nCapacitor]
-    SW --> F
-    AW --> F
+    subgraph Client[React PWA + Capacitor Android]
+        MAP[Colour-coded Google map]
+        RUI[Routines + preferences]
+        CARD[Push + huge card<br/>+ home-screen widget]
+        CUST[Customize prompt]
+    end
+
+    DB --> MAP
+    RUI --> DB
+    FCM --> CARD
+    CARD -->|Customize| CUST --> GEM
+    GEM --> R
+    R --> GM[Google Maps app<br/>deep link with waypoints]
+    CARD -->|Start| GM
 ```
 
 ## UI flow
 
 ```mermaid
 flowchart TD
-    Home[Home widget:\nWhere to? + conditions strip] --> Map[Map + Route view]
-    Home --> Routines[Routines config:\nday/time + preferences]
-    Routines --> Widget[Push + home-screen widget\n30 min before departure]
-    Widget -->|tap: start| GM[Google Maps deep link]
-    Widget -->|tap: customize via prompt| Prompt[Prompt box] --> Map
-    Map -->|Open in...| GM
-    Map --> Scrubber[Time scrubber:\nNow / +30m / +1h / Custom]
-    Scrubber --> Map
-    Map --> Alerts[Alerts drawer:\nNWS + news incidents]
-    Map --> ReportFAB[Report FAB:\npothole/flood/closure]
-    Map --> Walk[Jogging/walk mode:\nGoogle Places parks + walking routes]
+    Home[Home: colour-coded map + legend] --> Search[Where to?<br/>Places search]
+    Search --> Route[Route card:<br/>alternatives + hazards on route]
+    Route --> Open[Open in Google Maps]
+    Home --> Detail[Tap a hazard:<br/>what, source, confidence, pass time]
+    Home --> Report[Report FAB:<br/>flood / construction / closure / pothole / no sidewalk]
+    Home --> Routines[Routines:<br/>places, legs, at / between, repeat]
+    Routines --> Prefs[Preferences:<br/>categories + neighbourhoods]
+    Routines --> Heads[30 min before a leg:<br/>push + huge card + home-screen widget]
+    Heads -->|Start| Open
+    Heads -->|Customize| Prompt[Prompt:<br/>'stop at Starbucks, avoid Brickell']
+    Prompt --> Route
 ```
-
