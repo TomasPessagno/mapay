@@ -1,0 +1,20 @@
+{
+  "articles": [
+    {
+      "url": "https://www.nbcmiami.com/news/local/crash-i95-ne-125th/",
+      "title": "Crash blocks two lanes on I-95 northbound near NE 125th Street",
+      "seendate": "20260926T164000Z",
+      "domain": "nbcmiami.com",
+      "language": "English",
+      "sourcecountry": "United States"
+    },
+    {
+      "url": "https://example.com/news/miami-beach-water-main/",
+      "title": "Water main break floods Collins Avenue in Miami Beach",
+      "seendate": "20260926T170000Z",
+      "domain": "example.com",
+      "language": "English",
+      "sourcecountry": "United States"
+    }
+  ]
+}

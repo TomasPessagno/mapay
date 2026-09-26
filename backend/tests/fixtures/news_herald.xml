@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Miami Herald - Local News</title>
+    <link>https://www.miamiherald.com/</link>
+    <description>Miami-Dade news</description>
+    <item>
+      <title>Police search for driver after fatal hit-and-run on the Palmetto Expressway</title>
+      <link>https://www.miamiherald.com/news/local/palmetto-hit-and-run/</link>
+      <description>The crash closed two lanes near Flagler Street for several hours.</description>
+      <pubDate>Sat, 26 Sep 2026 10:15:00 -0400</pubDate>
+    </item>
+  </channel>
+</rss>

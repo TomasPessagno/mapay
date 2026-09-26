@@ -14,4 +14,7 @@ BELIEF_CONFIG = {
     "pothole_log_odds_per_complaint_per_km": 0.2,
     "construction_probability": {"closed": 0.95, "active": 0.8, "approved": 0.5,
                                  "pending": 0.2, "completed": 0.05, "cleared": 0.05},
+    # Fixed prior for news-only `incident` hazards (crashes, police activity). Adding the
+    # news evidence on top pushes p from 0.7 to ~0.79, above the 1.0 log-odds routing threshold.
+    "incident_probability": 0.7,
 }

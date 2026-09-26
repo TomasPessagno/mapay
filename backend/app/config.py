@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     # Local dev only. On Cloud Run leave unset: the attached service account authenticates.
     google_application_credentials: str = ""
     google_maps_api_key: str = ""
+    # Laya first pass (issue A24/A16). Off by default; without a URL every article goes to Gemini.
+    laya_url: str = ""
+    laya_api_key: str = ""
     ticketmaster_api_key: str = ""
     eia_api_key: str = ""
     here_api_key: str = ""
