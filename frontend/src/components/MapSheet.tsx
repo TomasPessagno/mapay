@@ -27,6 +27,7 @@ const MapSheet: React.FC<MapSheetProps> = ({ isOpen, routeResponse, onSearch, on
     <IonModal
       ref={modal}
       isOpen={isOpen}
+      keepContentsMounted={true}
       backdropBreakpoint={0.5}
       initialBreakpoint={0.25}
       breakpoints={[0.25, 0.5, 0.9]}

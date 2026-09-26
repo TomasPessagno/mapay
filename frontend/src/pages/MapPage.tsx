@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, useIonViewDidEnter, useIonViewWillLeave } from '@ionic/react';
+import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, useIonViewWillEnter, useIonViewWillLeave } from '@ionic/react';
 import { APIProvider } from "@vis.gl/react-google-maps";
 import { Geolocation } from '@capacitor/geolocation';
 import MapView from '../map/MapView';
@@ -16,7 +16,7 @@ const MapPage: React.FC = () => {
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
   const [showSheet, setShowSheet] = useState(false);
 
-  useIonViewDidEnter(() => setShowSheet(true));
+  useIonViewWillEnter(() => setShowSheet(true));
   useIonViewWillLeave(() => setShowSheet(false));
 
   const handleSearch = async (destination: {lat: number, lng: number}) => {

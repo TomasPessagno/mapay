@@ -4,7 +4,7 @@ import { IonFab, IonFabButton, IonIcon } from "@ionic/react";
 import { layersOutline } from "ionicons/icons";
 import type { RouteResponse, RouteOption } from "../lib/types";
 import { api } from "../lib/api";
-import { upsertGeoJsonLayer, toggleLayer, setFocusRoute } from "./layers";
+import { upsertGeoJsonLayer, toggleLayer } from "./layers";
 import LegendSheet from "../components/LegendSheet";
 
 const MIAMI = { lat: 25.7617, lng: -80.1918 };

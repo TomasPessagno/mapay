@@ -26,49 +26,58 @@ const SearchField: React.FC<SearchFieldProps> = ({ onSearch, onFocus, placeholde
     if (onValueChange) onValueChange(v);
   };
 
-  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompletePrediction[]>([]);
+  const [suggestions, setSuggestions] = useState<google.maps.places.AutocompleteSuggestion[]>([]);
   const placesLibrary = useMapsLibrary('places');
-  const autocompleteService = useRef<google.maps.places.AutocompleteService | null>(null);
-  const placesService = useRef<google.maps.places.PlacesService | null>(null);
+  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
 
   useEffect(() => {
     if (!placesLibrary) return;
-    autocompleteService.current = new placesLibrary.AutocompleteService();
-    // Dummy element for PlacesService
-    const div = document.createElement('div');
-    placesService.current = new placesLibrary.PlacesService(div);
+    if (!sessionTokenRef.current) {
+      sessionTokenRef.current = new placesLibrary.AutocompleteSessionToken();
+    }
   }, [placesLibrary]);
 
   useEffect(() => {
-    if (!autocompleteService.current || !query.trim()) {
+    if (!placesLibrary || !query.trim()) {
       setSuggestions([]);
       return;
     }
-    autocompleteService.current.getPlacePredictions({
-      input: query,
-      locationBias: MIAMI_DADE_BOUNDS,
-      componentRestrictions: { country: 'us' }
-    }, (results, status) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && results) {
-        setSuggestions(results);
-      } else {
-        setSuggestions([]);
+    let isActive = true;
+    const fetchSuggestions = async () => {
+      try {
+        const result = await placesLibrary.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+          input: query,
+          locationRestriction: MIAMI_DADE_BOUNDS,
+          region: 'us',
+          sessionToken: sessionTokenRef.current || undefined
+        });
+        if (isActive && result.suggestions) {
+          setSuggestions(result.suggestions);
+        }
+      } catch (e) {
+        if (isActive) setSuggestions([]);
       }
-    });
-  }, [query]);
+    };
+    fetchSuggestions();
+    return () => { isActive = false; };
+  }, [query, placesLibrary]);
 
-  const handleSelect = (placeId: string, description: string) => {
-    if (!placesService.current) return;
-    placesService.current.getDetails({
-      placeId,
-      fields: ['geometry', 'name']
-    }, (place, status) => {
-      if (status === google.maps.places.PlacesServiceStatus.OK && place?.geometry?.location) {
-        setQuery(place.name || description);
+  const handleSelect = async (suggestion: google.maps.places.AutocompleteSuggestion) => {
+    if (!placesLibrary || !suggestion.placePrediction) return;
+    try {
+      const place = suggestion.placePrediction.toPlace();
+      await place.fetchFields({fields: ['displayName', 'formattedAddress', 'location', 'id']});
+      if (place.location) {
+        const name = place.displayName || place.formattedAddress || query;
+        setQuery(name);
         setSuggestions([]);
-        onSearch({ lat: place.geometry.location.lat(), lng: place.geometry.location.lng() }, place.name || description);
+        // Start a new session for the next search
+        sessionTokenRef.current = new placesLibrary.AutocompleteSessionToken();
+        onSearch({ lat: place.location.lat(), lng: place.location.lng() }, name);
       }
-    });
+    } catch (e) {
+      console.error(e);
+    }
   };
 
   return (
@@ -83,15 +92,20 @@ const SearchField: React.FC<SearchFieldProps> = ({ onSearch, onFocus, placeholde
       />
       {suggestions.length > 0 && (
         <IonList style={{ marginTop: '8px', background: 'transparent' }}>
-          {suggestions.map((s) => (
-            <IonItem key={s.place_id} button onClick={() => handleSelect(s.place_id, s.description)} lines="full">
-              <IonIcon icon={locationOutline} slot="start" color="medium" />
-              <IonLabel>
-                <h2>{s.structured_formatting.main_text}</h2>
-                <p>{s.structured_formatting.secondary_text}</p>
-              </IonLabel>
-            </IonItem>
-          ))}
+          {suggestions.map((s, idx) => {
+            if (!s.placePrediction) return null;
+            const mainText = s.placePrediction.mainText?.toString() || s.placePrediction.text?.toString() || 'Unknown';
+            const secondaryText = s.placePrediction.secondaryText?.toString() || '';
+            return (
+              <IonItem key={s.placePrediction.placeId || idx} button onClick={() => handleSelect(s)} lines="full">
+                <IonIcon icon={locationOutline} slot="start" color="medium" />
+                <IonLabel>
+                  <h2>{mainText}</h2>
+                  {secondaryText && <p>{secondaryText}</p>}
+                </IonLabel>
+              </IonItem>
+            );
+          })}
         </IonList>
       )}
     </>
