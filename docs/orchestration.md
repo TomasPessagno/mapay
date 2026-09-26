@@ -249,7 +249,7 @@ Tomas can hand the backend queue to a local Claude Code session: "you're the orc
 
 ## Status and open items (as of Sept 26)
 
-- **T0 ([#2](https://github.com/TomasPessagno/mapay/issues/2)) isn't done yet:** routing engine decision (Routes API vs Jean's OSMnx engine), keys, the shared GCP project, bundle ids.
+- **T0 ([#2](https://github.com/TomasPessagno/mapay/issues/2)) decisions are made (Sept 26):** Google Routes API replaces OSMnx (Jean's #11); the mocks are the contract as they are; Jean created the GCP project; `X-Device-Id` is the header. Still open: accounts, keys and secrets (Maps Platform and Gemini from Tomas; the rest from Jean) and the Apple bundle ids.
 - **Deploy secrets are missing:** backend merges show a red `deploy-backend` job until Tomas adds `GCP_SA_KEY` and the rest.
 - **Uneven split, kept on purpose:** A16 news (#15) moved to Tomas, and Jean took the Laya service (A24), so Tomas ≈ 34.5 h vs Jean ≈ 28.5 h of P0. Jean also has 8.5 h of P1, including the Laya fine-tune. #5 (A11) and #7 (A13) stay with Tomas. If he falls behind, he says so and the orchestrator hands them to Jean: reassign both issues, move their rows to Jean's queue in TASKS.md, and tell Jean. #5 goes first either way, because Jean's #16 waits on it.
 - **Jean** uses his own agents (his commits are co-authored by Claude); same AGENTS.md rules.
