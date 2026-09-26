@@ -254,8 +254,9 @@ Tomas can hand the backend queue to a local Claude Code session: "you're the orc
 
 ## Status and open items (as of Sept 26)
 
-- **T0 ([#2](https://github.com/TomasPessagno/mapay/issues/2)) decisions are made (Sept 26):** Google Routes API replaces OSMnx (Jean's #11); the mocks are the contract as they are; Jean created the GCP project; `X-Device-Id` is the header. Still open: accounts, keys and secrets (Maps Platform and Gemini from Tomas; the rest from Jean) and the Apple bundle ids.
-- **Deploy secrets are missing:** backend merges show a red `deploy-backend` job until Tomas adds `GCP_SA_KEY` and the rest.
+- **T0 ([#2](https://github.com/TomasPessagno/mapay/issues/2)) is nearly closed (Sept 26):** decisions made (Routes API, mocks as contract, Jean's GCP project, `X-Device-Id`); secrets and variables are in and the first deploy succeeded; `mapay-api` (us-east1) is public; `frontend/.env` exists. Still open: the Map ID (until then the app falls back to Google's demo map), satellite accounts (Jean, for #9/#16), Apple bundle ids (after Tomas's macOS update).
+- **Deploys work:** merges touching `backend/` deploy to Cloud Run, one at a time (`concurrency: deploy-backend`).
+- **Jean's queue hasn't produced a PR yet (Sept 26, late):** T1 waits on his #11, #13 and #26. If he wants help, OpenCode can take his unstarted `agent-ready` tasks (#3, #6, #14 first); reassign each issue before launching so two agents never do the same task.
 - **Uneven split, kept on purpose:** A16 news (#15) moved to Tomas, and Jean took the Laya service (A24), so Tomas ≈ 34.5 h vs Jean ≈ 28.5 h of P0. Jean also has 8.5 h of P1, including the Laya fine-tune. #5 (A11) and #7 (A13) stay with Tomas. If he falls behind, he says so and the orchestrator hands them to Jean: reassign both issues, move their rows to Jean's queue in TASKS.md, and tell Jean. #5 goes first either way, because Jean's #16 waits on it.
 - **Jean** uses his own agents (his commits are co-authored by Claude); same AGENTS.md rules.
 - **OpenCode Go adopted (Sept 26):** Tomas pays $10/month, DeepSeek V4.1 Flash does the backend tasks, and Codex is the spare. The first runs are wave 1's #10, #4 and #5. Rerun any task that goes badly in Antigravity.
