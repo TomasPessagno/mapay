@@ -17,16 +17,32 @@ class RouteRequest(BaseModel):
     destination: LatLng
     depart_at: datetime | None = None
     avoid_tolls: bool = False
+    avoid_highways: bool = False
     routine_id: str | None = None
     mode: Literal["drive", "walk"] = "drive"
 
 
+class RouteAlternative(BaseModel):
+    summary: str = ""
+    route_geojson: dict
+    duration_s: int
+    static_duration_s: int
+    distance_m: int
+    score: float | None = None  # filled by route scoring (A6)
+    recommended: bool = False
+    hazards_on_route: list[dict] = []
+
+
 class RouteResponse(BaseModel):
+    """Shape of frontend/public/mocks/route.json."""
+    depart_at: datetime | None = None
     route_geojson: dict
     baseline_geojson: dict | None = None
-    hazards_avoided: list[dict] = []
-    briefing: str | None = None
+    alternatives: list[RouteAlternative] = []
+    waypoints: list[LatLng] = []
+    hazards_on_route: list[dict] = []
     deep_links: dict[str, str] = {}
+    briefing: str | None = None
 
 
 # ---- intel_cache ----
