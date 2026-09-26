@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  IonList, IonItem, IonLabel, IonToggle, IonItemGroup, IonItemDivider,
+  IonList, IonItem, IonLabel, IonToggle,
   IonButton, IonIcon, IonModal, IonSpinner
 } from '@ionic/react';
 import { add } from 'ionicons/icons';
@@ -91,21 +91,47 @@ export default function RoutinesTab() {
 
   const formatRepeat = (repeat: Routine['repeat']) => {
     if (repeat.kind === 'daily') return 'Every day';
-    if (repeat.kind === 'weekly') return `Weekly on ${repeat.weekdays?.[0] || '?'}`;
+    if (repeat.kind === 'weekly') {
+      const dayMap: Record<string, string> = {
+        sun: 'Sunday', mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday'
+      };
+      return `Every ${dayMap[repeat.weekday || 'mon']}`;
+    }
     if (repeat.kind === 'custom') {
       if (repeat.weekdays?.length === 5 && !repeat.weekdays.includes('sat') && !repeat.weekdays.includes('sun')) {
         return 'Weekdays';
       }
-      return (repeat.weekdays || []).map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(', ');
+      const shortMap: Record<string, string> = {
+        sun: 'Sun', mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat'
+      };
+      return (repeat.weekdays || []).map(w => shortMap[w] || w).join(', ');
     }
     return 'Custom';
   };
 
+  const formatTime = (timeStr?: string) => {
+    if (!timeStr) return '';
+    const [hh, mm] = timeStr.split(':');
+    const d = new Date();
+    d.setHours(parseInt(hh, 10), parseInt(mm, 10));
+    const formatted = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: 'numeric' }).format(d);
+    return formatted.replace(':00', ''); 
+  };
+
   const formatWhen = (when: Routine['legs'][0]['when']) => {
     if (when.kind === 'at') {
-      return `at ${when.time}`;
+      return formatTime(when.time);
     }
-    return `between ${when.start} and ${when.end}`;
+    const startStr = formatTime(when.start);
+    const endStr = formatTime(when.end);
+    
+    // Attempt to condense '5 PM–7 PM' to '5–7 PM'
+    const startMatch = startStr.match(/^(.*?)\s+([A-Za-z]+)$/);
+    const endMatch = endStr.match(/^(.*?)\s+([A-Za-z]+)$/);
+    if (startMatch && endMatch && startMatch[2] === endMatch[2]) {
+      return `${startMatch[1]}–${endStr}`;
+    }
+    return `${startStr}–${endStr}`;
   };
 
   if (loading) {
@@ -117,36 +143,35 @@ export default function RoutinesTab() {
   }
 
   return (
-    <>
-      <IonList inset>
-        {routines.map(routine => (
-          <IonItemGroup key={routine._id}>
-            <IonItemDivider>
-              <IonLabel>{routine.name}</IonLabel>
-              <IonToggle
-                slot="end"
-                checked={routine.active}
-                onIonChange={e => toggleRoutine(routine, e.detail.checked)}
-              />
-            </IonItemDivider>
-            <IonItem button onClick={() => openEditor(routine)} detail>
-              <IonLabel className="ion-text-wrap">
-                {routine.legs.map((leg, i) => (
-                  <div key={i} style={{ marginBottom: '4px' }}>
-                    <strong>{getPlaceName(leg.from_place)} → {getPlaceName(leg.to_place)}</strong>
-                    <span style={{ color: 'var(--ion-color-medium)', marginLeft: '8px' }}>
-                      {formatWhen(leg.when)}
-                    </span>
-                  </div>
-                ))}
-                <p style={{ marginTop: '8px' }}>{formatRepeat(routine.repeat)}</p>
-              </IonLabel>
-            </IonItem>
-          </IonItemGroup>
-        ))}
-      </IonList>
+    <div style={{ background: 'var(--ion-color-step-50, var(--system-grouped-background))', minHeight: '100%', paddingBottom: '16px' }}>
+      <div style={{ height: '16px' }}></div>
+      {routines.map(routine => (
+        <IonList inset key={routine._id} style={{ marginBottom: '16px' }}>
+          <IonItem lines="full">
+            <IonLabel><strong>{routine.name}</strong></IonLabel>
+            <IonToggle
+              slot="end"
+              checked={routine.active}
+              onIonChange={e => toggleRoutine(routine, e.detail.checked)}
+            />
+          </IonItem>
+          <IonItem button onClick={() => openEditor(routine)} detail lines="none">
+            <IonLabel className="ion-text-wrap">
+              {routine.legs.map((leg, i) => (
+                <div key={i} style={{ marginBottom: '4px' }}>
+                  <span style={{ color: 'var(--ion-text-color)' }}>{getPlaceName(leg.from_place)} → {getPlaceName(leg.to_place)}</span>
+                  <span style={{ color: 'var(--ion-color-medium)' }}>
+                    {' · '}{formatWhen(leg.when)}
+                  </span>
+                </div>
+              ))}
+              <p style={{ marginTop: '8px', color: 'var(--ion-color-medium)' }}>{formatRepeat(routine.repeat)}</p>
+            </IonLabel>
+          </IonItem>
+        </IonList>
+      ))}
 
-      <div className="ion-padding">
+      <div className="ion-padding-horizontal">
         <IonButton expand="block" onClick={() => openEditor()}>
           <IonIcon slot="start" icon={add} />
           Add Routine
@@ -163,6 +188,6 @@ export default function RoutinesTab() {
           />
         )}
       </IonModal>
-    </>
+    </div>
   );
 }

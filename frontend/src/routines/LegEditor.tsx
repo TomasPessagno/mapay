@@ -6,11 +6,12 @@ import PlacePicker from './PlacePicker';
 
 interface LegEditorProps {
   leg: RoutineLeg;
+  index: number;
   places: Place[];
   onChange: (leg: RoutineLeg) => void;
 }
 
-export default function LegEditor({ leg, places, onChange }: LegEditorProps) {
+export default function LegEditor({ leg, index, places, onChange }: LegEditorProps) {
   const handleWhenKindChange = (kind: 'at' | 'window') => {
     if (kind === 'at') {
       onChange({ ...leg, when: { kind: 'at', time: '09:00' } });
@@ -20,19 +21,23 @@ export default function LegEditor({ leg, places, onChange }: LegEditorProps) {
   };
 
   const updateTime = (field: 'time' | 'start' | 'end', value: string) => {
-    // value from IonDatetime is ISO string, we just want HH:mm
-    const date = new Date(value);
-    const timeString = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    // IonDatetime returns a full ISO string. Extract the local HH:mm part.
+    let timeString = '00:00';
+    if (/^\d{2}:\d{2}/.test(value)) {
+      timeString = value.substring(0, 5);
+    } else {
+      const match = value.match(/T(\d{2}:\d{2})/);
+      if (match) {
+        timeString = match[1];
+      }
+    }
     onChange({ ...leg, when: { ...leg.when, [field]: timeString } });
   };
 
-  // Helper to convert HH:mm to ISO for IonDatetime
+  // Helper to convert HH:mm to a local ISO string (no 'Z') for IonDatetime
   const getIso = (timeStr?: string) => {
-    const today = new Date();
-    if (!timeStr) return today.toISOString();
-    const [hh, mm] = timeStr.split(':');
-    today.setHours(parseInt(hh, 10), parseInt(mm, 10), 0, 0);
-    return today.toISOString();
+    if (!timeStr) return '2024-01-01T09:00:00';
+    return `2024-01-01T${timeStr}:00`;
   };
 
   return (
@@ -73,10 +78,10 @@ export default function LegEditor({ leg, places, onChange }: LegEditorProps) {
       {leg.when.kind === 'at' && (
         <IonItem>
           <IonLabel>Time</IonLabel>
-          <IonDatetimeButton datetime={`datetime-at-${leg.from_place}-${leg.to_place}`} />
+          <IonDatetimeButton datetime={`datetime-at-${index}`} />
           <IonModal keepContentsMounted={true}>
             <IonDatetime 
-              id={`datetime-at-${leg.from_place}-${leg.to_place}`}
+              id={`datetime-at-${index}`}
               presentation="time" 
               value={getIso(leg.when.time)}
               onIonChange={e => updateTime('time', e.detail.value as string)}
@@ -89,10 +94,10 @@ export default function LegEditor({ leg, places, onChange }: LegEditorProps) {
         <>
           <IonItem>
             <IonLabel>Start Time</IonLabel>
-            <IonDatetimeButton datetime={`datetime-start-${leg.from_place}-${leg.to_place}`} />
+            <IonDatetimeButton datetime={`datetime-start-${index}`} />
             <IonModal keepContentsMounted={true}>
               <IonDatetime 
-                id={`datetime-start-${leg.from_place}-${leg.to_place}`}
+                id={`datetime-start-${index}`}
                 presentation="time" 
                 value={getIso(leg.when.start)}
                 onIonChange={e => updateTime('start', e.detail.value as string)}
@@ -101,10 +106,10 @@ export default function LegEditor({ leg, places, onChange }: LegEditorProps) {
           </IonItem>
           <IonItem>
             <IonLabel>End Time</IonLabel>
-            <IonDatetimeButton datetime={`datetime-end-${leg.from_place}-${leg.to_place}`} />
+            <IonDatetimeButton datetime={`datetime-end-${index}`} />
             <IonModal keepContentsMounted={true}>
               <IonDatetime 
-                id={`datetime-end-${leg.from_place}-${leg.to_place}`}
+                id={`datetime-end-${index}`}
                 presentation="time" 
                 value={getIso(leg.when.end)}
                 onIonChange={e => updateTime('end', e.detail.value as string)}

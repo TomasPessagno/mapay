@@ -22,7 +22,8 @@ export interface Place {
 
 export interface RoutineRepeat {
   kind: 'daily' | 'weekly' | 'custom';
-  weekdays?: string[]; // 'mon', 'tue', etc.
+  weekday?: string;   // 'mon', 'tue', etc. for weekly
+  weekdays?: string[]; // ['mon', 'wed'] for custom
 }
 
 export interface RoutineWhen {

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import {
   IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent,
   IonList, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
-  IonIcon, IonItemGroup, IonItemDivider, IonNote
+  IonIcon, IonItemGroup, IonNote
 } from '@ionic/react';
 import { add, trash } from 'ionicons/icons';
 import type { Routine, RoutineLeg, Place } from '../lib/types';
@@ -83,13 +83,13 @@ export default function RoutineEditor({ routine, places, onSave, onCancel }: Rou
             <IonButton onClick={onCancel}>Cancel</IonButton>
           </IonButtons>
           <IonTitle>Edit Routine</IonTitle>
-          <IonButtons slot="end">
+          <IonButtons slot="end" style={{ paddingRight: import.meta.env.VITE_USE_MOCKS ? '70px' : '0' }}>
             <IonButton strong onClick={() => onSave(edited)}>Save</IonButton>
           </IonButtons>
         </IonToolbar>
       </IonHeader>
       
-      <IonContent className="ion-padding">
+      <IonContent className="ion-padding" style={{ '--background': 'var(--ion-color-step-50, var(--system-grouped-background))' } as React.CSSProperties}>
         <IonList inset>
           <IonItem>
             <IonLabel position="stacked">Routine Name</IonLabel>
@@ -100,12 +100,13 @@ export default function RoutineEditor({ routine, places, onSave, onCancel }: Rou
           </IonItem>
         </IonList>
 
-        <h2 style={{ marginLeft: '16px' }}>Legs</h2>
+        <h2 style={{ marginLeft: '16px', fontSize: '14px', textTransform: 'uppercase', color: 'var(--ion-color-medium)' }}>Legs</h2>
         
         {edited.legs.map((leg, i) => (
           <IonItemGroup key={i} style={{ marginBottom: '16px' }}>
             <LegEditor 
               leg={leg} 
+              index={i}
               places={places}
               onChange={newLeg => handleLegChange(i, newLeg)} 
             />
@@ -127,7 +128,7 @@ export default function RoutineEditor({ routine, places, onSave, onCancel }: Rou
           </IonButton>
         </div>
 
-        <h2 style={{ marginLeft: '16px', marginTop: '24px' }}>Settings</h2>
+        <h2 style={{ marginLeft: '16px', marginTop: '24px', fontSize: '14px', textTransform: 'uppercase', color: 'var(--ion-color-medium)' }}>Settings</h2>
         <IonList inset>
           <IonItem>
             <IonLabel>Repeat</IonLabel>
@@ -148,10 +149,10 @@ export default function RoutineEditor({ routine, places, onSave, onCancel }: Rou
             <IonItem>
               <IonLabel>Day of week</IonLabel>
               <IonSelect 
-                value={edited.repeat.weekdays?.[0] || 'mon'} 
+                value={edited.repeat.weekday || 'mon'} 
                 onIonChange={e => setEdited(prev => ({
                   ...prev,
-                  repeat: { ...prev.repeat, weekdays: [e.detail.value] }
+                  repeat: { ...prev.repeat, weekday: e.detail.value }
                 }))}
               >
                 {weekdays.map(d => (
@@ -163,11 +164,11 @@ export default function RoutineEditor({ routine, places, onSave, onCancel }: Rou
 
           {edited.repeat.kind === 'custom' && (
             <IonItem>
-              <div style={{ display: 'flex', gap: '8px', padding: '8px 0', overflowX: 'auto', width: '100%' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '12px 0', width: '100%', justifyContent: 'center' }}>
                 {['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'].map(day => (
                   <IonButton 
                     key={day}
-                    size="small"
+                    style={{ width: '44px', height: '44px', margin: 0, '--border-radius': '50%', '--padding-start': '0', '--padding-end': '0' } as React.CSSProperties}
                     fill={edited.repeat.weekdays?.includes(day) ? 'solid' : 'outline'}
                     onClick={() => toggleDay(day)}
                   >
@@ -190,10 +191,10 @@ export default function RoutineEditor({ routine, places, onSave, onCancel }: Rou
               <IonSelectOption value={60}>60 min</IonSelectOption>
             </IonSelect>
           </IonItem>
+        </IonList>
 
-          <IonItemDivider>
-            <IonLabel>Preferences Override</IonLabel>
-          </IonItemDivider>
+        <h2 style={{ marginLeft: '16px', marginTop: '24px', fontSize: '14px', textTransform: 'uppercase', color: 'var(--ion-color-medium)' }}>Preferences Override</h2>
+        <IonList inset>
           <IonItem>
             <IonNote>Preference controls from B6 goes here.</IonNote>
           </IonItem>

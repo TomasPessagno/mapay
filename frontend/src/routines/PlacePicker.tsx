@@ -60,16 +60,6 @@ export default function PlacePicker({ label, value, places, onChange }: PlacePic
                 </IonLabel>
               </IonItem>
             ))}
-            {/* Mocking autocomplete results if typing something new */}
-            {search && filteredPlaces.length === 0 && (
-              <IonItem button onClick={() => handleSelect(`mock-${search}`)}>
-                <IonIcon icon={locationOutline} slot="start" />
-                <IonLabel>
-                  <h2>{search}</h2>
-                  <p>Mock place autocomplete result</p>
-                </IonLabel>
-              </IonItem>
-            )}
           </IonList>
         </IonContent>
       </IonModal>
