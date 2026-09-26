@@ -27,8 +27,19 @@ def client_for(payload, seen=None):
     return httpx.AsyncClient(transport=httpx.MockTransport(handler))
 
 
-def settings():
-    return patch("app.ingestion.here_incidents.get_settings", return_value=SimpleNamespace(here_api_key="k"))
+class settings:
+    """Patch the HERE key in both modules, so tests never need a real .env (CI has none)."""
+
+    def __enter__(self):
+        fake = SimpleNamespace(here_api_key="k")
+        self.patches = [patch(f"app.ingestion.{m}.get_settings", return_value=fake)
+                        for m in ("here_incidents", "here_flow")]
+        for p in self.patches:
+            p.start()
+
+    def __exit__(self, *exc):
+        for p in self.patches:
+            p.stop()
 
 
 class FakeCursor:
