@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>WLRN Homepage</title>
+    <link>https://www.wlrn.org/</link>
+    <description>South Florida news</description>
+    <item>
+      <title>Flooding reported on Brickell Bay Drive after king tide</title>
+      <link>https://www.wlrn.org/environment/brickell-flooding/</link>
+      <description>Water covered parts of Brickell Bay Drive during the morning high tide.</description>
+      <pubDate>Sat, 26 Sep 2026 13:29:00 -0400</pubDate>
+    </item>
+  </channel>
+</rss>

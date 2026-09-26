@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>NBC 6 South Florida</title>
+    <link>https://www.nbcmiami.com/</link>
+    <description>Miami news</description>
+    <item>
+      <title>Crash blocks two lanes on I-95 northbound near NE 125th Street</title>
+      <link>https://www.nbcmiami.com/news/local/crash-i95-ne-125th/</link>
+      <description><![CDATA[Two lanes are blocked after a <b>crash</b> on Interstate 95 northbound near Northeast 125th Street, police said.]]></description>
+      <pubDate>Sat, 26 Sep 2026 12:40:00 -0400</pubDate>
+    </item>
+    <item>
+      <title>New bakery opens in Little Havana</title>
+      <link>https://www.nbcmiami.com/news/local/bakery-little-havana/</link>
+      <description>A family bakery opened its doors this weekend on Calle Ocho.</description>
+      <pubDate>Sat, 26 Sep 2026 11:00:00 -0400</pubDate>
+    </item>
+  </channel>
+</rss>
