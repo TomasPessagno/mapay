@@ -4,7 +4,7 @@ How two people build Mapay in parallel. The work is split evenly into **Tomas's 
 
 **Every task is a GitHub issue** ([task board #45](https://github.com/TomasPessagno/mapay/issues/45)); see [Working with the issues](#working-with-the-issues) below.
 
-Background: [`README.md`](README.md) (product), [`docs/design.md`](docs/design.md) (design), [`AGENTS.md`](AGENTS.md) (how it's built), [`docs/hazard-beliefs.md`](docs/hazard-beliefs.md) (hazard confidence), [`frontend/public/mocks/`](frontend/public/mocks/) (API contract).
+Background: [`docs/orchestration.md`](docs/orchestration.md) (running the queue with Antigravity + Codex), [`README.md`](README.md) (product), [`docs/design.md`](docs/design.md) (design), [`AGENTS.md`](AGENTS.md) (how it's built), [`docs/hazard-beliefs.md`](docs/hazard-beliefs.md) (hazard confidence), [`frontend/public/mocks/`](frontend/public/mocks/) (API contract).
 
 ---
 
@@ -94,6 +94,8 @@ To **swap a task**, reassign its issue on GitHub first, then update the queues h
 **Where one of you waits on the other:** Jean's [#17](https://github.com/TomasPessagno/mapay/issues/17) needs Tomas's [#4](https://github.com/TomasPessagno/mapay/issues/4), [#18](https://github.com/TomasPessagno/mapay/issues/18) needs [#10](https://github.com/TomasPessagno/mapay/issues/10), and [#16](https://github.com/TomasPessagno/mapay/issues/16) needs [#5](https://github.com/TomasPessagno/mapay/issues/5), so Tomas hands those three to agents first thing. Everything else meets through the mocks and the checkpoints. One shared file: `backend/app/routing/belief_config.py` is edited by [#7](https://github.com/TomasPessagno/mapay/issues/7) and [#15](https://github.com/TomasPessagno/mapay/issues/15) (Tomas) and [#9](https://github.com/TomasPessagno/mapay/issues/9) (Jean). Keep those edits additive (new keys only) and merge `main` before opening the PR.
 
 ### Prompting your agent
+
+**Tomas runs his queue with Antigravity + Codex:** which tool gets each task, the waves that can run in parallel, one git worktree per task, and ready prompts are in [`docs/orchestration.md`](docs/orchestration.md).
 
 Next task from your queue (swap the name and GitHub login for Tomas):
 
