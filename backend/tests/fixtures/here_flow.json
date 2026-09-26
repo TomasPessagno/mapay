@@ -1,0 +1,483 @@
+{
+ "sourceUpdated": "2026-09-26T23:39:25Z",
+ "results": [
+  {
+   "location": {
+    "description": "SW 147th Ave",
+    "length": 1665.0,
+    "shape": {
+     "links": [
+      {
+       "points": [
+        {
+         "lat": 25.65484,
+         "lng": -80.4485
+        },
+        {
+         "lat": 25.65484,
+         "lng": -80.44821
+        }
+       ],
+       "length": 29.0,
+       "functionalClass": 4
+      },
+      {
+       "points": [
+        {
+         "lat": 25.65484,
+         "lng": -80.44821
+        },
+        {
+         "lat": 25.65487,
+         "lng": -80.44722
+        }
+       ],
+       "length": 100.0,
+       "functionalClass": 4
+      },
+      {
+       "points": [
+        {
+         "lat": 25.65487,
+         "lng": -80.44722
+        },
+        {
+         "lat": 25.65489,
+         "lng": -80.4464
+        }
+       ],
+       "length": 82.0,
+       "functionalClass": 4
+      }
+     ]
+    }
+   },
+   "currentFlow": {
+    "speed": 17.777779,
+    "speedUncapped": 18.055555,
+    "freeFlow": 17.222223,
+    "jamFactor": 0.0,
+    "confidence": 0.99,
+    "traversability": "open"
+   }
+  },
+  {
+   "location": {
+    "description": "Lindgren Rd/SW 137th Ave",
+    "length": 818.0,
+    "shape": {
+     "links": [
+      {
+       "points": [
+        {
+         "lat": 25.65581,
+         "lng": -80.42384
+        },
+        {
+         "lat": 25.65582,
+         "lng": -80.42363
+        }
+       ],
+       "length": 21.0,
+       "functionalClass": 4
+      },
+      {
+       "points": [
+        {
+         "lat": 25.65582,
+         "lng": -80.42363
+        },
+        {
+         "lat": 25.65584,
+         "lng": -80.42324
+        }
+       ],
+       "length": 39.0,
+       "functionalClass": 4
+      },
+      {
+       "points": [
+        {
+         "lat": 25.65584,
+         "lng": -80.42324
+        },
+        {
+         "lat": 25.65589,
+         "lng": -80.42221
+        }
+       ],
+       "length": 104.0,
+       "functionalClass": 4
+      }
+     ]
+    }
+   },
+   "currentFlow": {
+    "speed": 8.055555,
+    "speedUncapped": 8.055555,
+    "freeFlow": 15.0,
+    "jamFactor": 3.6,
+    "confidence": 0.99,
+    "traversability": "open"
+   }
+  },
+  {
+   "location": {
+    "description": "SW 157th Ave/Newton Rd",
+    "length": 660.0,
+    "shape": {
+     "links": [
+      {
+       "points": [
+        {
+         "lat": 25.62516,
+         "lng": -80.45348
+        },
+        {
+         "lat": 25.62529,
+         "lng": -80.44961
+        }
+       ],
+       "length": 389.0,
+       "functionalClass": 5
+      },
+      {
+       "points": [
+        {
+         "lat": 25.62529,
+         "lng": -80.44961
+        },
+        {
+         "lat": 25.62533,
+         "lng": -80.44878
+        }
+       ],
+       "length": 84.0,
+       "functionalClass": 5
+      },
+      {
+       "points": [
+        {
+         "lat": 25.62533,
+         "lng": -80.44878
+        },
+        {
+         "lat": 25.62535,
+         "lng": -80.44825
+        }
+       ],
+       "length": 53.0,
+       "functionalClass": 5
+      }
+     ]
+    }
+   },
+   "currentFlow": {
+    "speed": 8.611112,
+    "speedUncapped": 8.611112,
+    "freeFlow": 13.888889,
+    "jamFactor": 2.6,
+    "confidence": 0.98,
+    "traversability": "open"
+   }
+  },
+  {
+   "location": {
+    "description": "SR-990/Killian Pky/Montgomery Dr/SW",
+    "length": 269.0,
+    "shape": {
+     "links": [
+      {
+       "points": [
+        {
+         "lat": 25.67469,
+         "lng": -80.36781
+        },
+        {
+         "lat": 25.67448,
+         "lng": -80.3678
+        }
+       ],
+       "length": 23.0,
+       "functionalClass": 3
+      },
+      {
+       "points": [
+        {
+         "lat": 25.67448,
+         "lng": -80.3678
+        },
+        {
+         "lat": 25.67418,
+         "lng": -80.36779
+        }
+       ],
+       "length": 33.0,
+       "functionalClass": 3
+      },
+      {
+       "points": [
+        {
+         "lat": 25.67418,
+         "lng": -80.36779
+        },
+        {
+         "lat": 25.67388,
+         "lng": -80.36777
+        }
+       ],
+       "length": 33.0,
+       "functionalClass": 3
+      }
+     ]
+    }
+   },
+   "currentFlow": {
+    "speed": 3.6111112,
+    "speedUncapped": 3.6111112,
+    "freeFlow": 8.888889,
+    "jamFactor": 4.6,
+    "confidence": 0.99,
+    "traversability": "open"
+   }
+  },
+  {
+   "location": {
+    "description": "US-1/S Dixie Hwy",
+    "length": 264.0,
+    "shape": {
+     "links": [
+      {
+       "points": [
+        {
+         "lat": 25.59851,
+         "lng": -80.35674
+        },
+        {
+         "lat": 25.59853,
+         "lng": -80.3563
+        }
+       ],
+       "length": 44.0,
+       "functionalClass": 4
+      },
+      {
+       "points": [
+        {
+         "lat": 25.59853,
+         "lng": -80.3563
+        },
+        {
+         "lat": 25.59854,
+         "lng": -80.35598
+        }
+       ],
+       "length": 32.0,
+       "functionalClass": 4
+      },
+      {
+       "points": [
+        {
+         "lat": 25.59854,
+         "lng": -80.35598
+        },
+        {
+         "lat": 25.59855,
+         "lng": -80.35571
+        }
+       ],
+       "length": 27.0,
+       "functionalClass": 4
+      }
+     ]
+    }
+   },
+   "currentFlow": {
+    "speed": 2.5,
+    "speedUncapped": 2.5,
+    "freeFlow": 8.055555,
+    "jamFactor": 7.1,
+    "confidence": 0.99,
+    "traversability": "open"
+   }
+  },
+  {
+   "location": {
+    "description": "Lindgren Rd/137th Ave",
+    "length": 799.0,
+    "shape": {
+     "links": [
+      {
+       "points": [
+        {
+         "lat": 25.68567,
+         "lng": -80.4087
+        },
+        {
+         "lat": 25.68557,
+         "lng": -80.41177
+        }
+       ],
+       "length": 309.0,
+       "functionalClass": 3
+      },
+      {
+       "points": [
+        {
+         "lat": 25.68557,
+         "lng": -80.41177
+        },
+        {
+         "lat": 25.68553,
+         "lng": -80.41307
+        }
+       ],
+       "length": 131.0,
+       "functionalClass": 3
+      },
+      {
+       "points": [
+        {
+         "lat": 25.68553,
+         "lng": -80.41307
+        },
+        {
+         "lat": 25.68552,
+         "lng": -80.4133
+        }
+       ],
+       "length": 23.0,
+       "functionalClass": 3
+      }
+     ]
+    }
+   },
+   "currentFlow": {
+    "speed": 6.9444447,
+    "speedUncapped": 6.9444447,
+    "freeFlow": 16.666668,
+    "jamFactor": 8.1,
+    "confidence": 0.99,
+    "traversability": "open"
+   }
+  },
+  {
+   "location": {
+    "description": "Howard Dr/136th St",
+    "length": 383.0,
+    "shape": {
+     "links": [
+      {
+       "points": [
+        {
+         "lat": 25.64695,
+         "lng": -80.3328
+        },
+        {
+         "lat": 25.64676,
+         "lng": -80.33289
+        }
+       ],
+       "length": 23.0,
+       "functionalClass": 3
+      },
+      {
+       "points": [
+        {
+         "lat": 25.64676,
+         "lng": -80.33289
+        },
+        {
+         "lat": 25.64634,
+         "lng": -80.33309
+        }
+       ],
+       "length": 51.0,
+       "functionalClass": 3
+      },
+      {
+       "points": [
+        {
+         "lat": 25.64634,
+         "lng": -80.33309
+        },
+        {
+         "lat": 25.64601,
+         "lng": -80.33324
+        }
+       ],
+       "length": 40.0,
+       "functionalClass": 3
+      }
+     ]
+    }
+   },
+   "currentFlow": {
+    "speed": 4.7222223,
+    "speedUncapped": 4.7222223,
+    "freeFlow": 10.277778,
+    "jamFactor": 5.5,
+    "confidence": 0.99,
+    "traversability": "open"
+   }
+  },
+  {
+   "location": {
+    "description": "Eureka Dr/SW 184th St",
+    "length": 872.0,
+    "shape": {
+     "links": [
+      {
+       "points": [
+        {
+         "lat": 25.59377,
+         "lng": -80.332
+        },
+        {
+         "lat": 25.59378,
+         "lng": -80.33157
+        }
+       ],
+       "length": 43.0,
+       "functionalClass": 4
+      },
+      {
+       "points": [
+        {
+         "lat": 25.59378,
+         "lng": -80.33157
+        },
+        {
+         "lat": 25.59378,
+         "lng": -80.33143
+        }
+       ],
+       "length": 14.0,
+       "functionalClass": 4
+      },
+      {
+       "points": [
+        {
+         "lat": 25.59378,
+         "lng": -80.33143
+        },
+        {
+         "lat": 25.59378,
+         "lng": -80.33101
+        }
+       ],
+       "length": 42.0,
+       "functionalClass": 4
+      }
+     ]
+    }
+   },
+   "currentFlow": {
+    "freeFlow": 12.5,
+    "jamFactor": 10.0,
+    "traversability": "closed",
+    "junctionTraversability": "intermediateClosedEdgeOpen"
+   }
+  }
+ ]
+}
