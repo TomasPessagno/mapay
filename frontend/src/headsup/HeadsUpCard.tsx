@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { IonCard, IonCardContent, IonButton, IonText, IonIcon, IonChip } from '@ionic/react';
-import { Haptics, ImpactStyle } from '@capacitor/haptics';
+import { Haptics, NotificationType } from '@capacitor/haptics';
 import type { UpcomingLeg } from '../lib/types';
 import { openLink } from '../lib/deepLinks';
 import { waterOutline, warningOutline, constructOutline, stopCircleOutline, carOutline, alertCircleOutline } from 'ionicons/icons';
@@ -42,7 +42,7 @@ const HeadsUpCard: React.FC<HeadsUpCardProps> = ({ leg, timeOffsetMs = 0, onCust
 
   useEffect(() => {
     if (leg.top_hazards && leg.top_hazards.length > 0) {
-      Haptics.impact({ style: ImpactStyle.Heavy }).catch(() => {});
+      Haptics.notification({ type: NotificationType.Warning }).catch(() => {});
     }
   }, [leg.routine_id, leg.leg, leg.top_hazards]);
 
@@ -78,7 +78,10 @@ const HeadsUpCard: React.FC<HeadsUpCardProps> = ({ leg, timeOffsetMs = 0, onCust
         </IonText>
         <IonText color="medium">
           <p style={{ margin: '0 0 12px 0', fontSize: '17px' }}>
-            {formatTime(leg.duration_s)} trip {leg.window && leg.best_departure_at ? `· Best time to leave` : ''}
+            {formatTime(leg.duration_s)} trip
+            {leg.window && leg.best_departure_at
+              ? ` · Best time to leave ${new Date(leg.best_departure_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
+              : ''}
           </p>
         </IonText>
 
@@ -114,7 +117,8 @@ const HeadsUpCard: React.FC<HeadsUpCardProps> = ({ leg, timeOffsetMs = 0, onCust
             style={{ 
               flex: 1, 
               margin: 0, 
-              '--background': 'var(--ion-color-primary-tint, rgba(0, 122, 255, 0.1))', 
+              // Tinted, not filled: system blue at low opacity (docs/design.md, heads-up card).
+              '--background': 'rgba(var(--ion-color-primary-rgb, 0, 122, 255), 0.12)',
               '--color': 'var(--ion-color-primary)',
               '--box-shadow': 'none'
             }}
