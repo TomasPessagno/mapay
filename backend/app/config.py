@@ -26,7 +26,9 @@ class Settings(BaseSettings):
     eia_api_key: str = ""
     here_api_key: str = ""
     nws_user_agent: str = "MAPAY (contact@example.com)"
-    cors_origins: str = "http://localhost:5173"
+    # Comma-separated. Defaults cover the browser dev server and the iOS Capacitor web view
+    # (capacitor://localhost); deployments append the Vercel domain via CORS_ORIGINS.
+    cors_origins: str = "capacitor://localhost,http://localhost:5173"
 
     @property
     def cors_origin_list(self) -> list[str]:
