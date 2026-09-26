@@ -14,6 +14,7 @@ flowchart LR
 
     subgraph Backend[FastAPI on Cloud Run]
         ING[Ingestion jobs]
+        LAYA[Laya decision model<br/>news first pass,<br/>its own Cloud Run service]
         GEM[Gemini<br/>news extraction, satellite check,<br/>prompt to constraints, briefing]
         FUSE[Hazard beliefs<br/>Bayesian log-odds per hazard]
         R[Router<br/>Routes API alternatives<br/>+ hazard scoring + via waypoints]
@@ -21,6 +22,7 @@ flowchart LR
     end
 
     Sources --> ING
+    ING --> LAYA --> GEM
     ING --> GEM --> FUSE
     ING --> FUSE
     FUSE --> DB[(MongoDB Atlas)]

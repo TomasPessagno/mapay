@@ -160,7 +160,7 @@ sequenceDiagram
 
 ### Local news, read by Gemini
 
-Mapay scrapes Miami's local news (NBC6, WLRN, Local10, Miami Herald, CBS News Miami, plus the GDELT news index) every 15 minutes. Gemini reads each story and pulls out what matters for the street: what happened (flood, crash, closure, construction, police activity), where, when and how serious. Google geocoding puts it on the map, with a link to the story. Over time this builds a memory of which streets and intersections keep having problems.
+Mapay scrapes Miami's local news (NBC6, WLRN, Local10, Miami Herald, CBS News Miami, plus the GDELT news index) every 15 minutes. First, [Laya](https://github.com/NandhaKishorM/laya), a small open-source decision model that we run ourselves, checks each story in a fraction of a second and sets aside the ones that aren't about the streets. Gemini reads the rest and pulls out what matters for the street: what happened (flood, crash, closure, construction, police activity), where, when and how serious. Google geocoding puts it on the map, with a link to the story. Over time this builds a memory of which streets and intersections keep having problems.
 
 ### Weather
 
@@ -235,6 +235,7 @@ flowchart LR
 
     subgraph Backend[Backend: FastAPI on Cloud Run]
         ING[Ingestion jobs]
+        LAYA[Laya]
         GEM[Gemini]
         HAZ[Hazards]
         ROUTER[Router]
@@ -250,6 +251,7 @@ flowchart LR
     end
 
     Data --> ING
+    ING --> LAYA --> GEM
     ING --> GEM --> HAZ
     ING --> HAZ
     HAZ --> DB
@@ -276,7 +278,7 @@ The detailed data flow and UI flow live in [`docs/architecture.md`](docs/archite
 | Backend | FastAPI (Python) on Cloud Run |
 | Database | MongoDB Atlas |
 | Hazard confidence | Bayesian log-odds score per hazard, updated by evidence ([`docs/hazard-beliefs.md`](docs/hazard-beliefs.md)) |
-| AI | Gemini (API key from Google AI Studio): reading news, turning prompts into route constraints, checking satellite images, explaining routes |
+| AI | Gemini (API key from Google AI Studio): reading news, turning prompts into route constraints, checking satellite images, explaining routes. [Laya](https://github.com/NandhaKishorM/laya) (open source, self-hosted): a fast first pass over the news |
 | Satellite | Copernicus Global Flood Monitoring + Google Earth Engine (Sentinel-1, Sentinel-2) |
 | Accounts | Anonymous device id for the hackathon |
 | Scheduled jobs | Cloud Scheduler |

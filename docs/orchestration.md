@@ -50,7 +50,7 @@ Run a wave's rows at the same time; start the next wave when its blockers have m
 | Wave | Starts when | Antigravity | Codex | Tomas |
 | --- | --- | --- | --- | --- |
 | 1 | T0 done ([#2](https://github.com/TomasPessagno/mapay/issues/2)) | #12 B1 app shell · #4 A5 neighbourhoods | #10 A1, then #5 A11 | Keys, secrets, bundle ids (T0) |
-| 2 | #12 merged | #20 B3 map · #21 B5 routines · #15 A16 news (needs the AI Studio key; #4 helps) | #7 A13, then #8 A14 | #19 B2 on the Mac + AltStore |
+| 2 | #12 merged | #20 B3 map · #21 B5 routines · #15 A16 news (needs the AI Studio key; #4 helps; Laya is optional, see below) | #7 A13, then #8 A14 | #19 B2 on the Mac + AltStore |
 | 3 | #20 merged | #27 B4 sheet + routes · #22 B6 preferences | (spare: #24 A22, once Jean's #13 has merged) | Review, merge |
 | T1 | #10 and #27, and Jean's #13 and #26 merged | | | Real map + routing with Jean ([#38](https://github.com/TomasPessagno/mapay/issues/38)) |
 | 4 | #19 and #27 merged | #34 B7 heads-up card · #30 B11 hazard sheet | | #28 B8 and #29 B9 on the Mac (in parallel) |
@@ -63,6 +63,7 @@ Run a wave's rows at the same time; start the next wave when its blockers have m
 - The Map tab and its sheet: #20 → #27 → then #34 and #30.
 - `backend/app/routing/belief_config.py`: #7 and #15 (and Jean's #9). Keep edits additive; merge `main` before the PR.
 - `backend/app/main.py` router includes: #10 and #4 (and Jean's #33, #14). One-line conflicts: keep both lines.
+- `backend/app/config.py` settings: #10 and #15 each add fields. One-line conflicts: keep both lines.
 
 ---
 
@@ -119,9 +120,9 @@ Then push and open the PR yourself: `git push -u origin <branch> && gh pr create
 
 - **T0 ([#2](https://github.com/TomasPessagno/mapay/issues/2)) isn't done yet:** routing engine decision (Routes API vs Jean's OSMnx engine), keys, the shared GCP project, bundle ids.
 - **Deploy secrets are missing:** backend merges show a red `deploy-backend` job until Tomas adds `GCP_SA_KEY` and the rest.
-- **Uneven split, kept on purpose:** A16 news (#15) moved to Tomas, so Tomas ≈ 34 h vs Jean ≈ 27.5 h of P0. #5 (A11) and #7 (A13) stay with Tomas. If he falls behind, he says so and the orchestrator hands them to Jean: reassign both issues, move their rows to Jean's queue in TASKS.md, and tell Jean. #5 goes first either way, because Jean's #16 waits on it.
+- **Uneven split, kept on purpose:** A16 news (#15) moved to Tomas, and Jean took the Laya service (A24), so Tomas ≈ 34.5 h vs Jean ≈ 29 h of P0. #5 (A11) and #7 (A13) stay with Tomas. If he falls behind, he says so and the orchestrator hands them to Jean: reassign both issues, move their rows to Jean's queue in TASKS.md, and tell Jean. #5 goes first either way, because Jean's #16 waits on it.
 - **Jean** uses his own agents (his commits are co-authored by Claude); same AGENTS.md rules.
-- **Jev** ([typesafe.ai](https://typesafe.ai/)) is TypeSafe AI's "System One" model (early access since Sept 15, 2026). It isn't a coding agent, so the tool plan above doesn't change. It doesn't write text either. You send it a text and typed questions (yes/no, one option from a list, a score on a scale), and it returns an answer with a probability for each, in about 0.1 s and far cheaper than an LLM. Python: `pip install "pydantic-ai[typesafe]"` (`TypeSafeModel`) or its REST API.
-  - **Proposed use, not decided:** a first pass in A16 news (#15). Jev answers `relevant`, `category` and `severity` for every article. Only relevant articles go to Gemini, which extracts `location_text`, the times and the summary. That means fewer Gemini calls under AI Studio's limits. Jev's probability also replaces Gemini's self-reported `confidence`.
-  - It stays off the routing path, like Gemini: it produces evidence, never a route.
-  - It needs a TypeSafe API key. Decide before #15 starts; the orchestrator then adds it to #15's Scope.
+- **Laya instead of Jev (decided Sept 26).** We have no access to TypeSafe's Jev, so we use [Laya](https://github.com/NandhaKishorM/laya): open source (Apache-2.0), the same kind of model, and it speaks Jev's API. You send it a text and typed questions (yes/no, one option from a list, a score on a scale), and it returns an answer with a probability for each. We host it ourselves, so there's no key to get.
+  - **Jean's A24 ([#46](https://github.com/TomasPessagno/mapay/issues/46)):** runs it as the Cloud Run service `mapay-laya` (multilingual checkpoint, CPU, about 0.2 s per question). It's a separate service, so torch never enters the main backend.
+  - **Tomas's A16 ([#15](https://github.com/TomasPessagno/mapay/issues/15)):** asks Laya one yes/no question per article, drops the clear misses (below p 0.2) and sends the rest to Gemini. Without `LAYA_URL` it runs Gemini-only, so #15 doesn't wait for #46. The agent can also run Laya locally for the threshold check.
+  - Laya isn't a coding agent, so the Antigravity/Codex plan above doesn't change.

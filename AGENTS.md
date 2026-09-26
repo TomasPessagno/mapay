@@ -100,6 +100,11 @@ Gemini interprets and explains; routing stays deterministic. Never analyse Googl
 - **Map:** fully on Google Maps Platform. Maps JavaScript API via `@vis.gl/react-google-maps` inside the app's web view, with light + dark cloud-styled Map IDs that follow the system; Google `TrafficLayer` for live congestion; Places API for search, saved places and stops. No MapLibre or MapKit: Google's terms don't allow showing Google routes/places on a non-Google map. Deep links use the Google Maps URLs API (`https://www.google.com/maps/dir/?api=1&origin=...&destination=...&waypoints=...`); only Google Maps preserves multi-waypoint shaping, Apple Maps / Waze get origin → destination.
 - **Routing:** Google Routes API with our own deterministic hazard scoring. See [Routing](#routing). The committed `routing/engine.py` still searches an OSMnx graph (its loader is a stub, so `/route` returns 503); the path search moves to Routes API, while the beliefs and the pre-route check stay.
 - **LLM:** Gemini via the Google GenAI SDK (`google-genai`) with an API key from **Google AI Studio** (`GEMINI_API_KEY`), structured JSON output. Gemini *interprets* (news → events, prompt → constraints, satellite chips → yes/no + description) and *explains*. It never picks the route. AI Studio keys have per-minute and per-day request limits: batch news articles per call, never re-process an article, and cache results.
+- **Decision model:** [Laya](https://github.com/NandhaKishorM/laya), open source (Apache-2.0), which we host ourselves on Cloud Run as `mapay-laya` (A24).
+  - It answers typed questions about a text (`noul` = yes/no, `choice`, `score`) with a probability per answer, in about 0.2 s on CPU.
+  - It speaks TypeSafe Jev's `POST /v1/systemone` API; the backend reads `LAYA_URL` and `LAYA_API_KEY`.
+  - The news pipeline uses it as a first pass before Gemini. Without `LAYA_URL` it runs Gemini-only.
+  - Like Gemini, it never picks the route.
 - **Satellite:** Copernicus GFM (ready-made Sentinel-1 flood maps) + Google Earth Engine (`earthengine-api`) for our own Sentinel-1 / Sentinel-2 processing.
 - **Identity:** anonymous. The device id is `identifierForVendor`: `Device.getId()` in the app and `UIDevice.current.identifierForVendor` in the widget. Both are signed by the same team, so they should match; verify on the iPhone in hour 0 (fallback for the demo: bake the demo user's id into the build). Sent as `X-Device-Id`. Not real auth, fine for the hackathon.
 - **Jobs:** Cloud Scheduler → authenticated `POST /internal/*` endpoints (ingestion + briefing precompute). Don't rely on in-process pollers: Cloud Run throttles CPU between requests by default.
@@ -251,7 +256,10 @@ Every hazard is a **belief** (`docs/hazard-beliefs.md`). Source layers (tides + 
 
 ### News → Gemini (P0)
 - **Sources:** RSS from NBC6, WLRN, Local10, Miami Herald and CBS News Miami, plus GDELT DOC API queries (Miami + crash / flood / closure / construction / police). Official press-release feeds where they exist.
-- **Every 15 min:** new items (dedupe by URL/hash) → article text (respect robots.txt and paywalls; fall back to the RSS summary) → Gemini structured extraction: `{relevant, category, location_text, starts_at, ends_at, severity, summary, confidence}`.
+- **Every 15 min:** new items (dedupe by URL/hash) → **Laya first pass** when `LAYA_URL` is set → article text (respect robots.txt and paywalls; fall back to the RSS summary) → Gemini structured extraction: `{relevant, category, location_text, starts_at, ends_at, severity, summary, confidence}`.
+- **Laya first pass:** one yes/no question on the title and summary: is this a street problem in Miami-Dade?
+  - Items below p 0.2 are dropped. The threshold is deliberately permissive, because zero-shot Laya is modest and a dropped story never reaches the map.
+  - Category, severity and the rest still come from Gemini.
 - **Location:** geocode `location_text` with Google Geocoding bounded to Miami-Dade. Neighbourhood-only mentions map to a polygon from `data/neighborhoods.geojson`. Skip items that can't be placed.
 - **Into the beliefs:** news that matches a registered hazard adds `news` evidence to it; news about something new (a crash, police activity) registers a new `incident` hazard with a fixed `probability` prior (add it to `belief_config.py`).
 - **Expiry by category:** crash/incident 3 h, flood 12 h, closure = stated end or 24 h, construction 30 days. Beliefs themselves never expire and news evidence doesn't decay, so until it does, filter news-only hazards on the map by `last_updated` with these windows.
@@ -316,7 +324,7 @@ Limits to be upfront about, including in the pitch:
 | Weather: radar | NOAA/NWS radar mosaic (WMS) | Map overlay | No | P1 |
 | No sidewalk | OpenStreetMap via Overpass API | `sidewalk=no` / `none`; missing tag = unknown | No | P0 |
 | Potholes | Miami-Dade 311 (2023 dataset — frame as "chronic corridors," not live) | opendata.miamidade.gov | No | P1 |
-| Incidents / police / news | RSS (NBC6, WLRN, Local10, Miami Herald, CBS News Miami) + GDELT → Gemini | `api.gdeltproject.org/api/v2/doc/doc?query=miami+crash&mode=artlist&format=json` | Gemini key | P0 |
+| Incidents / police / news | RSS (NBC6, WLRN, Local10, Miami Herald, CBS News Miami) + GDELT → Laya first pass → Gemini | `api.gdeltproject.org/api/v2/doc/doc?query=miami+crash&mode=artlist&format=json` | Gemini key; Laya is self-hosted (A24) | P0 |
 | Neighbourhoods | City of Miami "Miami Neighborhoods" layer + Miami-Dade municipal boundaries + Census TIGER/Line places (e.g. Westchester, Kendall) | datahub-miamigis.opendata.arcgis.com, gis-mdc.opendata.arcgis.com, census.gov → `data/neighborhoods.geojson` | No | P0 |
 | Routing | Google Routes API (`computeRoutes`, `computeAlternativeRoutes: true`) — only supports avoidTolls/avoidHighways/avoidFerries/avoidIndoor, NOT custom hazard polygons, so hazard-awareness = our scoring + `via` waypoints | developers.google.com/maps/documentation/routes | Yes | P0 |
 | Search, saved places, stops | Google Places API | Autocomplete + Text Search | Yes | P0 |
@@ -451,6 +459,8 @@ mapay/
         models.py
       data/               # committed static files: flood hotspots, neighborhoods, FEMA export, tolls.json
     tests/                # unit tests (CI requires the belief-math test)
+  services/
+    laya/                 # Dockerfile + deploy notes for our self-hosted Laya service (Cloud Run: mapay-laya)
   docs/
     hazard-beliefs.md     # the belief model, evidence sources and pre-route check
     design.md             # design spec (Apple-like)
@@ -481,6 +491,7 @@ flowchart LR
 
     subgraph Backend[FastAPI on Cloud Run]
         ING[Ingestion jobs]
+        LAYA[Laya decision model<br/>news first pass,<br/>its own Cloud Run service]
         GEM[Gemini<br/>news extraction, satellite check,<br/>prompt to constraints, briefing]
         FUSE[Hazard beliefs<br/>Bayesian log-odds per hazard]
         R[Router<br/>Routes API alternatives<br/>+ hazard scoring + via waypoints]
@@ -488,6 +499,7 @@ flowchart LR
     end
 
     Sources --> ING
+    ING --> LAYA --> GEM
     ING --> GEM --> FUSE
     ING --> FUSE
     FUSE --> DB[(MongoDB Atlas)]
