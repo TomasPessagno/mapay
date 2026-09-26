@@ -23,7 +23,7 @@ Mapay is a mobile app + web app that puts every street problem (potholes, floods
 - [Data model (draft)](#data-model-draft)
 - [Roadmap](#roadmap)
 - [Open questions](#open-questions)
-- [Repository layout (planned)](#repository-layout-planned)
+- [Repository layout](#repository-layout)
 - [Original spec (ES)](#original-spec-es)
 - [Setup and scaffold notes](#setup-and-scaffold-notes)
 
@@ -48,11 +48,11 @@ These come first. Everything else waits until they work end to end.
 
 | # | Fundamental | Done when |
 | --- | --- | --- |
-| 1 | **Map with Inconvenientes** | OSM map shows Inconvenientes from at least a first set of sources (user reports, weather, closures/news, holidays), with a filterable legend. |
+| 1 | **Map with Inconvenientes** | Google map shows Inconvenientes from at least a first set of sources (user reports, weather, closures/news, holidays), with a filterable legend. |
 | 2 | **Routine routes** | User can create/edit/delete routes with specific times or time ranges, plus per-route preferences. |
-| 3 | **Heads-up widget** | Shows up N minutes before a route (default **30 min**, configurable), with **Start** (opens Google Maps) and **Customize** (prompt → Gemini → new route → Google Maps). |
+| 3 | **Heads-up widget + push notifications** | A real push notification and a home-screen widget show up N minutes before a route (default **30 min**, configurable), with **Start** (opens Google Maps) and **Customize** (prompt → Gemini → new route → Google Maps). |
 | 4 | **Holiday awareness** | Mapay tells you ahead of time when a holiday/festivity affects a routine route. |
-| 5 | **Backend + agents skeleton** | Cloud database, API and at least one scheduled agent (news → Inconvenientes) in production. |
+| 5 | **Backend + agents skeleton** | MongoDB Atlas, API, push scheduler and at least one scheduled agent (news → Inconvenientes) in production. |
 
 **Not in the MVP:** satellite scanning, the run/walk section, CarPlay, in-app turn-by-turn navigation, Apple Maps/Waze integration beyond a basic "open in" link.
 
@@ -74,7 +74,7 @@ One map that shows all our data. Each layer can be turned on and off, and each m
 | Police reports | News agent, official open data where it exists | Handle carefully (see [Open questions](#open-questions)). |
 | Local news | News scraping agent → Daily Mind | Geocoded to streets/intersections. |
 | Construction zones | City permits/open data, news, satellite change detection (later) | Satellite needs high-res imagery. |
-| Historically heavy traffic | Our own traffic samples over the last *X* days (e.g. Google Routes API / other traffic provider) | Per street/intersection and time of day. |
+| Historically heavy traffic | Google Maps: Routes API traffic-aware durations for future departure times (Google's typical traffic for that hour/day), compared against no-traffic duration. FDOT AADT as fallback. | Per corridor and time of day. Google's terms limit how long we can store its data, so check caching rules before keeping samples. |
 
 **Display principles**
 
@@ -110,7 +110,11 @@ Inspired by Duolingo's streak widget, which shows up hours before you lose your 
 - **Later:** smart lead time, shown earlier when there are Inconvenientes on the route.
 - **Start route:** opens the route in **Google Maps** right away (see [handoff](#map-providers-and-navigation-handoff)).
 - **Customize:** opens a prompt ("I need to stop at the pharmacy", "avoid the center, there's a march"). Gemini + our data build a new route, then it opens in Google Maps.
-- **Surfaces:** home-screen widget + actionable push notification. On iOS we'll also look at Live Activities.
+- **Surfaces:**
+  - **Push notification** via Firebase Cloud Messaging (Web Push), with **Start** / **Customize** action buttons where the browser supports them.
+  - **In-app widget card**, the big Duolingo-style card on the home screen of the app.
+  - **Home-screen widget**: Android first (the web app wrapped with Capacitor + a native Android widget), iOS WidgetKit after.
+- **Platform limits:** on iPhone, web push only works once the app is added to the Home Screen (iOS 16.4+), and Safari doesn't show notification action buttons, so tapping opens the in-app card with both buttons.
 
 ```mermaid
 sequenceDiagram
@@ -145,7 +149,7 @@ sequenceDiagram
 A separate section for running and walking routes.
 
 - Prompt-based: *"I want to run 5 km"*, plus a surface choice: **street**, **park/plaza**, or **internal/quiet streets**.
-- A vision-capable LLM (Gemini) reads the prompt and uses **satellite imagery** + OSM data (parks, footways, lighting, traffic) to suggest loops.
+- A vision-capable LLM (Gemini) reads the prompt and uses **satellite imagery** + Google Maps data (Places for parks, Routes API walking directions) to suggest loops.
 - Uses the same Inconvenientes (e.g. avoid flooded parks).
 
 ---
@@ -154,9 +158,9 @@ A separate section for running and walking routes.
 
 | Platform | Priority | Notes |
 | --- | --- | --- |
-| Mobile app (iOS + Android) | **MVP** | Main experience. |
-| Widget (iOS + Android) | **MVP** | Native widget code on both platforms (WidgetKit / Android Glance). |
-| Web app / landing | MVP (basic) | Hosted on **Vercel** or **Cloudflare Pages**. Map + routes management. |
+| Web app (React + Vite), installable as a PWA | **MVP** | Main experience, hosted on **Vercel**. Service worker receives push notifications. |
+| Push notifications | **MVP** | Firebase Cloud Messaging (Web Push). |
+| Home-screen widget | **MVP** (Android), later (iOS) | Same web app wrapped with **Capacitor**, plus a native widget (Android App Widget; iOS WidgetKit later). |
 | CarPlay / Android Auto | Maybe, later | Needs platform approval and a navigation entitlement. |
 
 ---
@@ -171,11 +175,11 @@ flowchart LR
         WEB[Web app<br/>Vercel or Cloudflare Pages]
     end
 
-    subgraph Cloud["Cloud (Google Cloud, proposed)"]
+    subgraph Cloud["Google Cloud"]
         API[API service]
-        DB[(PostgreSQL + PostGIS)]
-        SCHED[Scheduler]
-        PUSH[Push service]
+        DB[(MongoDB Atlas)]
+        SCHED[Cloud Scheduler]
+        PUSH[Firebase Cloud Messaging]
         subgraph Agents["Agents (Google ADK, proposed)"]
             NEWS[News agent]
             MIND[Daily Mind agent]
@@ -185,12 +189,11 @@ flowchart LR
             HOL[Holiday agent]
         end
         LLM[Gemini]
-        ROUTER[OSM router<br/>Valhalla / GraphHopper]
     end
 
     subgraph External
-        OSM[OpenStreetMap tiles/data]
-        GMAPS[Google Maps]
+        GMAPI[Google Maps Platform<br/>Maps JS, Routes, Places]
+        GMAPS[Google Maps app]
         WX[Weather / radar]
         SRC[News sites / open data]
         IMG[Satellite imagery]
@@ -206,9 +209,9 @@ flowchart LR
     NEWS --> SRC
     SAT --> IMG
     HOL --> SRC
-    ROUTE --> ROUTER
-    RUN --> ROUTER
-    ROUTER --> OSM
+    A & WEB --> GMAPI
+    ROUTE --> GMAPI
+    RUN --> GMAPI
     A -. deep link .-> GMAPS
     API --> WX
 ```
@@ -218,39 +221,46 @@ flowchart LR
 | Agent | Runs | Does |
 | --- | --- | --- |
 | **News agent** | Every few hours | Scrapes local news, extracts events (closures, floods, marches, police reports), geocodes them and writes Inconvenientes. |
-| **Daily Mind agent** | Nightly | Merges the day's news + user reports + past Inconvenientes into one per-street/intersection summary; recomputes confidence and expiry; updates "historically heavy" traffic. |
+| **Daily Mind agent** | Nightly | Merges the day's news + user reports + past Inconvenientes into one per-street/intersection summary; recomputes confidence and expiry; refreshes "historically heavy" traffic from Google Routes API. |
 | **Holiday agent** | Daily | Keeps the holiday/festivity calendar up to date and flags routine routes that will be affected. |
-| **Route customizer agent** | On demand | Takes the prompt from the widget, checks Inconvenientes + preferences, asks the router for alternatives, explains the choice and saves learned preferences. |
+| **Route customizer agent** | On demand | Takes the prompt from the widget, checks Inconvenientes + preferences, asks Google Routes API for alternatives, explains the choice and saves learned preferences. |
 | **Satellite agent** | Weekly/daily (later) | Scans imagery for construction and large floods, then writes Inconvenientes with visual evidence. |
-| **Run/walk agent** | On demand (later) | Vision LLM + satellite + OSM → running/walking loops. |
+| **Run/walk agent** | On demand (later) | Vision LLM + satellite + Google Places/Routes → running/walking loops. |
 
 ### Map providers and navigation handoff
 
-- **In-app map:** OpenStreetMap is the main map (rendered with MapLibre), with a **switch to Google Maps**. Apple Maps and Waze integration is a later goal.
-- **Routing:** we run our own OSM router so we can **penalize or avoid Inconvenientes** (both Valhalla and GraphHopper support avoiding areas/locations).
+- **In-app map:** fully on the **Google Maps JavaScript API** (`@vis.gl/react-google-maps`). Inconvenientes are drawn as our own layers on top; live traffic uses Google's traffic layer.
+- **Routing:** Google Routes API. It can't avoid custom areas (only tolls, highways, ferries, indoor), so we:
+  1. ask for **alternative routes**,
+  2. score each one against the Inconvenientes on our side and pick the best,
+  3. if every alternative hits a serious Inconveniente, add a **via waypoint** that pulls the route around it and ask again.
+  The LLM explains the choice; it doesn't make it.
 - **Handoff:** Google Maps deep links can't express "avoid this street", only origin, destination, **waypoints** and a few avoid flags (tolls, highways, ferries). So a customized route is turned into a small set of **waypoints** that steer Google Maps onto our route.
   - Google Maps: origin + destination + waypoints ✅
   - Waze: destination only ⚠️ (customized routes can't be fully passed on)
   - Apple Maps: waypoint support to be checked
-- **Later:** in-app turn-by-turn (e.g. Google Navigation SDK or an OSM-based SDK), needed for CarPlay anyway.
+- **Later:** in-app turn-by-turn (Google Navigation SDK), needed for CarPlay anyway.
 
-### Tech stack (proposed)
+### Tech stack
 
 | Area | Choice | Status |
 | --- | --- | --- |
 | LLM | Gemini (fast model for bulk agent work, stronger model for route reasoning, vision for satellite/run) | Almost decided |
 | Agent framework | Google ADK | Proposed |
 | Cloud | Google Cloud (Cloud Run for API + agents, Cloud Scheduler, Cloud Storage for imagery) | Proposed |
-| Database | PostgreSQL + PostGIS (Cloud SQL) for geospatial queries | Proposed |
-| Push | Firebase Cloud Messaging (Android + iOS) | Proposed |
-| Map rendering | MapLibre + OSM tiles; Google Maps SDK for the switch | Proposed |
-| Router | Valhalla or GraphHopper on OSM data | To decide |
-| Mobile framework | React Native (Expo) or Flutter, plus native widget code either way | To decide |
-| Web hosting | Vercel or Cloudflare Pages | To decide |
+| Database | MongoDB Atlas (`2dsphere` indexes for geo queries, TTL indexes for expiring data) | Decided |
+| Backend | FastAPI (Python) on Cloud Run | Decided |
+| Push | Firebase Cloud Messaging (Web Push), triggered by Cloud Scheduler | Decided |
+| Map + routing | Google Maps Platform: Maps JavaScript API, Routes API, Places API | Decided |
+| Frontend | React + Vite + TypeScript, installable PWA | Decided |
+| Home-screen widget | Capacitor wrapper + native Android widget (iOS later) | Decided |
+| Web hosting | Vercel | Decided |
 
 ---
 
 ## Data model (draft)
+
+Stored in MongoDB; the exact collections live in `AGENTS.md`.
 
 ```text
 Inconveniente
@@ -264,6 +274,9 @@ RoutineRoute
   schedule: { kind: "times" | "range", days[], times[] | {start, end} },
   preferences: { [inconveniente_type]: "avoid" | "prefer_avoid" | "ignore" },
   heads_up_minutes (default 30), nav_app (google_maps | waze | apple_maps)
+
+Device
+  id, user_id, fcm_token, platform (web | android | ios), last_seen_at
 
 LearnedPreference
   id, user_id, route_id?, rule (text + structured form),
@@ -281,9 +294,8 @@ CalendarEvent
 ## Roadmap
 
 **Phase 0: Foundations**
-- [ ] Choose mobile framework, router and hosting
-- [ ] Monorepo, CI, GCP project, database schema
-- [ ] OSM map screen (mobile + web)
+- [ ] Monorepo, CI, GCP project, MongoDB Atlas collections + indexes
+- [ ] Google map screen
 - [ ] Auth and user profile
 
 **Phase 1: MVP (the fundamentals)**
@@ -293,7 +305,8 @@ CalendarEvent
 - [ ] News agent → Inconvenientes
 - [ ] Holiday calendar + advance warnings
 - [ ] Routine routes (times and ranges) + preferences
-- [ ] Heads-up widget + notification (Start / Customize)
+- [ ] Push notifications (FCM + scheduler) with Start / Customize
+- [ ] In-app widget card + Android home-screen widget
 - [ ] Route customizer agent (Gemini) + Google Maps handoff with waypoints
 
 **Phase 2: Intelligence**
@@ -301,7 +314,8 @@ CalendarEvent
 - [ ] Historically heavy traffic per street/intersection
 - [ ] Learned preferences (memory)
 - [ ] Smart heads-up timing
-- [ ] Google Maps switch in-app; Waze / Apple Maps handoff
+- [ ] Waze / Apple Maps handoff
+- [ ] iOS home-screen widget
 
 **Phase 3: Eyes in the sky**
 - [ ] Satellite agent (construction, large floods)
@@ -315,7 +329,6 @@ CalendarEvent
 
 ## Open questions
 
-- **Launch city:** which city do we start with? It decides news sources, open data and holiday calendar.
 - **Start button:** is handing off to the Google Maps app enough for now, or do we want deeper integration (in-app navigation) sooner?
 - **Heads-up lead time:** fixed 30 min, per-route, or dynamic based on conditions?
 - **Time-range routes:** notify at the start of the range, or suggest the best time inside it?
@@ -328,20 +341,16 @@ CalendarEvent
 
 ---
 
-## Repository layout (planned)
+## Repository layout
 
 ```text
 mapay/
-├── apps/
-│   ├── mobile/        # iOS + Android app (+ native widget targets)
-│   └── web/           # Web app (Vercel / Cloudflare Pages)
-├── services/
-│   └── api/           # Backend API
-├── agents/            # ADK agents: news, daily-mind, holiday, route, satellite, run
-├── packages/
-│   └── shared/        # Shared types (Inconveniente, RoutineRoute, ...)
-├── infra/             # Cloud / DB setup, migrations
-└── docs/              # Design notes, decisions
+├── frontend/          # React + Vite PWA (map, routines, widget card, service worker)
+│   └── android/       # Capacitor Android project + native home-screen widget (planned)
+├── backend/           # FastAPI: routes, layers, alerts, reports, routines, notifications
+│   └── app/agents/    # Gemini agents: briefing, news extraction, satellite check
+├── docs/              # Architecture and data sources
+└── AGENTS.md          # Build guide: scope, data sources, schema, roadmap
 ```
 
 ---
