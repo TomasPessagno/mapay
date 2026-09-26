@@ -119,6 +119,9 @@ Then push and open the PR yourself: `git push -u origin <branch> && gh pr create
 
 - **T0 ([#2](https://github.com/TomasPessagno/mapay/issues/2)) isn't done yet:** routing engine decision (Routes API vs Jean's OSMnx engine), keys, the shared GCP project, bundle ids.
 - **Deploy secrets are missing:** backend merges show a red `deploy-backend` job until Tomas adds `GCP_SA_KEY` and the rest.
-- **Uneven split:** A16 news (#15) moved to Tomas, so Tomas ≈ 34 h vs Jean ≈ 27.5 h of P0. Proposed fix, not yet decided: give Jean #5 and #7.
+- **Uneven split, kept on purpose:** A16 news (#15) moved to Tomas, so Tomas ≈ 34 h vs Jean ≈ 27.5 h of P0. #5 (A11) and #7 (A13) stay with Tomas. If he falls behind, he says so and the orchestrator hands them to Jean: reassign both issues, move their rows to Jean's queue in TASKS.md, and tell Jean. #5 goes first either way, because Jean's #16 waits on it.
 - **Jean** uses his own agents (his commits are co-authored by Claude); same AGENTS.md rules.
-- **Unanswered:** what "jev" meant (Vertex AI? Jules? Jean?).
+- **Jev** ([typesafe.ai](https://typesafe.ai/)) is TypeSafe AI's "System One" model (early access since Sept 15, 2026). It isn't a coding agent, so the tool plan above doesn't change. It doesn't write text either. You send it a text and typed questions (yes/no, one option from a list, a score on a scale), and it returns an answer with a probability for each, in about 0.1 s and far cheaper than an LLM. Python: `pip install "pydantic-ai[typesafe]"` (`TypeSafeModel`) or its REST API.
+  - **Proposed use, not decided:** a first pass in A16 news (#15). Jev answers `relevant`, `category` and `severity` for every article. Only relevant articles go to Gemini, which extracts `location_text`, the times and the summary. That means fewer Gemini calls under AI Studio's limits. Jev's probability also replaces Gemini's self-reported `confidence`.
+  - It stays off the routing path, like Gemini: it produces evidence, never a route.
+  - It needs a TypeSafe API key. Decide before #15 starts; the orchestrator then adds it to #15's Scope.
