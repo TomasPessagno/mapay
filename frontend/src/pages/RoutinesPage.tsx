@@ -1,5 +1,6 @@
 import React from 'react';
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/react';
+import RoutinesTab from '../routines/RoutinesTab';
 
 const RoutinesPage: React.FC = () => {
   return (
@@ -9,17 +10,14 @@ const RoutinesPage: React.FC = () => {
           <IonTitle>Routines</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent fullscreen={true}>
+      <IonContent fullscreen={true} className="ion-padding-bottom">
         <IonHeader collapse="condense">
           <IonToolbar>
             <IonTitle size="large">Routines</IonTitle>
           </IonToolbar>
         </IonHeader>
         
-        {/* Placeholder for Routines */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '101%' }}>
-          <p>Routines List</p>
-        </div>
+        <RoutinesTab />
       </IonContent>
     </IonPage>
   );
