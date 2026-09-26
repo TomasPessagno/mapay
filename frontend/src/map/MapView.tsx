@@ -36,7 +36,7 @@ export default function MapView(props: Props) {
       </APIProvider>
       
       <IonFab slot="fixed" vertical="top" horizontal="end" style={{ top: '60px', right: '16px' }}>
-        <IonFabButton aria-label="Legend and Layers" className="glass" onClick={() => setShowLegend(true)} style={{ width: '44px', height: '44px' }}>
+        <IonFabButton aria-label="Legend and Layers" className="glass" onClick={() => setShowLegend(true)} style={{ width: '44px', height: '44px', borderRadius: '50%' }}>
           <IonIcon icon={layersOutline} color="primary" />
         </IonFabButton>
       </IonFab>

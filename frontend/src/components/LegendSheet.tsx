@@ -71,14 +71,14 @@ const LegendSheet: React.FC<Props> = ({ isOpen, onDidDismiss, toggled, onToggle 
                 />
                 <IonLabel>
                   <h2>{token.name}</h2>
-                  <p>{token.drawnAs}</p>
                   {hazard === 'congestion' && (
                     <div style={{ marginTop: '6px', height: '4px', background: 'linear-gradient(to right, #FFCC00, #FF3B30, #A50E0E)', borderRadius: '2px', width: '100%' }} />
                   )}
                 </IonLabel>
                 <IonToggle 
                   slot="end" 
-                  checked={isVisible} 
+                  checked={isVisible}
+                  aria-label={`Show ${token.name}`}
                   onIonChange={(e) => onToggle(hazard, e.detail.checked)}
                 />
               </IonItem>
