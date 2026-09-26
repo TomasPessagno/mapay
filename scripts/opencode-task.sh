@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Run one GitHub issue with OpenCode in its own git worktree (see docs/orchestration.md).
 #
-#   scripts/opencode-task.sh <issue-number> [model]
+#   scripts/opencode-task.sh <issue-number> [model]      (OPENCODE_VARIANT=max for more reasoning; default high)
 #
 # Reads the branch name from the issue's "**Branch:**" line, creates ../mapay-<branch> from
 # origin/main (or reuses it), activates the shared Python venv (creating it on first use), and
@@ -54,5 +54,6 @@ prompt="Read AGENTS.md and follow 'Working on a task'. Implement the GitHub issu
 
 $(gh issue view "$issue" -R "$repo" --json number,title,body -q '"#\(.number) \(.title)\n\n\(.body)"')"
 
-echo "Issue #$issue on branch $branch in $dir, model $model"
-opencode run --model "$model" "$prompt"
+variant="${OPENCODE_VARIANT:-high}"  # reasoning effort: minimal, high, max
+echo "Issue #$issue on branch $branch in $dir, model $model ($variant)"
+opencode run --model "$model" --variant "$variant" "$prompt"
