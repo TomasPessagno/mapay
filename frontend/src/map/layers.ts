@@ -1,5 +1,5 @@
 import { HAZARD_TOKENS, type LegendToken } from './legend';
-import type { HazardType } from '../lib/types';
+import type { HazardType, RouteOption } from '../lib/types';
 
 // Hazard layer renderers: flood, closures, potholes, reports, walk overlay.
 // Each layer is its own google.maps.Data instance so it can be toggled/replaced independently.
@@ -10,7 +10,31 @@ const layerDataCache = new Map<string, GeoJSON.FeatureCollection>();
 
 let mapInstance: google.maps.Map | null = null;
 let advancedMarkerLib: google.maps.MarkerLibrary | null = null;
+let geometryLib: google.maps.GeometryLibrary | null = null;
 let zoomListener: google.maps.MapsEventListener | null = null;
+
+let focusPolyline: google.maps.Polyline | null = null;
+
+export async function setFocusRoute(route: RouteOption | null) {
+  if (route && route.route_geojson) {
+    if (!geometryLib) {
+      geometryLib = await google.maps.importLibrary("geometry") as google.maps.GeometryLibrary;
+    }
+    const featureCollection = route.route_geojson as unknown as GeoJSON.FeatureCollection;
+    const geometry = featureCollection.features[0].geometry as GeoJSON.LineString;
+    const path = geometry.coordinates.map((c: number[]) => new google.maps.LatLng(c[1], c[0]));
+    focusPolyline = new google.maps.Polyline({ path });
+  } else {
+    focusPolyline = null;
+  }
+  refreshAllLayers();
+}
+
+function isFocused(centroid: google.maps.LatLngLiteral | null): boolean {
+  if (!focusPolyline || !geometryLib || !centroid) return true;
+  const pt = new google.maps.LatLng(centroid.lat, centroid.lng);
+  return geometryLib.poly.isLocationOnEdge(pt, focusPolyline, 0.00135);
+}
 
 let isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
@@ -168,6 +192,9 @@ export async function upsertGeoJsonLayer(
     if (status === 'predicted') {
       opacity *= 0.5;
     }
+    if (!isFocused(centroid)) {
+      opacity *= 0.3;
+    }
     
     const token = HAZARD_TOKENS[hazardType] || HAZARD_TOKENS.incident;
     const marker = new advancedMarkerLib!.AdvancedMarkerElement({
@@ -198,6 +225,11 @@ export async function upsertGeoJsonLayer(
     if (status === 'predicted') {
       fillOpacity = Math.max(fillOpacity * 0.5, 0.25);
       strokeOpacity = Math.max(strokeOpacity * 0.5, 0.25);
+    }
+    
+    if (!isFocused(getCentroid(feature))) {
+      fillOpacity *= 0.3;
+      strokeOpacity *= 0.3;
     }
 
     const strokeWeight = severity * 1.5;

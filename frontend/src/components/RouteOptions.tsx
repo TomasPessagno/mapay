@@ -2,12 +2,13 @@ import React from 'react';
 import { IonCard, IonCardContent, IonButton, IonText, IonChip, IonIcon } from '@ionic/react';
 import type { RouteResponse, RouteOption } from '../lib/types';
 import { openLink } from '../lib/deepLinks';
-import { waterOutline, warningOutline, alertCircleOutline, constructOutline, carOutline, stopCircleOutline } from 'ionicons/icons';
+import { closeOutline, waterOutline, warningOutline, alertCircleOutline, constructOutline, carOutline, stopCircleOutline } from 'ionicons/icons';
 
 interface RouteOptionsProps {
   response: RouteResponse;
   selectedIndex: number;
   onSelect: (index: number) => void;
+  onClose: () => void;
 }
 
 const getHazardIcon = (type: string) => {
@@ -34,7 +35,7 @@ const formatDistance = (meters: number) => {
   return `${miles.toFixed(1)} mi`;
 };
 
-const RouteOptions: React.FC<RouteOptionsProps> = ({ response, selectedIndex, onSelect }) => {
+const RouteOptions: React.FC<RouteOptionsProps> = ({ response, selectedIndex, onSelect, onClose }) => {
   // Handle case where API might return `alternatives` instead of `routes` in mock
   const routes: RouteOption[] = response.routes || (response as unknown as { alternatives?: RouteOption[] }).alternatives || [];
 
@@ -42,6 +43,12 @@ const RouteOptions: React.FC<RouteOptionsProps> = ({ response, selectedIndex, on
 
   return (
     <div className="route-options">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+        <IonText color="dark"><h2 style={{ fontSize: '22px', fontWeight: 'bold', margin: 0 }}>Route Options</h2></IonText>
+        <IonButton fill="clear" color="medium" onClick={onClose} style={{ margin: 0, height: '32px' }}>
+          <IonIcon slot="icon-only" icon={closeOutline} />
+        </IonButton>
+      </div>
       {routes.map((route, i) => (
         <IonCard 
           key={i} 

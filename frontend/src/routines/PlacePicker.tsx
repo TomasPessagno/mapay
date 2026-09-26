@@ -1,28 +1,49 @@
 import { useState } from 'react';
 import {
   IonModal, IonHeader, IonToolbar, IonTitle, IonButtons, IonButton,
-  IonContent, IonSearchbar, IonList, IonItem, IonLabel, IonIcon
+  IonContent, IonList, IonItem, IonLabel, IonIcon, IonListHeader
 } from '@ionic/react';
 import { locationOutline } from 'ionicons/icons';
+import { APIProvider } from "@vis.gl/react-google-maps";
 import type { Place } from '../lib/types';
+import { api } from '../lib/api';
+import SearchField from '../components/SearchField';
+
+const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? "";
 
 interface PlacePickerProps {
   label: string;
   value: string; // place ID
   places: Place[];
   onChange: (placeId: string) => void;
+  onPlacesUpdated?: () => void;
 }
 
-export default function PlacePicker({ label, value, places, onChange }: PlacePickerProps) {
+export default function PlacePicker({ label, value, places, onChange, onPlacesUpdated }: PlacePickerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
 
   const selectedPlace = places.find(p => p._id === value);
   const displayName = selectedPlace ? selectedPlace.name : (value ? 'Unknown Place' : `Select ${label}`);
 
-  const handleSelect = (placeId: string) => {
+  const handleSelectSaved = (placeId: string) => {
     onChange(placeId);
     setIsOpen(false);
+  };
+
+  const handleSearchSelect = async (destination: {lat: number, lng: number}, name: string) => {
+    try {
+      const newPlace = await api.savePlace({
+        name,
+        address: name,
+        location: destination
+      });
+      if (onPlacesUpdated) onPlacesUpdated();
+      onChange(newPlace._id || (newPlace as unknown as {id: string}).id);
+      setIsOpen(false);
+    } catch (e) {
+      console.error('Failed to save place', e);
+    }
   };
 
   const filteredPlaces = places.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
@@ -41,26 +62,32 @@ export default function PlacePicker({ label, value, places, onChange }: PlacePic
             </IonButtons>
             <IonTitle>Search Place</IonTitle>
           </IonToolbar>
-          <IonToolbar className="glass">
-            <IonSearchbar 
-              value={search} 
-              onIonInput={e => setSearch(e.detail.value!)} 
-              placeholder="Search or enter address" 
-            />
-          </IonToolbar>
         </IonHeader>
         <IonContent>
-          <IonList>
-            {filteredPlaces.map(place => (
-              <IonItem button key={place._id} onClick={() => handleSelect(place._id)}>
-                <IonIcon icon={locationOutline} slot="start" />
-                <IonLabel>
-                  <h2>{place.name}</h2>
-                  {place.address && <p>{place.address}</p>}
-                </IonLabel>
-              </IonItem>
-            ))}
-          </IonList>
+          <APIProvider apiKey={API_KEY}>
+            <div style={{ padding: '16px' }}>
+              <SearchField 
+                value={search} 
+                onValueChange={setSearch} 
+                onSearch={handleSearchSelect} 
+                placeholder="Search or enter address"
+              />
+            </div>
+            {filteredPlaces.length > 0 && (
+              <IonList>
+                <IonListHeader>Saved Places</IonListHeader>
+                {filteredPlaces.map(place => (
+                  <IonItem button key={place._id} onClick={() => handleSelectSaved(place._id)}>
+                    <IonIcon icon={locationOutline} slot="start" />
+                    <IonLabel>
+                      <h2>{place.name}</h2>
+                      {place.address && <p>{place.address}</p>}
+                    </IonLabel>
+                  </IonItem>
+                ))}
+              </IonList>
+            )}
+          </APIProvider>
         </IonContent>
       </IonModal>
     </>

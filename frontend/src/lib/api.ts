@@ -1,5 +1,5 @@
 import { Device } from '@capacitor/device';
-import type { RouteResponse, Routine, UpcomingRoutinesResponse, Neighborhood, Preferences, LayersResponse } from "./types";
+import type { RouteResponse, Routine, UpcomingRoutinesResponse, Neighborhood, Preferences, LayersResponse, Place } from "./types";
 
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true';
 const BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
@@ -41,6 +41,9 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     else if (mockFile.startsWith('/customize')) mockFile = '/customize';
 
     const mockUrl = `/mocks${mockFile}.json`;
+    if (init?.method === 'POST' && path.startsWith('/places')) {
+      return { _id: crypto.randomUUID(), ...JSON.parse(init.body as string) } as T;
+    }
     const res = await fetch(mockUrl);
     if (!res.ok) throw new Error(`${res.status} ${res.statusText} fetching mock ${mockUrl}`);
     return res.json() as Promise<T>;
@@ -68,7 +71,8 @@ export const api = {
   routines: () => request<Routine[]>(`/routines`),
   saveRoutine: (r: Routine) => request<Routine>("/routines", { method: "POST", body: JSON.stringify(r) }),
   upcomingRoutines: (days: number = 7) => request<UpcomingRoutinesResponse>(`/routines/upcoming?days=${days}`),
-  places: () => request<unknown[]>("/places"),
+  places: () => request<Place[]>("/places"),
+  savePlace: (p: Partial<Place>) => request<Place>("/places", { method: "POST", body: JSON.stringify(p) }),
   neighborhoods: () => request<Neighborhood[]>("/neighborhoods"),
   getPreferences: () => request<Preferences>("/me/preferences"),
   savePreferences: (p: Preferences) => request<Preferences>("/me/preferences", { method: "PUT", body: JSON.stringify(p) }),
