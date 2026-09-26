@@ -48,3 +48,6 @@ Thumbs.db
 
 # ---- Local Claude/agent state ----
 .claude/settings.local.json
+
+# Agent scratch space inside a worktree (scripts/agent-task.sh)
+.scratch/

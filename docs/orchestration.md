@@ -1,7 +1,7 @@
 # Agent orchestration: Tomas's queue (Antigravity + OpenCode)
 
 How Tomas runs his queue from [`TASKS.md`](../TASKS.md) with two local coding agents:
-- **Google Antigravity** (1-year student plan) for the app screens.
+- **Google Antigravity** (1-year student plan) for the app screens, through its CLI `agy`.
 - **OpenCode** on the Go plan (DeepSeek V4.1 Flash) for the backend tasks.
 
 **OpenAI Codex** (free plan) is the spare. Jean runs his own queue with his own tools under the same rules. The agents read [`AGENTS.md`](../AGENTS.md) on their own: OpenCode and Codex natively, and Antigravity as a workspace rule. So "Working on a task" applies without pasting it.
@@ -27,7 +27,12 @@ How Tomas runs his queue from [`TASKS.md`](../TASKS.md) with two local coding ag
 3. Pick the model: run `opencode` in the repo, type `/models` and choose **DeepSeek V4.1 Flash** (`opencode-go/deepseek-v4.1-flash`). The prompts below also pass it explicitly.
 4. Usage lives on the Go page: 5-hour, weekly and monthly bars. Leave **Extra Usage** off so it never charges more than the $10.
 
-**Antigravity** (a desktop app):
+**Antigravity CLI** (`agy`, what the orchestrator launches):
+1. Install it from [google-antigravity/antigravity-cli](https://github.com/google-antigravity/antigravity-cli) (see its README).
+2. Run `agy` once and sign in with the Google account that has the student plan. On a remote machine it prints a URL and a one-time code.
+3. Run `agy --help` and note the flag that auto-approves commands; set it in `AGY_FLAGS` so headless runs don't stop to ask.
+
+**Antigravity desktop app** (optional, to watch or steer an agent by hand):
 1. Download it from [antigravity.google](https://antigravity.google) (macOS, Windows, Linux) and sign in with the Google account that has the student plan.
 2. Keep the default review policy ("Agent Decides"), and still review every diff before merging.
 3. Install the Antigravity Chrome extension when it asks. That's how the agent opens the app, clicks through it and attaches screenshots.
@@ -117,7 +122,7 @@ python -m venv ~/.venvs/mapay && source ~/.venvs/mapay/bin/activate
 pip install -r backend/requirements.txt pytest ruff
 ```
 
-Run `opencode` in that folder, or open it as the Antigravity workspace. For OpenCode tasks, `scripts/opencode-task.sh <N>` does all of this for you. When the PR has merged: `git worktree remove ../mapay-a1`.
+`scripts/agent-task.sh <N> [opencode|agy]` does all of this for you (it also copies `.env` and `frontend/.env` in, and runs `npm install` for app tasks). By hand: run `opencode` or `agy` in that folder, or open it in the Antigravity app. When the PR has merged: `git worktree remove ../mapay-a1`.
 
 ---
 
@@ -193,8 +198,8 @@ Everything the orchestrator needs is in the repo: this file, [`TASKS.md`](../TAS
 
 **"What's next"**
 1. Take the tasks from the Waves table whose "Blocked by" issues are closed and that have no open PR. Respect "Files several tasks edit".
-2. Give Tomas each task's worktree commands, plus the OpenCode command or the Antigravity prompt.
-3. A local session can also create the worktrees and run the OpenCode commands itself when Tomas asks. Antigravity is a desktop app, so Tomas pastes those prompts himself.
+2. A local session launches them itself: `scripts/agent-task.sh <N> opencode` for backend tasks, `scripts/agent-task.sh <N> agy` for the app screens.
+3. A cloud session can't reach Tomas's computer, so it gives him those commands instead.
 
 **"Review PR #N"**
 - Run `gh pr view <N>`, `gh pr diff <N>` and `gh pr checks <N>`, and apply "Reviewing and merging" above.
@@ -209,19 +214,19 @@ Tomas can hand the backend queue to a local Claude Code session: "you're the orc
    - From "Tomas's queue by tool", take the OpenCode tasks whose "Blocked by" issues are closed and that have no open PR.
    - Respect "Files several tasks edit".
    - Run at most 3 at once. Run the very first one alone until the shared venv exists.
-   - Current order:
-     - #4, #5 and #8 (Jean waits on #4 and #5);
-     - #7;
-     - #10, once Tomas confirms the `X-Device-Id` header (T0);
-     - #15, after #4 and #7 have merged.
-3. **Launch** each one in the background from `mapay`: `scripts/opencode-task.sh <N> > ../opencode-<N>.log 2>&1`.
+   - Current order (#4, #5, #7, #8 and #10 are merged):
+     - OpenCode: #15 (running);
+     - Antigravity (`agy`): #12 app shell now, then #20 and #21 once it merges, then #27 and #22 (see Waves);
+     - #24 (P1) once Jean's #13 has merged.
+3. **Launch** each one in the background from `mapay`: `scripts/agent-task.sh <N> <tool> > ../agent-<N>.log 2>&1`, with the tool from "Tomas's queue by tool" (`agy` for Antigravity rows). Up to 3 OpenCode and 2 Antigravity runs at once. Check the log for `Error:` too: `opencode run` exits 0 when the model refuses.
 4. **When a run ends,** find its PR with `gh pr list --head <branch>`. If there's none, read the log (look for `Error:`, since `opencode run` exits 0 anyway) and the worktree's `git status`, then send a follow-up from the worktree: `opencode run --session <id> --model opencode-go/deepseek-v4.1-flash --variant high "<what's missing>"`.
    - Take the id from `opencode session list`, matched by title. All worktrees share one session list, so `--continue` can resume another task's session.
-   - Headless runs automatically refuse file access outside the worktree, and the agent stops there (usually it saved downloads to `/tmp`). Tell it to use `.scratch/` in the worktree instead; that folder is git-ignored through `.git/info/exclude`.
+   - Headless runs automatically refuse file access outside the worktree, and the agent stops there (usually it saved downloads to `/tmp`). Tell it to use `.scratch/` in the worktree instead; that folder is git-ignored (`.gitignore`).
 5. **Review each PR** with "Reviewing and merging" above:
    - `gh pr checks <N> --watch`, then `gh pr diff <N>`.
    - Also check that no keys were committed and that tests don't touch the network.
    - If something is wrong, send OpenCode the specific fixes (at most two rounds).
+   - App screens: run `npm run dev` in the worktree's `frontend/`, take screenshots at iPhone size (390×844, light and dark) and compare them with docs/design.md before merging.
 6. **Merge:**
    - `gh pr merge <N> --squash --delete-branch`, `git worktree remove ../mapay-<branch>`, `git pull`.
    - If Jean waits on it, comment on his issue: "Unblocked: #N is merged". That's #4 → #17, #5 → #16, #10 → #18.
@@ -230,7 +235,7 @@ Tomas can hand the backend queue to a local Claude Code session: "you're the orc
 
 **Stop and ask Tomas when:**
 - the next task needs a decision, a key or an account (T0, [#2](https://github.com/TomasPessagno/mapay/issues/2));
-- only Antigravity, Mac or together tasks are left (ask whether to wait for him or give the app screens to OpenCode too);
+- only Mac, iPhone or together tasks are left;
 - a PR still fails after two follow-ups, or the fix would leave the issue's Scope or change a mock shape (that affects Jean);
 - OpenCode reports that Go's usage limit is reached;
 - anything would touch Jean's queue.
@@ -257,6 +262,7 @@ Tomas can hand the backend queue to a local Claude Code session: "you're the orc
 - **`X-Device-Id` confirmed (Sept 26):** the header name is settled, so #10 is unblocked. Its value is the iPhone's `identifierForVendor`, not a computer name.
 - **OpenCode needs the Global region (Sept 26):** DeepSeek V4.1 Flash refuses requests unless the OpenCode workspace's Privacy setting is Global. The first runs of #4, #5 and #8 failed on that before writing any code. `opencode run` still exits 0 when that happens, so check the log for `Error:`. `scripts/opencode-task.sh` now passes `--variant high` (override with `OPENCODE_VARIANT=max`).
 - **Queue progress (Sept 26, evening):** merged #5 (PR #49), #8 (#48), #10 (#52), #7 (#51) and #4 (#50); Jean was told on #16, #18 and #17. #15 is running on `--variant max`. #8's coverage check is on the issue: 67 no-sidewalk ways within 2 km of MMC, 74 of BBC. #5 computes a title/place per hazard, but `register_hazard` doesn't store properties yet; `/layers` (#13) will need them.
+- **Antigravity through its CLI (Sept 26):** the orchestrator launches app-screen tasks with `scripts/agent-task.sh <N> agy`, so Tomas doesn't prompt the desktop app. `scripts/opencode-task.sh` is now a wrapper for `agent-task.sh <N> opencode`.
 - **Laya instead of Jev (decided Sept 26).** We have no access to TypeSafe's Jev, so we use [Laya](https://github.com/NandhaKishorM/laya): open source (Apache-2.0), the same kind of model, and it speaks Jev's API. You send it a text and typed questions (yes/no, one option from a list, a score on a scale), and it returns an answer with a probability for each. We host it ourselves, so there's no key to get. It isn't a coding agent, so it doesn't change the tool plan above.
   - **Jean's A24 ([#46](https://github.com/TomasPessagno/mapay/issues/46)):** runs it for free on his laptop behind a tunnel (multilingual checkpoint, about 0.2 s per question). Cloud Run would need billing and cost cents, and Hugging Face's Docker Spaces now need a paid plan. When the laptop is off, #15 runs Gemini-only.
   - **Jean's A25 ([#47](https://github.com/TomasPessagno/mapay/issues/47), P1):** fine-tunes it on about 1,000 Miami news items. Claude labels them (Claude Code in the session, not the paid API), and training runs on Kaggle's free GPUs.
