@@ -289,7 +289,7 @@ The detailed data flow and UI flow live in [`docs/architecture.md`](docs/archite
 
 ### ShellHacks 2026 (this weekend)
 
-**Task board: [`TASKS.md`](TASKS.md)** and the [GitHub issues](https://github.com/TomasPessagno/mapay/issues/45): the two-person split into task-sized branches, with dependencies, checkpoints and how to test each one. Every task is an issue a person or a coding agent can pick up. The hour-by-hour plan is in [`AGENTS.md`](AGENTS.md#roadmap-20-24-hrs).
+**Task board: [`TASKS.md`](TASKS.md)** and the [GitHub issues](https://github.com/TomasPessagno/mapay/issues/45): the two-person split into task-sized branches, with dependencies, checkpoints and how to test each one. Every task is an issue a person or a coding agent can pick up; [how the issues work](TASKS.md#working-with-the-issues) (what's in one, labels, running agents) is in `TASKS.md`. The hour-by-hour plan is in [`AGENTS.md`](AGENTS.md#roadmap-20-24-hrs).
 
 **Must work in the demo (P0)**
 - [ ] Runs on the iPhone (AltStore) and in the iOS Simulator, with the Apple-like design

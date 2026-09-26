@@ -2,9 +2,33 @@
 
 How two people build Mapay in parallel. Grab the next task in your column, make a branch with the task's name, open a PR into `main` when it works. This file is the menu; **status lives in branches and PRs** (open PR = in progress, merged = done), so nobody has to edit this file to claim a task.
 
-**Every task is a GitHub issue** ([task board #45](https://github.com/TomasPessagno/mapay/issues/45)), written so a person or a coding agent can pick it up alone. Labels: `agent-ready` = an agent can finish it end to end in a Linux container · `needs-mac` = Swift, Simulator or iPhone work · `human` = decisions, accounts, secrets or device checks · `portable` = either person. Agents follow [AGENTS.md › Working on a task](AGENTS.md#working-on-a-task-people-and-coding-agents); run one agent per issue, starting with the issues that have no open blockers.
+**Every task is a GitHub issue** ([task board #45](https://github.com/TomasPessagno/mapay/issues/45)); see [Working with the issues](#working-with-the-issues) below.
 
 Background: [`README.md`](README.md) (product), [`docs/design.md`](docs/design.md) (design), [`AGENTS.md`](AGENTS.md) (how it's built), [`docs/hazard-beliefs.md`](docs/hazard-beliefs.md) (hazard confidence), [`frontend/public/mocks/`](frontend/public/mocks/) (API contract).
+
+---
+
+## Working with the issues
+
+Every task in this file is a GitHub issue, written so either of you or a coding agent can pick it up with no extra context. [#45](https://github.com/TomasPessagno/mapay/issues/45) is the overview: every task, what's blocked, and what can start now.
+
+**What an issue contains:** track, priority and branch name; **Blocked by** (links to other issues); the goal; links to the docs and mock responses it relies on; **Scope** (the files it may touch); a **Done when** checklist; and the checks to run before the PR.
+
+| Label | Meaning |
+| --- | --- |
+| `agent-ready` | A coding agent can finish it end to end in a Linux container: code and tests |
+| `needs-mac` | Swift, iOS Simulator or iPhone work. An agent can draft it; one of you builds and checks it on the Mac |
+| `human` | Decisions, accounts, secrets, device checks and the integration checkpoints |
+| `portable` | Either person can take it |
+| `backend` / `ios-app` / `together` | Track |
+| `P0` / `P1` | Must have / should have |
+
+**Running agents (or yourselves) on them**
+1. Pick an open issue whose **Blocked by** issues are all closed. At the start that's [#3](https://github.com/TomasPessagno/mapay/issues/3)–[#9](https://github.com/TomasPessagno/mapay/issues/9), then [#10](https://github.com/TomasPessagno/mapay/issues/10)–[#12](https://github.com/TomasPessagno/mapay/issues/12) right after the kickoff [#2](https://github.com/TomasPessagno/mapay/issues/2).
+2. Give the agent the issue link. It reads [`AGENTS.md`](AGENTS.md#working-on-a-task-people-and-coding-agents) (Codex, Jules and Copilot do this on their own; Claude Code through `CLAUDE.md`), works on the branch named in the issue, and opens a PR that says `Closes #<issue>`.
+3. One agent per issue, so two agents never share a branch.
+4. Review the PR and merge when CI is green. The issue closes, and whatever it was blocking can start.
+5. `needs-mac` and `human` issues need one of you: the Mac, the iPhone or an account.
 
 ---
 
