@@ -162,6 +162,44 @@ Then push and open the PR yourself: `git push -u origin HEAD && gh pr create --b
 
 ---
 
+## For the orchestrator (any Claude Code session, cloud or local)
+
+Everything the orchestrator needs is in the repo: this file, [`TASKS.md`](../TASKS.md), [`AGENTS.md`](../AGENTS.md) and the issues. The decisions log is "Status and open items" below. A new session starts by reading those three files.
+
+**People**
+- **Tomas** is `TomasPessagno`, the repo owner.
+  - He has the Mac and the iPhone (AltStore).
+  - He runs Antigravity and OpenCode.
+- **Jean** is `Jeanm2005`.
+  - He owns the backend and the cloud, and runs Laya on his laptop.
+  - He uses his own Claude agents.
+
+**Check the state**
+- `gh issue list -R TomasPessagno/mapay --state open --limit 100`
+- `gh pr list -R TomasPessagno/mapay`
+- `gh pr checks <N>` for one PR.
+
+**"What's next"**
+1. Take the tasks from the Waves table whose "Blocked by" issues are closed and that have no open PR. Respect "Files several tasks edit".
+2. Give Tomas each task's worktree commands, plus the OpenCode command or the Antigravity prompt.
+3. A local session can also create the worktrees and run the OpenCode commands itself when Tomas asks. Antigravity is a desktop app, so Tomas pastes those prompts himself.
+
+**"Review PR #N"**
+- Run `gh pr view <N>`, `gh pr diff <N>` and `gh pr checks <N>`, and apply "Reviewing and merging" above.
+- Reply with `gh pr review <N> --comment` (or `--approve` / `--request-changes`).
+
+**House rules**
+- Plan and doc changes (README, AGENTS.md, TASKS.md, `docs/`) go straight to `main` as small commits. Code goes through the issue's branch and a PR.
+- When a task changes hands:
+  - reassign the issue;
+  - update the queues in TASKS.md, the task board [#45](https://github.com/TomasPessagno/mapay/issues/45) and this file.
+- Keys and tokens never go in git or an issue (the repo is public).
+- Everything must be free unless Tomas says otherwise. OpenCode Go is the one paid exception.
+- Never analyse Google Maps imagery or Street View (see AGENTS.md).
+- Record every decision under "Status and open items".
+
+---
+
 ## Status and open items (as of Sept 26)
 
 - **T0 ([#2](https://github.com/TomasPessagno/mapay/issues/2)) isn't done yet:** routing engine decision (Routes API vs Jean's OSMnx engine), keys, the shared GCP project, bundle ids.
