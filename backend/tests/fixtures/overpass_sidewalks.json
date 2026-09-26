@@ -1,0 +1,47 @@
+{
+  "version": 0.6,
+  "generator": "saved Overpass response for offline tests",
+  "elements": [
+    {
+      "type": "way",
+      "id": 1001,
+      "tags": {"highway": "residential", "name": "SW 8th St", "sidewalk": "no"},
+      "geometry": [
+        {"lat": 25.757, "lon": -80.3745},
+        {"lat": 25.7578, "lon": -80.373}
+      ]
+    },
+    {
+      "type": "way",
+      "id": 1002,
+      "tags": {"highway": "residential", "name": "NE 151st St", "sidewalk:both": "no", "sidewalk": "separate"},
+      "geometry": [
+        {"lat": 25.9105, "lon": -80.1392},
+        {"lat": 25.9108, "lon": -80.1381}
+      ]
+    },
+    {
+      "type": "way",
+      "id": 1003,
+      "tags": {"highway": "unclassified", "sidewalk": "none"},
+      "geometry": [
+        {"lat": 25.7617, "lon": -80.1918},
+        {"lat": 25.7625, "lon": -80.1905}
+      ]
+    },
+    {
+      "type": "node",
+      "id": 2001,
+      "lat": 25.757,
+      "lon": -80.3745
+    },
+    {
+      "type": "way",
+      "id": 1005,
+      "tags": {"highway": "service", "sidewalk": "no"},
+      "geometry": [
+        {"lat": 25.76, "lon": -80.37}
+      ]
+    }
+  ]
+}
