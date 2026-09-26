@@ -1,6 +1,6 @@
 # Mapay task board
 
-How two people build Mapay in parallel. Grab the next task in your column, make a branch with the task's name, open a PR into `main` when it works. This file is the menu; **status lives in branches and PRs** (open PR = in progress, merged = done), so nobody has to edit this file to claim a task.
+How two people build Mapay in parallel. Claim a task by assigning yourself on its issue, make a branch with the task's name, open a PR into `main` when it works. This file is the menu; **status lives in the issues and PRs** (assignee = taken, open PR = in progress, closed = done), so nobody has to edit this file to claim a task.
 
 **Every task is a GitHub issue** ([task board #45](https://github.com/TomasPessagno/mapay/issues/45)); see [Working with the issues](#working-with-the-issues) below.
 
@@ -34,11 +34,15 @@ Every task in this file is a GitHub issue, written so either of you or a coding 
 
 ## Who does what
 
-| | Person A: backend + data | Person B: iPhone app |
+The tracks are areas of the code, not fixed people. **Tomas** leads the iPhone app (Mac and iPhone access) and also takes backend tasks; **Jean** leads the backend + data. Backend issues are split between you as you go.
+
+| | Track A: backend + data | Track B: iPhone app |
 | --- | --- | --- |
-| Suggested | Jean (built the backend, beliefs and CI so far) | Tomas (has the Mac and the iPhone) |
-| Owns | `backend/**` | `frontend/**`, including `frontend/ios/` |
+| Who | Jean (lead) + Tomas | Tomas |
+| Code | `backend/**` | `frontend/**`, including `frontend/ios/` |
 | Tests with | `pytest`, `uvicorn` + `/docs`, curl | Browser → iOS Simulator → iPhone (AltStore) |
+
+**Claiming work:** assign yourself on an issue before you start it, or before you hand it to an agent, so you never both work on the same one. Good backend picks for Tomas alongside the app: the `portable` issues ([#4](https://github.com/TomasPessagno/mapay/issues/4), [#7](https://github.com/TomasPessagno/mapay/issues/7), [#8](https://github.com/TomasPessagno/mapay/issues/8)), or any `agent-ready` backend issue handed to an agent.
 
 **Shared files** (small separate PRs, tell the other person): `AGENTS.md`, `README.md`, `TASKS.md`, `docs/**`, `.github/**`, `.env.example`, and the contract: `frontend/public/mocks/**`, `frontend/src/lib/types.ts`, `backend/app/db/models.py`.
 
@@ -48,13 +52,35 @@ The two sides only meet through the API contract, so after the kickoff almost ev
 
 ---
 
-## T0 · Kickoff together (~30 min, first) · [#2](https://github.com/TomasPessagno/mapay/issues/2)
+## T0 · Kickoff (~30 min, first) · [#2](https://github.com/TomasPessagno/mapay/issues/2)
 
-- [ ] **Routing engine:** confirm Google Routes API (as in AGENTS.md). The current OSMnx engine stays until A4 replaces it. If you pick OSMnx instead, update AGENTS.md now.
-- [ ] **Contract:** walk through `frontend/public/mocks/*.json` together and fix any shape you disagree with. After this, shapes change only through PRs that update mock + `types.ts` + `models.py` together.
-- [ ] **Keys:** fill `.env` (root) and `frontend/.env`: Gemini API key from Google AI Studio (`GEMINI_API_KEY`), Maps browser key + server key + signing secret, light/dark Map IDs, HERE, Atlas URI.
-- [ ] **Deploy secrets:** in GitHub → Settings → Secrets and variables → Actions, add `GCP_SA_KEY` and the other secrets + variables listed at the top of `.github/workflows/ci-cd.yml`. Until then every backend merge shows a red `deploy-backend` job (it fails at the Google Cloud login step).
-- [ ] **Identity + bundle ids:** header `X-Device-Id`; bundle ids `com.<you>.mapay` and `com.<you>.mapay.widget` (fixed for the whole event).
+**Together (10 min)**
+- [ ] **Routing engine:** confirm Google Routes API (as in AGENTS.md) over the current OSMnx engine. Jean built the OSMnx one, so decide it together; if you keep OSMnx, update AGENTS.md now.
+- [ ] **Contract:** skim `frontend/public/mocks/*.json` (mainly `layers`, `route`, `routines-upcoming`) and fix any shape you disagree with. After this, shapes change only through PRs that update mock + `types.ts` + `models.py` together.
+- [ ] **One GCP project** for everything (Cloud Run, Maps Platform, Earth Engine, the AI Studio key) with billing on; whoever creates it adds the other as Owner.
+- [ ] **Identity:** header `X-Device-Id` for the anonymous device id.
+
+**Jean: backend + cloud**
+- [ ] **GCP:** enable Cloud Run, Cloud Build, Artifact Registry and Cloud Scheduler; create the deploy service account with the roles listed at the top of `.github/workflows/ci-cd.yml`, plus a JSON key; note the project id, region and Cloud Run service name. Give the key to Tomas privately (never in git or in an issue).
+- [ ] **MongoDB Atlas:** connection string + database name.
+- [ ] **HERE** API key.
+- [ ] **Satellite accounts:** Earth Engine noncommercial registration on the project; Copernicus GFM account.
+- [ ] **Root `.env`** with the backend values; share it with Tomas privately.
+
+**Tomas: repo owner + app**
+- [ ] **GitHub secrets:** Settings → Secrets and variables → Actions (on a personal repo only the owner can add them). Add the secrets and variables listed at the top of `ci-cd.yml` with Jean's values: `GCP_SA_KEY`, the Mongo values, the API keys, `GCP_PROJECT_ID`, `GCP_REGION`, `CLOUD_RUN_SERVICE_NAME`. The Ticketmaster, EIA and VAPID ones can stay empty.
+- [ ] **Google Maps Platform** in the shared project:
+  - enable Maps JavaScript, Routes, Places, Geocoding and Static Maps;
+  - create a browser key (Maps JS + Places, restricted to `capacitor://localhost`, `http://localhost:5173` and later the Vercel domain);
+  - create a server key (Routes, Places, Geocoding, Static Maps) and the Static Maps URL-signing secret;
+  - create light and dark Map IDs with muted styling.
+- [ ] **Gemini** API key in Google AI Studio (on the shared project) → `GEMINI_API_KEY`, shared with Jean.
+- [ ] **Apple:** bundle ids `com.<you>.mapay` and `com.<you>.mapay.widget` (fixed for the whole event); check Xcode and AltServer on the Mac and AltStore on the iPhone.
+- [ ] **`frontend/.env`:** Maps browser key, both Map IDs, `VITE_API_BASE_URL`, and `VITE_USE_MOCKS=true` for now.
+
+**Then start** (assign yourselves first):
+- **Jean:** [#11](https://github.com/TomasPessagno/mapay/issues/11) Routes API (critical path), and hand [#3](https://github.com/TomasPessagno/mapay/issues/3), [#5](https://github.com/TomasPessagno/mapay/issues/5), [#6](https://github.com/TomasPessagno/mapay/issues/6), [#9](https://github.com/TomasPessagno/mapay/issues/9) to agents.
+- **Tomas:** [#12](https://github.com/TomasPessagno/mapay/issues/12) app shell → [#19](https://github.com/TomasPessagno/mapay/issues/19) AltStore proof, and hand [#4](https://github.com/TomasPessagno/mapay/issues/4), [#7](https://github.com/TomasPessagno/mapay/issues/7), [#8](https://github.com/TomasPessagno/mapay/issues/8) to agents.
 
 ---
 
@@ -184,6 +210,7 @@ Paths are under `frontend/` unless noted. Build against the mocks (`VITE_USE_MOC
 
 ## Git workflow
 
+- **Claim first:** assign yourself on the issue before you start it or hand it to an agent.
 - **One branch per task**, created when you start it (not up front): `git switch main && git pull && git switch -c a4-routes-api`.
 - **Small PRs into `main`.** CI must be green; then squash-merge it yourself and tell the other person. Ask for a look only when you touch the contract or a shared file.
 - **Stay current:** merge `origin/main` into your branch before opening the PR (or rebase your own branch).
