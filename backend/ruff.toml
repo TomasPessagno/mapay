@@ -1,0 +1,3 @@
+# Makes import sorting identical whether ruff runs from the repo root or from backend/ (as CI does).
+[lint.isort]
+known-first-party = ["app", "scripts"]

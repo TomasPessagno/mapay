@@ -17,6 +17,7 @@ class RouteRequest(BaseModel):
     destination: LatLng
     depart_at: datetime | None = None
     avoid_tolls: bool = False
+    routine_id: str | None = None
     mode: Literal["drive", "walk"] = "drive"
 
 
@@ -38,6 +39,8 @@ class IntelItem(BaseModel):
     source_url: str
     created_at: datetime
     expires_at: datetime
+    log_odds: float = 0.0
+    last_updated: datetime | None = None
 
 
 # ---- hazard_reports ----
@@ -45,6 +48,8 @@ class HazardReportIn(BaseModel):
     type: Literal["pothole", "flood", "closure", "other"]
     lat: float
     lng: float
+    hazard_id: str | None = None
+    cleared: bool = False
 
 
 class HazardReport(BaseModel):

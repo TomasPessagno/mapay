@@ -23,6 +23,7 @@ async def init_indexes() -> None:
     # intel_cache — per-doc expiry: each doc sets its own expires_at (datetime) on insert
     await db.intel_cache.create_index("expires_at", expireAfterSeconds=0)
     await db.intel_cache.create_index("type")
+    await db.intel_cache.create_index("hazard_id")
     await db.intel_cache.create_index([("location", "2dsphere")])
 
     # hazard_reports — persistent, user-submitted, geo-queryable
