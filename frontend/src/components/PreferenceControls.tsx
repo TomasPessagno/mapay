@@ -3,7 +3,7 @@ import {
   IonItem, IonLabel, IonSelect, IonSelectOption,
   IonToggle, IonIcon, IonChip, IonList,
   IonModal, IonSearchbar, IonContent, IonHeader,
-  IonToolbar
+  IonToolbar, IonButtons, IonButton
 } from '@ionic/react';
 import { closeCircle, addOutline } from 'ionicons/icons';
 import { HAZARD_TOKENS } from '../map/legend';
@@ -25,12 +25,20 @@ const SECTION_HEADER_STYLE: React.CSSProperties = {
   color: 'var(--ion-color-medium)'
 };
 
+const getSourceHint = (source: string) => {
+  if (source === 'city_of_miami') return 'City of Miami neighbourhood';
+  if (source === 'municipality') return 'Municipality';
+  if (source === 'census_place') return 'Census place';
+  return source;
+};
+
 export default function PreferenceControls({ preferences, onChange, showNavApp = true }: Props) {
   const [initialNeighborhoods, setInitialNeighborhoods] = useState<Neighborhood[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Neighborhood[]>([]);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const modalRef = useRef<HTMLIonModalElement>(null);
 
   useEffect(() => {
     // Initial fetch to resolve names of already selected IDs
@@ -60,7 +68,7 @@ export default function PreferenceControls({ preferences, onChange, showNavApp =
     if (!current.includes(n.id)) {
       handleChange('avoid_neighborhoods', [...current, n.id]);
     }
-    setShowSearchModal(false);
+    modalRef.current?.dismiss();
     setSearchQuery('');
     setSearchResults([]);
   };
@@ -134,6 +142,7 @@ export default function PreferenceControls({ preferences, onChange, showNavApp =
       </IonList>
 
       <IonModal
+        ref={modalRef}
         isOpen={showSearchModal}
         onDidDismiss={() => setShowSearchModal(false)}
         initialBreakpoint={0.5}
@@ -147,6 +156,9 @@ export default function PreferenceControls({ preferences, onChange, showNavApp =
               onIonInput={e => onSearchChange(e.detail.value!)}
               debounce={0} // We handle debounce manually to avoid delay in typing feel
             />
+            <IonButtons slot="end">
+              <IonButton onClick={() => modalRef.current?.dismiss()}>Cancel</IonButton>
+            </IonButtons>
           </IonToolbar>
         </IonHeader>
         <IonContent>
@@ -155,7 +167,7 @@ export default function PreferenceControls({ preferences, onChange, showNavApp =
               <IonItem key={n.id} button onClick={() => handleAddNeighborhood(n)}>
                 <IonLabel>
                   {n.name}
-                  {n.source && <p style={{ fontSize: '12px', color: 'var(--ion-color-medium)' }}>Source: {n.source}</p>}
+                  {n.source && <p style={{ fontSize: '12px', color: 'var(--ion-color-medium)' }}>{getSourceHint(n.source)}</p>}
                 </IonLabel>
               </IonItem>
             ))}
