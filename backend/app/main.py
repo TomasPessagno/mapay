@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.db.mongo import close_client, init_indexes
-from app.routers import alerts, layers, reports, routes, routines
+from app.routers import alerts, layers, neighborhoods, reports, routes, routines
 
 
 @asynccontextmanager
@@ -32,6 +32,7 @@ app.include_router(layers.router)
 app.include_router(alerts.router)
 app.include_router(reports.router)
 app.include_router(routines.router)
+app.include_router(neighborhoods.router)
 
 
 @app.get("/health")
