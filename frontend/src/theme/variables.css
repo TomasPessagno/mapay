@@ -1,0 +1,74 @@
+/* Ionic Variables and Theme Tokens */
+:root {
+  /* Dynamic font scaling */
+  --ion-dynamic-font: var(--ion-default-dynamic-font);
+  --ion-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+
+  /* System blue */
+  --ion-color-primary: #007AFF;
+  --ion-color-primary-rgb: 0,122,255;
+
+  /* Typography */
+  --font-rounded: ui-rounded, 'SF Pro Rounded', -apple-system, sans-serif;
+  
+  --text-large-title-size: 34pt;
+  --text-large-title-line: 41pt;
+  --text-large-title-weight: bold;
+
+  --text-title2-size: 22pt;
+  --text-title2-line: 28pt;
+  --text-title2-weight: bold;
+
+  --text-title3-size: 20pt;
+  --text-title3-line: 25pt;
+  --text-title3-weight: 600;
+
+  --text-headline-size: 17pt;
+  --text-headline-line: 22pt;
+  --text-headline-weight: 600;
+
+  --text-body-size: 17pt;
+  --text-body-line: 22pt;
+  --text-body-weight: normal;
+
+  --text-callout-size: 16pt;
+  --text-callout-line: 21pt;
+  --text-callout-weight: normal;
+
+  --text-subheadline-size: 15pt;
+  --text-subheadline-line: 20pt;
+  --text-subheadline-weight: normal;
+
+  --text-footnote-size: 13pt;
+  --text-footnote-line: 18pt;
+  --text-footnote-weight: normal;
+
+  --text-caption1-size: 12pt;
+  --text-caption1-line: 16pt;
+  --text-caption1-weight: normal;
+
+  --text-caption2-size: 11pt;
+  --text-caption2-line: 13pt;
+  --text-caption2-weight: normal;
+}
+
+/* Dark mode overrides for system blue */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ion-color-primary: #0A84FF;
+    --ion-color-primary-rgb: 10,132,255;
+  }
+}
+
+/* Glass Material Utility */
+.glass {
+  background: rgb(255 255 255 / 0.72);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  backdrop-filter: saturate(180%) blur(20px);
+}
+
+@media (prefers-color-scheme: dark) {
+  .glass {
+    background: rgb(28 28 30 / 0.72);
+  }
+}
