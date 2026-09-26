@@ -4,7 +4,7 @@ How two people build Mapay in parallel. The work is split evenly into **Tomas's 
 
 **Every task is a GitHub issue** ([task board #45](https://github.com/TomasPessagno/mapay/issues/45)); see [Working with the issues](#working-with-the-issues) below.
 
-Background: [`docs/orchestration.md`](docs/orchestration.md) (running the queue with Antigravity + Codex), [`README.md`](README.md) (product), [`docs/design.md`](docs/design.md) (design), [`AGENTS.md`](AGENTS.md) (how it's built), [`docs/hazard-beliefs.md`](docs/hazard-beliefs.md) (hazard confidence), [`frontend/public/mocks/`](frontend/public/mocks/) (API contract).
+Background: [`docs/orchestration.md`](docs/orchestration.md) (running Tomas's queue with Antigravity + OpenCode), [`README.md`](README.md) (product), [`docs/design.md`](docs/design.md) (design), [`AGENTS.md`](AGENTS.md) (how it's built), [`docs/hazard-beliefs.md`](docs/hazard-beliefs.md) (hazard confidence), [`frontend/public/mocks/`](frontend/public/mocks/) (API contract).
 
 ---
 
@@ -25,7 +25,7 @@ Every task in this file is a GitHub issue, written so either of you or a coding 
 
 **Running agents (or yourselves) on them**
 1. Take the next open issue in your queue (it's assigned to you) whose **Blocked by** issues are all closed and that has no open PR yet.
-2. Give the agent the issue link. It reads [`AGENTS.md`](AGENTS.md#working-on-a-task-people-and-coding-agents) (Codex, Jules and Copilot do this on their own; Claude Code through `CLAUDE.md`), works on the branch named in the issue, and opens a PR that says `Closes #<issue>`.
+2. Give the agent the issue link. It reads [`AGENTS.md`](AGENTS.md#working-on-a-task-people-and-coding-agents) (OpenCode, Codex, Jules and Copilot do this on their own; Claude Code through `CLAUDE.md`), works on the branch named in the issue, and opens a PR that says `Closes #<issue>`.
 3. One agent per issue, so two agents never share a branch.
 4. Review the PR and merge when CI is green. The issue closes, and whatever it was blocking can start.
 5. `needs-mac` and `human` issues need one of you: the Mac, the iPhone or an account.
@@ -96,7 +96,7 @@ To **swap a task**, reassign its issue on GitHub first, then update the queues h
 
 ### Prompting your agent
 
-**Tomas runs his queue with Antigravity + Codex:** which tool gets each task, the waves that can run in parallel, one git worktree per task, and ready prompts are in [`docs/orchestration.md`](docs/orchestration.md).
+**Tomas runs his queue with Antigravity + OpenCode:** which tool gets each task, the waves that can run in parallel, one git worktree per task, and ready prompts are in [`docs/orchestration.md`](docs/orchestration.md).
 
 Next task from your queue (swap the name and GitHub login for Tomas):
 

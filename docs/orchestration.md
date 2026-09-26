@@ -1,8 +1,41 @@
-# Agent orchestration: Tomas's queue (Antigravity + Codex)
+# Agent orchestration: Tomas's queue (Antigravity + OpenCode)
 
-How Tomas runs his queue from [`TASKS.md`](../TASKS.md) with two local coding agents: **Google Antigravity** (1-year student plan) and **OpenAI Codex** (free plan). Jean runs his own queue with his own tools under the same rules. Both agents read [`AGENTS.md`](../AGENTS.md) automatically (Antigravity treats it as a workspace rule; Codex reads it natively), so "Working on a task" applies without pasting it.
+How Tomas runs his queue from [`TASKS.md`](../TASKS.md) with two local coding agents:
+- **Google Antigravity** (1-year student plan) for the app screens.
+- **OpenCode** on the Go plan (DeepSeek V4.1 Flash) for the backend tasks.
+
+**OpenAI Codex** (free plan) is the spare. Jean runs his own queue with his own tools under the same rules. The agents read [`AGENTS.md`](../AGENTS.md) on their own: OpenCode and Codex natively, and Antigravity as a workspace rule. So "Working on a task" applies without pasting it.
 
 **The orchestrator (the Claude session, or whoever is coordinating)** decides the next wave from the GitHub state (open/closed issues, open PRs), hands out the prompts below, and reviews PRs before they merge.
+
+---
+
+## Set up once
+
+**GitHub CLI** (the prompts and the agents use it to read issues and open PRs):
+- Install `gh`: `brew install gh` on a Mac, `winget install GitHub.cli` on Windows.
+- Run `gh auth login`.
+
+**OpenCode** (a terminal app):
+1. Install it:
+   - macOS / Linux: `curl -fsSL https://opencode.ai/install | bash`.
+   - Windows: `npm i -g opencode-ai`, or the same curl command inside WSL.
+2. Sign in to the Go plan:
+   - `opencode auth login opencode` on V2.
+   - `opencode console login` on V1.
+   - `opencode --version` tells you which one you have.
+3. Pick the model: run `opencode` in the repo, type `/models` and choose **DeepSeek V4.1 Flash** (`opencode-go/deepseek-v4.1-flash`). The prompts below also pass it explicitly.
+4. Usage lives on the Go page: 5-hour, weekly and monthly bars. Leave **Extra Usage** off so it never charges more than the $10.
+
+**Antigravity** (a desktop app):
+1. Download it from [antigravity.google](https://antigravity.google) (macOS, Windows, Linux) and sign in with the Google account that has the student plan.
+2. Keep the default review policy ("Agent Decides"), and still review every diff before merging.
+3. Install the Antigravity Chrome extension when it asks. That's how the agent opens the app, clicks through it and attaches screenshots.
+4. Per task:
+   - File → Open Folder → the task's worktree.
+   - Switch to the Agent Manager (Cmd+E on a Mac, Ctrl+E on Windows).
+   - Start a new agent in that workspace and paste the prompt.
+   - It runs up to 5 agents at once; we keep 2–3.
 
 ---
 
@@ -10,8 +43,9 @@ How Tomas runs his queue from [`TASKS.md`](../TASKS.md) with two local coding ag
 
 | Tool | Strengths and limits | Gets |
 | --- | --- | --- |
-| **Antigravity** | Agent Manager runs several agents in parallel, each in its own workspace; built-in browser to check the UI; weekly quota on the student plan | All the app screens, the bigger backend tasks, and help on the Mac tasks |
-| **Codex** (free) | About 50 agent messages a day; its sandbox has no network by default | Small, well-specified backend tasks with tests, one at a time |
+| **Antigravity** | Agent Manager runs several agents at once, each in its own workspace; its browser extension checks the UI and brings back screenshots; weekly quota on the student plan | The app screens, and help on the Mac tasks |
+| **OpenCode** (Go plan) | DeepSeek V4.1 Flash gets about 26,000 requests per 5 hours, inside Go's caps ($12 per 5 h, $30 per week, $60 per month). It runs headless with `opencode run`, and it runs commands on your machine (network included, no sandbox). | Every backend task, up to 3 at once |
+| **Codex** (free) | About 50 agent messages a day; its sandbox has no network by default | Spare, if Go's weekly cap runs out |
 | **Tomas** | The Mac, the iPhone and the accounts | Mac builds, AltStore installs, Vercel, reviews and merges, checkpoints with Jean |
 
 ### Tomas's queue by tool
@@ -19,12 +53,12 @@ How Tomas runs his queue from [`TASKS.md`](../TASKS.md) with two local coding ag
 | # | Issue | Task | Tool |
 | --- | --- | --- | --- |
 | 1 | [#12](https://github.com/TomasPessagno/mapay/issues/12) | B1 · App shell | Antigravity |
-| 2 | [#10](https://github.com/TomasPessagno/mapay/issues/10) | A1 · Device id + CORS | Codex |
-| 3 | [#4](https://github.com/TomasPessagno/mapay/issues/4) | A5 · Neighbourhoods | Antigravity |
-| 4 | [#5](https://github.com/TomasPessagno/mapay/issues/5) | A11 · City construction + closures | Codex |
-| 5 | [#7](https://github.com/TomasPessagno/mapay/issues/7) | A13 · NWS weather | Codex |
-| 6 | [#8](https://github.com/TomasPessagno/mapay/issues/8) | A14 · OSM sidewalks | Codex |
-| 7 | [#15](https://github.com/TomasPessagno/mapay/issues/15) | A16 · News → Gemini | Antigravity |
+| 2 | [#10](https://github.com/TomasPessagno/mapay/issues/10) | A1 · Device id + CORS | OpenCode |
+| 3 | [#4](https://github.com/TomasPessagno/mapay/issues/4) | A5 · Neighbourhoods | OpenCode |
+| 4 | [#5](https://github.com/TomasPessagno/mapay/issues/5) | A11 · City construction + closures | OpenCode |
+| 5 | [#7](https://github.com/TomasPessagno/mapay/issues/7) | A13 · NWS weather | OpenCode |
+| 6 | [#8](https://github.com/TomasPessagno/mapay/issues/8) | A14 · OSM sidewalks | OpenCode |
+| 7 | [#15](https://github.com/TomasPessagno/mapay/issues/15) | A16 · News → Laya → Gemini | OpenCode |
 | 8 | [#19](https://github.com/TomasPessagno/mapay/issues/19) | B2 · Capacitor iOS + AltStore proof | Tomas on the Mac (an agent on the Mac can help) |
 | 9 | [#20](https://github.com/TomasPessagno/mapay/issues/20) | B3 · Map + legend | Antigravity |
 | 10 | [#27](https://github.com/TomasPessagno/mapay/issues/27) | B4 · Sheet, search, route options | Antigravity |
@@ -37,33 +71,34 @@ How Tomas runs his queue from [`TASKS.md`](../TASKS.md) with two local coding ag
 | 17 | [#30](https://github.com/TomasPessagno/mapay/issues/30) | B11 · Hazard sheet + report | Antigravity |
 | 18 | [#36](https://github.com/TomasPessagno/mapay/issues/36) | B12 · Demo button | Agent on the Mac + Tomas on the iPhone |
 | 19 | [#31](https://github.com/TomasPessagno/mapay/issues/31) | B13 · Vercel preview | Tomas (Vercel account) |
-| P1 | [#37](https://github.com/TomasPessagno/mapay/issues/37) · [#41](https://github.com/TomasPessagno/mapay/issues/41) · [#24](https://github.com/TomasPessagno/mapay/issues/24) | B14 Live Activity · B15 Design polish · A22 Potholes + radar | Mac · Antigravity + iPhone · Codex |
+| P1 | [#37](https://github.com/TomasPessagno/mapay/issues/37) · [#41](https://github.com/TomasPessagno/mapay/issues/41) · [#24](https://github.com/TomasPessagno/mapay/issues/24) | B14 Live Activity · B15 Design polish · A22 Potholes + radar | Mac · Antigravity + iPhone · OpenCode |
 
-"Agent on the Mac" means Antigravity or Codex installed on the Mac, so it can run `xcodebuild` and `xcrun simctl`; if neither is, an agent drafts the code anywhere and Tomas builds it in Xcode.
+- "Agent on the Mac" means OpenCode or Antigravity installed on the Mac, so it can run `xcodebuild` and `xcrun simctl`. If neither is, an agent drafts the code anywhere and Tomas builds it in Xcode.
+- If OpenCode struggles with a task, rerun it in Antigravity and tell the orchestrator.
 
 ---
 
 ## Waves
 
-Run a wave's rows at the same time; start the next wave when its blockers have merged. Keep Antigravity at 2–3 agents at once (quota and review load) and Codex at one.
+Run a wave's rows at the same time; start the next wave when its blockers have merged. Keep Antigravity at 2–3 agents at once and OpenCode at up to 3: the limit is the review load and Go's $12-per-5-hours cap.
 
-| Wave | Starts when | Antigravity | Codex | Tomas |
+| Wave | Starts when | Antigravity | OpenCode | Tomas |
 | --- | --- | --- | --- | --- |
-| 1 | T0 done ([#2](https://github.com/TomasPessagno/mapay/issues/2)) | #12 B1 app shell · #4 A5 neighbourhoods | #10 A1, then #5 A11 | Keys, secrets, bundle ids (T0) |
-| 2 | #12 merged | #20 B3 map · #21 B5 routines · #15 A16 news (needs the AI Studio key; #4 helps; Laya is optional, see below) | #7 A13, then #8 A14 | #19 B2 on the Mac + AltStore |
-| 3 | #20 merged | #27 B4 sheet + routes · #22 B6 preferences | (spare: #24 A22, once Jean's #13 has merged) | Review, merge |
+| 1 | T0 done ([#2](https://github.com/TomasPessagno/mapay/issues/2)) | #12 B1 app shell | #10 A1 · #4 A5 · #5 A11 at once (Jean waits on all three), then #8 A14 | Keys, secrets, bundle ids (T0) |
+| 2 | #12 merged | #20 B3 map · #21 B5 routines | #7 A13, then #15 A16 news (needs the AI Studio key; Laya is optional, see below) | #19 B2 on the Mac + AltStore |
+| 3 | #20 merged | #27 B4 sheet + routes · #22 B6 preferences | #24 A22 (P1, once Jean's #13 has merged) | Review, merge |
 | T1 | #10 and #27, and Jean's #13 and #26 merged | | | Real map + routing with Jean ([#38](https://github.com/TomasPessagno/mapay/issues/38)) |
 | 4 | #19 and #27 merged | #34 B7 heads-up card · #30 B11 hazard sheet | | #28 B8 and #29 B9 on the Mac (in parallel) |
 | T2 | #21, #34, #28, #29, and Jean's #32 merged | | | Heads-up end to end with Jean ([#42](https://github.com/TomasPessagno/mapay/issues/42)) |
 | 5 | T2 done | #35 B10 customize sheet | | #36 B12 on the Mac · #31 B13 Vercel |
-| T3 → P1 → T4 | | #41 B15 (with the iPhone) | #24 A22 | #37 B14 on the Mac, demo prep ([#44](https://github.com/TomasPessagno/mapay/issues/44)) |
+| T3 → P1 → T4 | | #41 B15 (with the iPhone) | | #37 B14 on the Mac, demo prep ([#44](https://github.com/TomasPessagno/mapay/issues/44)) |
 
-**Don't run these at the same time** (they edit the same files):
-- `frontend/package.json` + lockfile: #12 adds Ionic, #19 adds Capacitor, #28 adds plugins. Run #12 alone first; after that, resolve lockfile conflicts by merging `main` and re-running `npm install`, never by hand.
-- The Map tab and its sheet: #20 → #27 → then #34 and #30.
-- `backend/app/routing/belief_config.py`: #7 and #15 (and Jean's #9). Keep edits additive; merge `main` before the PR.
-- `backend/app/main.py` router includes: #10 and #4 (and Jean's #33, #14). One-line conflicts: keep both lines.
-- `backend/app/config.py` settings: #10 and #15 each add fields. One-line conflicts: keep both lines.
+**Files several tasks edit:**
+- **`frontend/package.json` + lockfile** (#12 adds Ionic, #19 adds Capacitor, #28 adds plugins): run #12 alone first. After that, resolve lockfile conflicts by merging `main` and re-running `npm install`, never by hand.
+- **The Map tab and its sheet:** strictly one after another: #20 → #27 → then #34 and #30.
+- **`backend/app/routing/belief_config.py`** (#7 and #15, and Jean's #9): run #7 before #15. Keep edits additive, and merge `main` before the PR.
+- **`backend/app/main.py` router includes** (#10 and #4, and Jean's #33 and #14): each adds a line, so they can run at once. Whoever merges second merges `main` and keeps both lines.
+- **`backend/app/config.py` settings** (#10 and #15): each adds fields. One-line conflicts: keep both lines.
 
 ---
 
@@ -73,20 +108,31 @@ Two agents in one checkout overwrite each other, so every task gets its own fold
 
 ```bash
 cd mapay && git fetch origin
-git worktree add ../mapay-b1 -b b1-app-shell origin/main   # folder + branch from the issue
-cd ../mapay-b1
+git worktree add ../mapay-a1 -b a1-device-id-cors origin/main   # folder + branch from the issue
+cd ../mapay-a1
 # frontend tasks
 cd frontend && npm install && cd ..
-# backend tasks: one shared venv, prepared before Codex starts (its sandbox has no network)
+# backend tasks: one shared venv for every worktree
 python -m venv ~/.venvs/mapay && source ~/.venvs/mapay/bin/activate
 pip install -r backend/requirements.txt pytest ruff
 ```
 
-Open that folder as the Antigravity workspace, or run `codex` inside it. When the PR has merged: `git worktree remove ../mapay-b1`.
+Run `opencode` in that folder, or open it as the Antigravity workspace. When the PR has merged: `git worktree remove ../mapay-a1`.
 
 ---
 
 ## Prompts
+
+**OpenCode** (from the task's worktree; `gh` pastes the issue into the prompt for you):
+
+```bash
+opencode run --model opencode-go/deepseek-v4.1-flash "Read AGENTS.md and follow 'Working on a task'. Implement the GitHub issue below on the current branch. Only touch the files in its Scope, keep tests offline, and run the checks it lists. Then commit, push the branch (git push -u origin HEAD) and open a PR into main whose body says 'Closes #<issue number>' (gh pr create --base main). If you can't open the PR, stop after pushing and say so.
+
+$(gh issue view <N> -R TomasPessagno/mapay --json number,title,body -q '"#\(.number) \(.title)\n\n\(.body)"')"
+```
+
+- To watch or steer the agent while it works, run `opencode` (the interactive screen) in the worktree instead, and paste the same text.
+- Up to three terminals can run at once, one per worktree.
 
 **Antigravity** (Agent Manager → new agent in the task's workspace). Paste the issue title and body where marked:
 
@@ -94,7 +140,7 @@ Open that folder as the Antigravity workspace, or run `codex` inside it. When th
 >
 > &lt;issue title and body&gt;
 
-**Codex** (from the task's worktree; `gh` pastes the issue into the prompt for you):
+**Codex** (spare). Its sandbox can't push, so the prompt stops at the commit:
 
 ```bash
 codex "Read AGENTS.md and follow 'Working on a task'. Implement the GitHub issue below on the current branch. Only touch the files in its Scope, keep tests offline, run the checks it lists, and commit.
@@ -102,7 +148,7 @@ codex "Read AGENTS.md and follow 'Working on a task'. Implement the GitHub issue
 $(gh issue view <N> -R TomasPessagno/mapay --json number,title,body -q '"#\(.number) \(.title)\n\n\(.body)"')"
 ```
 
-Then push and open the PR yourself: `git push -u origin <branch> && gh pr create --base main --title "<ID> · <title>" --body "Closes #<N>"`. Check the remaining Codex quota with `/usage` in the CLI.
+Then push and open the PR yourself: `git push -u origin HEAD && gh pr create --base main --title "<ID> · <title>" --body "Closes #<N>"`.
 
 ---
 
@@ -122,13 +168,8 @@ Then push and open the PR yourself: `git push -u origin <branch> && gh pr create
 - **Deploy secrets are missing:** backend merges show a red `deploy-backend` job until Tomas adds `GCP_SA_KEY` and the rest.
 - **Uneven split, kept on purpose:** A16 news (#15) moved to Tomas, and Jean took the Laya service (A24), so Tomas ≈ 34.5 h vs Jean ≈ 28.5 h of P0. Jean also has 8.5 h of P1, including the Laya fine-tune. #5 (A11) and #7 (A13) stay with Tomas. If he falls behind, he says so and the orchestrator hands them to Jean: reassign both issues, move their rows to Jean's queue in TASKS.md, and tell Jean. #5 goes first either way, because Jean's #16 waits on it.
 - **Jean** uses his own agents (his commits are co-authored by Claude); same AGENTS.md rules.
-- **Laya instead of Jev (decided Sept 26).** We have no access to TypeSafe's Jev, so we use [Laya](https://github.com/NandhaKishorM/laya): open source (Apache-2.0), the same kind of model, and it speaks Jev's API. You send it a text and typed questions (yes/no, one option from a list, a score on a scale), and it returns an answer with a probability for each. We host it ourselves, so there's no key to get.
+- **OpenCode Go adopted (Sept 26):** Tomas pays $10/month, DeepSeek V4.1 Flash does the backend tasks, and Codex is the spare. The first runs are wave 1's #10, #4 and #5. Rerun any task that goes badly in Antigravity.
+- **Laya instead of Jev (decided Sept 26).** We have no access to TypeSafe's Jev, so we use [Laya](https://github.com/NandhaKishorM/laya): open source (Apache-2.0), the same kind of model, and it speaks Jev's API. You send it a text and typed questions (yes/no, one option from a list, a score on a scale), and it returns an answer with a probability for each. We host it ourselves, so there's no key to get. It isn't a coding agent, so it doesn't change the tool plan above.
   - **Jean's A24 ([#46](https://github.com/TomasPessagno/mapay/issues/46)):** runs it for free on his laptop behind a tunnel (multilingual checkpoint, about 0.2 s per question). Cloud Run would need billing and cost cents, and Hugging Face's Docker Spaces now need a paid plan. When the laptop is off, #15 runs Gemini-only.
   - **Jean's A25 ([#47](https://github.com/TomasPessagno/mapay/issues/47), P1):** fine-tunes it on about 1,000 Miami news items. Claude labels them (Claude Code in the session, not the paid API), and training runs on Kaggle's free GPUs.
   - **Tomas's A16 ([#15](https://github.com/TomasPessagno/mapay/issues/15)):** asks Laya one yes/no question per article, drops the clear misses (below p 0.2) and sends the rest to Gemini. Without `LAYA_URL` it runs Gemini-only, so #15 doesn't wait for #46. The agent can also run Laya locally for the threshold check.
-  - Laya isn't a coding agent, so the Antigravity/Codex plan above doesn't change.
-- **OpenCode Go as a coding agent (proposed Sept 26, not decided):** OpenCode with open models for $10/month.
-  - DeepSeek V4.1 Flash gets about 26,000 requests per 5 hours, within Go's caps of $12 per 5 h, $30 per week and $60 per month.
-  - Proposal: it replaces Codex for backend tasks. There's no 50-a-day limit, and several can run at once with `opencode run`.
-  - Antigravity keeps the app screens (free, with a built-in browser).
-  - Try it on #10 first. If Tomas adopts it, the orchestrator rewrites the tool table, waves and prompts above.
