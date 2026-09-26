@@ -104,3 +104,13 @@
     }
   }
 }
+
+/* The map sheet stops above the tab bar, so the tabs stay visible and tappable. */
+ion-modal.map-sheet {
+  bottom: calc(50px + var(--ion-safe-area-bottom, 0px));
+}
+
+ion-modal.map-sheet::part(content) {
+  border-radius: 26px 26px 0 0;
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.12);
+}

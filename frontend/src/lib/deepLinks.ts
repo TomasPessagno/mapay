@@ -1,4 +1,5 @@
 import type { LatLng } from "./types";
+import { AppLauncher } from '@capacitor/app-launcher';
 
 const fmt = ([lat, lng]: LatLng) => `${lat},${lng}`;
 
@@ -15,4 +16,17 @@ export function appleMapsLink(origin: LatLng, destination: LatLng): string {
 
 export function wazeLink(destination: LatLng): string {
   return `https://waze.com/ul?ll=${fmt(destination)}&navigate=yes`;
+}
+
+export async function openLink(url: string) {
+  try {
+    const { value } = await AppLauncher.canOpenUrl({ url });
+    if (value) {
+      await AppLauncher.openUrl({ url });
+    } else {
+      window.open(url, '_blank');
+    }
+  } catch {
+    window.open(url, '_blank');
+  }
 }

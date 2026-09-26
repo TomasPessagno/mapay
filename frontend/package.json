@@ -10,8 +10,10 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@capacitor/app-launcher": "^8.0.1",
     "@capacitor/core": "^8.5.2",
     "@capacitor/device": "^8.0.3",
+    "@capacitor/geolocation": "^8.2.2",
     "@ionic/react": "^9.0.5",
     "@ionic/react-router": "^9.0.5",
     "@vis.gl/react-google-maps": "^1.10.1",
