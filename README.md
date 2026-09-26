@@ -276,7 +276,7 @@ The detailed data flow and UI flow live in [`docs/architecture.md`](docs/archite
 | Backend | FastAPI (Python) on Cloud Run |
 | Database | MongoDB Atlas |
 | Hazard confidence | Bayesian log-odds score per hazard, updated by evidence ([`docs/hazard-beliefs.md`](docs/hazard-beliefs.md)) |
-| AI | Gemini: reading news, turning prompts into route constraints, checking satellite images, explaining routes |
+| AI | Gemini (API key from Google AI Studio): reading news, turning prompts into route constraints, checking satellite images, explaining routes |
 | Satellite | Copernicus Global Flood Monitoring + Google Earth Engine (Sentinel-1, Sentinel-2) |
 | Accounts | Anonymous device id for the hackathon |
 | Scheduled jobs | Cloud Scheduler |
@@ -289,7 +289,7 @@ The detailed data flow and UI flow live in [`docs/architecture.md`](docs/archite
 
 ### ShellHacks 2026 (this weekend)
 
-**Task board: [`TASKS.md`](TASKS.md)**: the two-person split into task-sized branches, with dependencies, checkpoints and how to test each one. The hour-by-hour plan is in [`AGENTS.md`](AGENTS.md#roadmap-20-24-hrs).
+**Task board: [`TASKS.md`](TASKS.md)** and the [GitHub issues](https://github.com/TomasPessagno/mapay/issues/45): the two-person split into task-sized branches, with dependencies, checkpoints and how to test each one. Every task is an issue a person or a coding agent can pick up. The hour-by-hour plan is in [`AGENTS.md`](AGENTS.md#roadmap-20-24-hrs).
 
 **Must work in the demo (P0)**
 - [ ] Runs on the iPhone (AltStore) and in the iOS Simulator, with the Apple-like design

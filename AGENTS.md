@@ -4,7 +4,7 @@ Miami-native hazard-aware navigation for iPhone. Built at ShellHacks 2026, ~20-2
 
 **One-line pitch:** MAPAY shows, colour-coded on one map, which Miami streets are flooded, under construction, congested, closed or missing sidewalks, and before your daily trips it pops up a big widget on your iPhone to start the route or change it with a prompt.
 
-`README.md` is the product spec and `docs/design.md` is the design spec (Apple-like). This file is how we build it this weekend: platform, priorities, stack, algorithms, data sources, schema and the hour-by-hour plan.
+`README.md` is the product spec and `docs/design.md` is the design spec (Apple-like). This file is how we build it this weekend: how to work on a task, platform, priorities, stack, algorithms, data sources, schema and the hour-by-hour plan. The tasks themselves are GitHub issues ([task board #45](https://github.com/TomasPessagno/mapay/issues/45)).
 
 ---
 
@@ -15,6 +15,25 @@ Miami-native hazard-aware navigation for iPhone. Built at ShellHacks 2026, ~20-2
 3. **Preferences.** Avoid / prefer to avoid / don't care per category, plus avoiding neighbourhoods by name. User defaults with per-routine overrides. See [Preferences](#preferences).
 4. **Heads-up widget.** Before each routine leg: a local notification, a huge in-app card and a large home-screen widget that switches into "leave now" mode (plus a Live Activity, P1), with **Start** (Google Maps) and **Customize** (prompt → Gemini → new route). See [Pre-route heads-up (iPhone)](#pre-route-heads-up-iphone).
 5. **Data.** Local news scraped and interpreted by Gemini, weather from NWS, near-real-time satellite for floods and construction, and everything else from maps APIs (Google, HERE, OSM, …) and Miami open data. See [Data pipelines](#data-pipelines).
+
+---
+
+## Working on a task (people and coding agents)
+
+Every task is a GitHub issue: [task board #45](https://github.com/TomasPessagno/mapay/issues/45), overview and testing guide in [`TASKS.md`](TASKS.md). To work on one:
+
+1. Check that the issues under **Blocked by** are closed. If not, pick another task.
+2. Branch from `main` using the branch name in the issue. One issue per branch, one agent per issue.
+3. Only touch the files listed under **Scope**. `backend/**` and `frontend/**` belong to different tracks.
+4. API shapes must match `frontend/public/mocks/`. If one has to change, update the mock, `frontend/src/lib/types.ts` and `backend/app/db/models.py` in the same PR.
+5. Tests never hit the network or a live database. Keys come from `.env` / `frontend/.env` and are never committed.
+6. Run the checks before opening the PR:
+   - backend: `cd backend && ruff check . && pytest` (CI also requires `tests/test_beliefs.py::BeliefMathTests::test_natural_log_odds_and_posterior`, so keep it)
+   - frontend: `cd frontend && npm run lint && npx tsc -b --noEmit && npm run build`
+7. Open a PR into `main` that says `Closes #<issue>` and merge when CI is green. Merges that touch `backend/` deploy to Cloud Run.
+8. `needs-mac` issues (Swift, Simulator, iPhone) can be drafted anywhere but must be built and checked on the Mac.
+
+Gemini interprets and explains; routing stays deterministic. Never analyse Google Maps imagery or Street View.
 
 ---
 
@@ -80,7 +99,7 @@ Miami-native hazard-aware navigation for iPhone. Built at ShellHacks 2026, ~20-2
 - **Native (Swift, on the Mac):** one widget extension `MapayWidget` (WidgetKit widgets + ActivityKit Live Activity UI) and a small local Capacitor plugin `MapayNative` (reload widget timelines, start/end the Live Activity).
 - **Map:** fully on Google Maps Platform. Maps JavaScript API via `@vis.gl/react-google-maps` inside the app's web view, with light + dark cloud-styled Map IDs that follow the system; Google `TrafficLayer` for live congestion; Places API for search, saved places and stops. No MapLibre or MapKit: Google's terms don't allow showing Google routes/places on a non-Google map. Deep links use the Google Maps URLs API (`https://www.google.com/maps/dir/?api=1&origin=...&destination=...&waypoints=...`); only Google Maps preserves multi-waypoint shaping, Apple Maps / Waze get origin → destination.
 - **Routing:** Google Routes API with our own deterministic hazard scoring. See [Routing](#routing). The committed `routing/engine.py` still searches an OSMnx graph (its loader is a stub, so `/route` returns 503); the path search moves to Routes API, while the beliefs and the pre-route check stay.
-- **LLM:** Gemini via Google GenAI SDK, structured JSON output. Gemini *interprets* (news → events, prompt → constraints, satellite chips → yes/no + description) and *explains*. It never picks the route.
+- **LLM:** Gemini via the Google GenAI SDK (`google-genai`) with an API key from **Google AI Studio** (`GEMINI_API_KEY`), structured JSON output. Gemini *interprets* (news → events, prompt → constraints, satellite chips → yes/no + description) and *explains*. It never picks the route. AI Studio keys have per-minute and per-day request limits: batch news articles per call, never re-process an article, and cache results.
 - **Satellite:** Copernicus GFM (ready-made Sentinel-1 flood maps) + Google Earth Engine (`earthengine-api`) for our own Sentinel-1 / Sentinel-2 processing.
 - **Identity:** anonymous. The device id is `identifierForVendor`: `Device.getId()` in the app and `UIDevice.current.identifierForVendor` in the widget. Both are signed by the same team, so they should match; verify on the iPhone in hour 0 (fallback for the demo: bake the demo user's id into the build). Sent as `X-Device-Id`. Not real auth, fine for the hackathon.
 - **Jobs:** Cloud Scheduler → authenticated `POST /internal/*` endpoints (ingestion + briefing precompute). Don't rely on in-process pollers: Cloud Run throttles CPU between requests by default.
@@ -91,7 +110,7 @@ Miami-native hazard-aware navigation for iPhone. Built at ShellHacks 2026, ~20-2
 - Apple: Xcode on the Mac, AltServer on the Mac, AltStore with a free Apple ID on the demo iPhone.
 - Earth Engine: register the GCP project for noncommercial use (Community tier, 150 EECU-hours/month) and give the Cloud Run service account access.
 - Copernicus GFM account (free) for flood-map API/WMS-T access.
-- HERE API key, Gemini API key, NWS `User-Agent` string. P2 only: Ticketmaster, EIA.
+- Gemini API key from Google AI Studio (`GEMINI_API_KEY`), HERE API key, NWS `User-Agent` string. P2 only: Ticketmaster, EIA.
 
 ---
 
