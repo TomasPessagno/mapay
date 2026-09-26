@@ -5,7 +5,7 @@ interface Props {
   onRoute: (r: RouteResponse) => void;
 }
 
-export default function DestinationWidget({ departAt, onRoute }: Props) {
+export default function DestinationWidget(_props: Props) {
   // TODO: "Where to?" input + conditions strip; call api.route
   return <div className="destination-widget">Where to?</div>;
 }
