@@ -50,7 +50,7 @@ if [ "${created:-0}" = 1 ]; then
   python -m pip install -q -r backend/requirements.txt pytest ruff
 fi
 
-prompt="Read AGENTS.md and follow 'Working on a task'. Implement the GitHub issue below on the current branch. Only touch the files in its Scope, keep tests offline, and run the checks it lists. Then commit, push the branch (git push -u origin HEAD) and open a PR into main whose body says 'Closes #$issue' (gh pr create --base main). If you can't open the PR, stop after pushing and say so.
+prompt="Read AGENTS.md and follow 'Working on a task'. Implement the GitHub issue below on the current branch. Only touch the files in its Scope, keep tests offline, and run the checks it lists. You can't read or write outside this worktree: put downloads and scratch files in .scratch/ (git-ignored, never commit it), not /tmp. Then commit, push the branch (git push -u origin HEAD) and open a PR into main whose body says 'Closes #$issue' (gh pr create --base main). If you can't open the PR, stop after pushing and say so.
 
 $(gh issue view "$issue" -R "$repo" --json number,title,body -q '"#\(.number) \(.title)\n\n\(.body)"')"
 
