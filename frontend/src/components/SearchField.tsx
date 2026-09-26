@@ -37,13 +37,11 @@ const SearchField: React.FC<SearchFieldProps> = ({ onSearch, onFocus, placeholde
     }
   }, [placesLibrary]);
 
+  // Debounced so typing doesn't send one billed Places request per keystroke.
   useEffect(() => {
-    if (!placesLibrary || !query.trim()) {
-      setSuggestions([]);
-      return;
-    }
+    if (!placesLibrary || !query.trim()) return;
     let isActive = true;
-    const fetchSuggestions = async () => {
+    const timer = setTimeout(async () => {
       try {
         const result = await placesLibrary.AutocompleteSuggestion.fetchAutocompleteSuggestions({
           input: query,
@@ -51,16 +49,16 @@ const SearchField: React.FC<SearchFieldProps> = ({ onSearch, onFocus, placeholde
           region: 'us',
           sessionToken: sessionTokenRef.current || undefined
         });
-        if (isActive && result.suggestions) {
-          setSuggestions(result.suggestions);
-        }
-      } catch (e) {
+        if (isActive) setSuggestions(result.suggestions ?? []);
+      } catch (err) {
+        console.warn('Places autocomplete failed', err);
         if (isActive) setSuggestions([]);
       }
-    };
-    fetchSuggestions();
-    return () => { isActive = false; };
+    }, 250);
+    return () => { isActive = false; clearTimeout(timer); };
   }, [query, placesLibrary]);
+
+  const visibleSuggestions = query.trim() ? suggestions : [];
 
   const handleSelect = async (suggestion: google.maps.places.AutocompleteSuggestion) => {
     if (!placesLibrary || !suggestion.placePrediction) return;
@@ -90,9 +88,9 @@ const SearchField: React.FC<SearchFieldProps> = ({ onSearch, onFocus, placeholde
         mode="ios"
         className="ion-no-padding"
       />
-      {suggestions.length > 0 && (
+      {visibleSuggestions.length > 0 && (
         <IonList style={{ marginTop: '8px', background: 'transparent' }}>
-          {suggestions.map((s, idx) => {
+          {visibleSuggestions.map((s, idx) => {
             if (!s.placePrediction) return null;
             const mainText = s.placePrediction.mainText?.toString() || s.placePrediction.text?.toString() || 'Unknown';
             const secondaryText = s.placePrediction.secondaryText?.toString() || '';
