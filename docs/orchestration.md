@@ -127,6 +127,8 @@ Then push and open the PR yourself: `git push -u origin <branch> && gh pr create
   - **Jean's A25 ([#47](https://github.com/TomasPessagno/mapay/issues/47), P1):** fine-tunes it on about 1,000 Miami news items. Claude labels them (Claude Code in the session, not the paid API), and training runs on Kaggle's free GPUs.
   - **Tomas's A16 ([#15](https://github.com/TomasPessagno/mapay/issues/15)):** asks Laya one yes/no question per article, drops the clear misses (below p 0.2) and sends the rest to Gemini. Without `LAYA_URL` it runs Gemini-only, so #15 doesn't wait for #46. The agent can also run Laya locally for the threshold check.
   - Laya isn't a coding agent, so the Antigravity/Codex plan above doesn't change.
-- **The app's LLM: keep Gemini (recommended Sept 26; Tomas to confirm).**
-  - OpenCode Go (DeepSeek V4.1 Flash) is a $10/month coding-agent plan, while the AI Studio key is free.
-  - Gemini also covers the vision checks on satellite images (A18) and schema-checked JSON, and `briefing.py` already uses it.
+- **OpenCode Go as a coding agent (proposed Sept 26, not decided):** OpenCode with open models for $10/month.
+  - DeepSeek V4.1 Flash gets about 26,000 requests per 5 hours, within Go's caps of $12 per 5 h, $30 per week and $60 per month.
+  - Proposal: it replaces Codex for backend tasks. There's no 50-a-day limit, and several can run at once with `opencode run`.
+  - Antigravity keeps the app screens (free, with a built-in browser).
+  - Try it on #10 first. If Tomas adopts it, the orchestrator rewrites the tool table, waves and prompts above.
