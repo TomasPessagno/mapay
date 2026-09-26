@@ -10,7 +10,7 @@ const PreferencesPage: React.FC = () => {
           <IonTitle>Preferences</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent fullscreen={true}>
+      <IonContent fullscreen={true} style={{ '--background': 'var(--ion-color-step-50, var(--system-grouped-background))' } as React.CSSProperties}>
         <IonHeader collapse="condense">
           <IonToolbar>
             <IonTitle size="large">Preferences</IonTitle>

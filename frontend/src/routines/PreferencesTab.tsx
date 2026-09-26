@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { IonList, IonSpinner } from '@ionic/react';
+import { IonSpinner } from '@ionic/react';
 import { api } from '../lib/api';
 import type { Preferences } from '../lib/types';
 import PreferenceControls from '../components/PreferenceControls';
@@ -36,11 +36,11 @@ export default function PreferencesTab() {
   }
 
   return (
-    <IonList inset>
+    <>
       <PreferenceControls 
         preferences={preferences} 
         onChange={handleSave} 
       />
-    </IonList>
+    </>
   );
 }

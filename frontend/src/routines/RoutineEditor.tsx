@@ -214,14 +214,14 @@ export default function RoutineEditor({ routine, places, onSave, onCancel }: Rou
               }}
             />
           </IonItem>
-          {edited.preferences && (
-            <PreferenceControls 
-              preferences={edited.preferences} 
-              onChange={p => handleChange('preferences', p)}
-              showNavApp={false}
-            />
-          )}
         </IonList>
+        {edited.preferences && (
+          <PreferenceControls 
+            preferences={edited.preferences} 
+            onChange={p => handleChange('preferences', p)}
+            showNavApp={false}
+          />
+        )}
       </IonContent>
     </>
   );

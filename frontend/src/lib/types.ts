@@ -119,6 +119,7 @@ export interface UpcomingRoutinesResponse {
 export interface Neighborhood {
   id: string;
   name: string;
+  source?: string;
 }
 
 export interface CustomizeResponse {

@@ -69,7 +69,13 @@ export const api = {
   saveRoutine: (r: Routine) => request<Routine>("/routines", { method: "POST", body: JSON.stringify(r) }),
   upcomingRoutines: (days: number = 7) => request<UpcomingRoutinesResponse>(`/routines/upcoming?days=${days}`),
   places: () => request<unknown[]>("/places"),
-  neighborhoods: () => request<Neighborhood[]>("/neighborhoods"),
+  neighborhoods: async (q?: string) => {
+    let res = await request<Neighborhood[]>(`/neighborhoods${q ? `?q=${encodeURIComponent(q)}` : ''}`);
+    if (USE_MOCKS && q) {
+      res = res.filter(n => n.name.toLowerCase().includes(q.toLowerCase()));
+    }
+    return res;
+  },
   getPreferences: () => request<Preferences>("/me/preferences"),
   savePreferences: (p: Preferences) => request<Preferences>("/me/preferences", { method: "PUT", body: JSON.stringify(p) }),
   customize: (body: unknown) => request<unknown>("/customize", { method: "POST", body: JSON.stringify(body) }),
