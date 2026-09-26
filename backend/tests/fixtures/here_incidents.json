@@ -1,0 +1,234 @@
+{
+ "sourceUpdated": "2026-09-26T23:39:10Z",
+ "results": [
+  {
+   "location": {
+    "length": 7959.0,
+    "shape": {
+     "links": [
+      {
+       "points": [
+        {
+         "lat": 25.52167,
+         "lng": -80.42447
+        },
+        {
+         "lat": 25.52195,
+         "lng": -80.42427
+        }
+       ],
+       "length": 37.0,
+       "functionalClass": 3
+      },
+      {
+       "points": [
+        {
+         "lat": 25.52195,
+         "lng": -80.42427
+        },
+        {
+         "lat": 25.52223,
+         "lng": -80.42408
+        }
+       ],
+       "length": 37.0,
+       "functionalClass": 3
+      },
+      {
+       "points": [
+        {
+         "lat": 25.52223,
+         "lng": -80.42408
+        },
+        {
+         "lat": 25.52273,
+         "lng": -80.42378
+        }
+       ],
+       "length": 63.0,
+       "functionalClass": 3
+      }
+     ]
+    }
+   },
+   "incidentDetails": {
+    "id": "404845083849887228",
+    "hrn": "here:traffic:incident:404845083849887228",
+    "originalId": "404845083849887228",
+    "originalHrn": "here:traffic:incident:404845083849887228",
+    "startTime": "2026-08-30T18:17:03Z",
+    "endTime": "2026-09-29T18:17:03Z",
+    "entryTime": "2026-09-08T10:51:50Z",
+    "roadClosed": false,
+    "criticality": "minor",
+    "type": "construction",
+    "typeDescription": {
+     "value": "Road construction",
+     "language": "en-US"
+    },
+    "codes": [
+     701
+    ],
+    "description": {
+     "value": "Between Bauer Dr/264th St and SR-989/Allapattah Rd/112th Ave - Road construction",
+     "language": "en-US"
+    },
+    "summary": {
+     "value": "Road construction",
+     "language": "en-US"
+    }
+   }
+  },
+  {
+   "location": {
+    "length": 81.0,
+    "shape": {
+     "links": [
+      {
+       "points": [
+        {
+         "lat": 25.5806,
+         "lng": -80.33955
+        },
+        {
+         "lat": 25.58133,
+         "lng": -80.33953
+        }
+       ],
+       "length": 81.0,
+       "functionalClass": 5
+      }
+     ]
+    }
+   },
+   "incidentDetails": {
+    "id": "2038236771486949514",
+    "hrn": "here:traffic:incident:2038236771486949514",
+    "originalId": "2038236771486949514",
+    "originalHrn": "here:traffic:incident:2038236771486949514",
+    "startTime": "2026-09-26T22:53:20Z",
+    "endTime": "2026-09-27T22:53:20Z",
+    "entryTime": "2026-09-26T22:53:20Z",
+    "roadClosed": true,
+    "criticality": "critical",
+    "type": "roadClosure",
+    "typeDescription": {
+     "value": "Road closure",
+     "language": "en-US"
+    },
+    "codes": [
+     401
+    ],
+    "description": {
+     "value": "Closed",
+     "language": "en-US"
+    },
+    "summary": {
+     "value": "Closed",
+     "language": "en-US"
+    },
+    "junctionTraversability": "intermediateClosedEdgeOpen"
+   }
+  },
+  {
+   "location": {
+    "length": 37.0,
+    "shape": {
+     "links": [
+      {
+       "points": [
+        {
+         "lat": 25.88375,
+         "lng": -80.263
+        },
+        {
+         "lat": 25.8836,
+         "lng": -80.26267
+        }
+       ],
+       "length": 37.0,
+       "functionalClass": 3
+      }
+     ]
+    }
+   },
+   "incidentDetails": {
+    "id": "4395947625443047609",
+    "hrn": "here:traffic:incident:4395947625443047609",
+    "originalId": "4395947625443047600",
+    "originalHrn": "here:traffic:incident:4395947625443047600",
+    "startTime": "2026-09-23T21:51:54Z",
+    "endTime": "2026-09-27T10:00:00Z",
+    "entryTime": "2026-09-23T21:52:51Z",
+    "roadClosed": false,
+    "criticality": "minor",
+    "type": "other",
+    "typeDescription": {
+     "value": "Other news",
+     "language": "en-US"
+    },
+    "codes": [
+     409
+    ],
+    "description": {
+     "value": "Off-ramp restrictions",
+     "language": "en-US"
+    },
+    "summary": {
+     "value": "Off-ramp restrictions",
+     "language": "en-US"
+    }
+   }
+  },
+  {
+   "location": {
+    "length": 31.0,
+    "shape": {
+     "links": [
+      {
+       "points": [
+        {
+         "lat": 25.7835,
+         "lng": -80.2734
+        },
+        {
+         "lat": 25.78358,
+         "lng": -80.2737
+        }
+       ],
+       "length": 31.0,
+       "functionalClass": 2
+      }
+     ]
+    }
+   },
+   "incidentDetails": {
+    "id": "861711648333179358",
+    "hrn": "here:traffic:incident:861711648333179358",
+    "originalId": "4000667718564588985",
+    "originalHrn": "here:traffic:incident:4000667718564588985",
+    "startTime": "2026-09-26T23:36:15Z",
+    "endTime": "2026-09-26T23:48:45Z",
+    "entryTime": "2026-09-26T23:38:59Z",
+    "roadClosed": false,
+    "criticality": "minor",
+    "type": "congestion",
+    "typeDescription": {
+     "value": "Congestion",
+     "language": "en-US"
+    },
+    "codes": [
+     138
+    ],
+    "description": {
+     "value": "At 45th Ave - Backed-up traffic. Approach with care",
+     "language": "en-US"
+    },
+    "summary": {
+     "value": "Backed-up traffic. Approach with care",
+     "language": "en-US"
+    }
+   }
+  }
+ ]
+}
