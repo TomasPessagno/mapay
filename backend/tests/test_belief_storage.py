@@ -66,3 +66,73 @@ class BeliefAtTests(unittest.IsolatedAsyncioTestCase):
         collection.find.assert_called_once_with({'type': 'hazard_belief'})
         collection.find_one.assert_not_awaited()
         collection.update_one.assert_not_awaited()
+
+
+class BulkRegisterTests(unittest.IsolatedAsyncioTestCase):
+    """register_hazards must leave exactly what register_hazard would, in bulk."""
+
+    class Cache:
+        def __init__(self):
+            self.docs = {}
+            self.bulk_calls = 0
+
+        def find(self, query, projection=None):
+            ids = query["_id"]["$in"]
+            return SimpleNamespace(to_list=AsyncMock(return_value=[
+                dict(self.docs[i]) for i in ids if i in self.docs]))
+
+        async def find_one(self, query):
+            return self.docs.get(query["_id"])
+
+        async def update_one(self, query, update, upsert=False):
+            doc = self.docs.get(query["_id"])
+            if doc is None:
+                if upsert:
+                    self.docs[query["_id"]] = {"_id": query["_id"], **update.get("$setOnInsert", {})}
+                return SimpleNamespace(matched_count=0)
+            if any(doc.get(k) != v for k, v in query.items()):
+                return SimpleNamespace(matched_count=0)
+            for k, v in update.get("$inc", {}).items():
+                doc[k] = doc.get(k, 0) + v
+            doc.update(update.get("$set", {}))
+            for k, v in update.get("$max", {}).items():
+                doc[k] = max(doc.get(k, v), v)
+            return SimpleNamespace(matched_count=1)
+
+        async def bulk_write(self, operations, ordered=False):
+            self.bulk_calls += 1
+            for op in operations:
+                await self.update_one(op._filter, op._doc, upsert=op._upsert)
+
+    async def test_matches_register_hazard_and_keeps_evidence(self):
+        from app.routing.beliefs import register_hazard, register_hazards
+        now = datetime.now(timezone.utc)
+        geometry = {"type": "Point", "coordinates": [-80.2, 25.8]}
+        one, bulk = self.Cache(), self.Cache()
+        props = {"status": "active", "severity": 4, "title": "Utility work on SW 8th St", "noise": 1}
+        await register_hazard(SimpleNamespace(intel_cache=one), "city:permit:1", "construction", geometry, props, now)
+        await register_hazards(SimpleNamespace(intel_cache=bulk), [
+            {"id": "city:permit:1", "kind": "construction", "geometry": geometry, "properties": props}], now)
+        self.assertEqual(one.docs, bulk.docs)
+        self.assertEqual(bulk.docs["belief:city:permit:1"]["properties"], {"title": "Utility work on SW 8th St"})
+        # Evidence arrives, then the permit's status changes: only the prior delta moves log_odds.
+        for cache in (one, bulk):
+            cache.docs["belief:city:permit:1"]["log_odds"] += 1.5
+        props2 = {**props, "status": "closed"}
+        await register_hazard(SimpleNamespace(intel_cache=one), "city:permit:1", "construction", geometry, props2, now)
+        await register_hazards(SimpleNamespace(intel_cache=bulk), [
+            {"id": "city:permit:1", "kind": "construction", "geometry": geometry, "properties": props2}], now)
+        self.assertAlmostEqual(bulk.docs["belief:city:permit:1"]["log_odds"],
+                               one.docs["belief:city:permit:1"]["log_odds"])
+        self.assertAlmostEqual(bulk.docs["belief:city:permit:1"]["log_odds"],
+                               bulk.docs["belief:city:permit:1"]["prior_log_odds"] + 1.5)
+
+    async def test_thousands_in_a_few_bulk_writes(self):
+        from app.routing.beliefs import register_hazards
+        cache = self.Cache()
+        hazards = [{"id": f"city:permit:{i}", "kind": "construction", "properties": {"status": "active"},
+                    "geometry": {"type": "Point", "coordinates": [-80.2, 25.8]}} for i in range(2500)]
+        self.assertEqual(await register_hazards(SimpleNamespace(intel_cache=cache), hazards,
+                                                datetime.now(timezone.utc)), 2500)
+        self.assertEqual(len(cache.docs), 2500)
+        self.assertEqual(cache.bulk_calls, 3)  # 1000 per batch

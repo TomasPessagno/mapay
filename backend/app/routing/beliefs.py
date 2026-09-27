@@ -57,6 +57,16 @@ def contribution(source: str, observed_at: datetime, now: datetime) -> float:
     return value
 
 
+# Display-only fields a layer may pass along; /layers and the heads-up read them. Never used by
+# the belief math.
+DISPLAY_PROPERTIES = ("title", "place", "description", "start_time", "end_time", "level", "source_url",
+                      "source_label")
+
+
+def display_properties(properties: dict) -> dict:
+    return {k: properties[k] for k in DISPLAY_PROPERTIES if properties.get(k) is not None}
+
+
 async def register_hazard(db, hazard_id: str, kind: str, geometry: dict, properties: dict,
                           now: datetime) -> None:
     """Layer ingestion calls this with its stable ID and FEMA/tide, 311 or permit fields.
@@ -76,10 +86,56 @@ async def register_hazard(db, hazard_id: str, kind: str, geometry: dict, propert
         result = await db.intel_cache.update_one(
             {"_id": key, "prior_log_odds": old["prior_log_odds"]},
             {"$inc": {"log_odds": value - old["prior_log_odds"]},
-             "$set": {"prior_log_odds": value, "geometry": geometry},
+             "$set": {"prior_log_odds": value, "geometry": geometry,
+                      "properties": display_properties(properties)},
              "$max": {"last_updated": utc(now)}})
         if result.matched_count:
             return
+
+
+async def register_hazards(db, hazards: list[dict], now: datetime) -> int:
+    """Bulk register_hazard for large layers (thousands of permits): the same prior-delta update,
+    in a few bulk writes instead of three round trips per hazard.
+
+    `hazards`: [{"id", "kind", "geometry", "properties"}]. A compare-and-swap that loses to a
+    concurrent prior refresh falls back to register_hazard for that hazard. Returns the count.
+    """
+    from pymongo import UpdateOne
+
+    moment = utc(now)
+    keyed = {f"belief:{h['id']}": (h, log_odds(prior_probability(h["kind"], h["properties"]))) for h in hazards}
+    existing = {}
+    ids = list(keyed)
+    for start in range(0, len(ids), 5000):
+        cursor = db.intel_cache.find({"_id": {"$in": ids[start:start + 5000]}}, {"prior_log_odds": 1})
+        existing.update({d["_id"]: d["prior_log_odds"] for d in await cursor.to_list(length=None)})
+    operations = []
+    for key, (hazard, value) in keyed.items():
+        props = hazard["properties"]
+        if key not in existing:
+            operations.append(UpdateOne({"_id": key}, {"$setOnInsert": {
+                "type": "hazard_belief", "hazard_id": hazard["id"], "hazard_type": hazard["kind"],
+                "geometry": hazard["geometry"], "severity": props.get("severity", 1),
+                "prior_log_odds": value, "log_odds": value, "last_updated": moment, "created_at": moment,
+                "evidence": {}, "properties": display_properties(props)}}, upsert=True))
+        else:
+            operations.append(UpdateOne(
+                {"_id": key, "prior_log_odds": existing[key]},
+                {"$inc": {"log_odds": value - existing[key]},
+                 "$set": {"prior_log_odds": value, "geometry": hazard["geometry"],
+                          "properties": display_properties(props)},
+                 "$max": {"last_updated": moment}}))
+    for start in range(0, len(operations), 1000):
+        await db.intel_cache.bulk_write(operations[start:start + 1000], ordered=False)
+    # Re-check the compare-and-swaps: any belief whose prior moved underneath us goes one by one.
+    raced = []
+    for start in range(0, len(ids), 5000):
+        cursor = db.intel_cache.find({"_id": {"$in": ids[start:start + 5000]}}, {"prior_log_odds": 1})
+        raced += [d["_id"] for d in await cursor.to_list(length=None) if d["prior_log_odds"] != keyed[d["_id"]][1]]
+    for key in raced:
+        hazard, _ = keyed[key]
+        await register_hazard(db, hazard["id"], hazard["kind"], hazard["geometry"], hazard["properties"], now)
+    return len(keyed)
 
 
 async def add_evidence(db, hazard_id: str, evidence_id: str, source: str,

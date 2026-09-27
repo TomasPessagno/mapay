@@ -23,7 +23,9 @@ from pymongo import UpdateOne
 from app.routing.beliefs import log_odds, utc
 
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
-USER_AGENT = "MAPAY/0.1 (FIU ShellHacks 2026 hazard map; no-sidewalk layer; contact@example.com)"
+OVERPASS_URLS = (OVERPASS_URL, "https://overpass.private.coffee/api/interpreter")
+# overpass-api.de rejects placeholder contacts (contact@example.com) with 406.
+USER_AGENT = "MAPAY/0.1 (FIU ShellHacks 2026 hazard map; no-sidewalk layer; https://github.com/TomasPessagno/mapay)"
 REFRESH_SECONDS = 24 * 60 * 60
 NO_SIDEWALK_PROBABILITY = 0.9
 
@@ -80,14 +82,23 @@ def parse_response(payload: dict) -> dict:
 
 
 async def query_overpass(query: str, *, client: httpx.AsyncClient | None = None) -> dict:
+    """POST the query, trying each Overpass server in turn: the public ones often answer 504/429."""
     headers = {"User-Agent": USER_AGENT}
-    if client is not None:
-        response = await client.post(OVERPASS_URL, data={"data": query}, headers=headers)
-    else:
-        async with httpx.AsyncClient(timeout=200.0, headers=headers) as owned:
-            response = await owned.post(OVERPASS_URL, data={"data": query})
-    response.raise_for_status()
-    return response.json()
+    owned = client is None
+    client = client or httpx.AsyncClient(timeout=200.0)
+    error: Exception | None = None
+    try:
+        for url in OVERPASS_URLS:
+            try:
+                response = await client.post(url, data={"data": query}, headers=headers)
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPError as exc:
+                error = exc
+        raise error
+    finally:
+        if owned:
+            await client.aclose()
 
 
 def load_cache(path: Path = CACHE_PATH) -> dict | None:
