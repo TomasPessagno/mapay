@@ -4,8 +4,10 @@ import { IonFab, IonFabButton, IonIcon } from "@ionic/react";
 import { layersOutline } from "ionicons/icons";
 import type { RouteResponse, RouteOption } from "../lib/types";
 import { api } from "../lib/api";
-import { upsertGeoJsonLayer, toggleLayer } from "./layers";
+import { upsertGeoJsonLayer, toggleLayer, setOnHazardClick } from "./layers";
 import LegendSheet from "../components/LegendSheet";
+import HazardSheet, { type HazardProperties } from "../components/HazardSheet";
+import ReportFab from "../components/ReportFab";
 
 const MIAMI = { lat: 25.7617, lng: -80.1918 };
 
@@ -19,6 +21,14 @@ interface Props {
 export default function MapView(props: Props) {
   const [layersToggled, setLayersToggled] = useState<Record<string, boolean>>({});
   const [showLegend, setShowLegend] = useState(false);
+  const [selectedHazard, setSelectedHazard] = useState<HazardProperties | null>(null);
+
+  useEffect(() => {
+    setOnHazardClick((hazard) => {
+      setSelectedHazard(hazard as unknown as HazardProperties);
+    });
+    return () => setOnHazardClick(null);
+  }, []);
 
   return (
     <>
@@ -45,6 +55,13 @@ export default function MapView(props: Props) {
         toggled={layersToggled}
         onToggle={(id, visible) => setLayersToggled((prev) => ({ ...prev, [id]: visible }))}
       />
+
+      <HazardSheet
+        isOpen={!!selectedHazard}
+        hazard={selectedHazard}
+        onDidDismiss={() => setSelectedHazard(null)}
+      />
+      <ReportFab />
     </>
   );
 }
