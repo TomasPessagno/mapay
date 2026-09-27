@@ -13,6 +13,7 @@ import { IonReactRouter } from '@ionic/react-router';
 import { mapOutline, timeOutline, settingsOutline } from 'ionicons/icons';
 import { App as CapacitorApp } from '@capacitor/app';
 import { useEffect, useState } from 'react';
+import { useLiveActivitySync } from './headsup/liveActivity';
 
 // Pages
 import MapPage from './pages/MapPage';
@@ -26,6 +27,7 @@ const App: React.FC = () => {
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [customizeRoutine, setCustomizeRoutine] = useState<string | undefined>();
   const [customizeLeg, setCustomizeLeg] = useState<number | undefined>();
+  useLiveActivitySync();
 
   useEffect(() => {
     // Listen for deep links like mapay://customize?routine=...&leg=...

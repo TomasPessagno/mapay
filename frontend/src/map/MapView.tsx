@@ -61,7 +61,7 @@ export default function MapView(props: Props) {
             }} />
           </AdvancedMarker>
         )}
-        <MapController />
+        <MapController userLocation={props.userLocation} />
       </Map>
       <MapLayers
         {...props}
@@ -152,9 +152,19 @@ function HazardsStatusPill({ status, onRetry }: { status: LayersStatus; onRetry:
   );
 }
 
-function MapController() {
+function MapController({ userLocation }: { userLocation?: { lat: number; lng: number } | null }) {
   const map = useMap();
   const [selectedPlace, setSelectedPlace] = useState<PlaceData | null>(null);
+  const centredOnUser = useRef(false);
+
+  // Centre on the user's first known position as soon as both the map and the position exist,
+  // whichever comes last (a recenter event fired before the map loaded used to be lost).
+  useEffect(() => {
+    if (!map || !userLocation || centredOnUser.current) return;
+    centredOnUser.current = true;
+    map.panTo(userLocation);
+    map.setZoom(14);
+  }, [map, userLocation]);
 
   useEffect(() => {
     const handleRecenter = (e: Event) => {

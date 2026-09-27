@@ -3,6 +3,7 @@ import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonModal } from '
 import { useLocation } from 'react-router-dom';
 import { APIProvider } from "@vis.gl/react-google-maps";
 import { Geolocation } from '@capacitor/geolocation';
+import { App as CapacitorApp } from '@capacitor/app';
 import MapView from '../map/MapView';
 import MapSheet from '../components/MapSheet';
 import { api } from '../lib/api';
@@ -11,6 +12,31 @@ import type { PlaceData } from '../components/PlaceCard';
 import RoutineEditor from '../routines/RoutineEditor';
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? "";
+
+/**
+ * Asks for location if needed and returns the current position, or null if it's denied.
+ * checkPermissions/requestPermissions can throw on iOS (e.g. while location services start up);
+ * getCurrentPosition then still triggers the system prompt, so a throw never skips the request.
+ */
+async function locateUser(): Promise<{ lat: number; lng: number } | null> {
+  let state: string = 'prompt';
+  try {
+    state = (await Geolocation.checkPermissions()).location;
+  } catch (e) {
+    console.warn("Location permission check failed", e);
+  }
+  if (state === 'denied') return null;
+  if (state !== 'granted') {
+    try {
+      state = (await Geolocation.requestPermissions()).location;
+    } catch (e) {
+      console.warn("Location permission request failed", e);
+    }
+    if (state === 'denied') return null;
+  }
+  const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 });
+  return { lat: pos.coords.latitude, lng: pos.coords.longitude };
+}
 const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID";
 
 function getDistanceMiles(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -42,22 +68,15 @@ const MapPage: React.FC = () => {
     let watchId: string | null = null;
     let isActive = true;
 
+    let settingUp = false; // the permission prompt itself fires inactive → active; don't start twice
     const setupLocation = async () => {
+      if (settingUp || watchId) return;
+      settingUp = true;
       try {
-        const permissions = await Geolocation.checkPermissions();
-        if (permissions.location !== 'granted') {
-           const requested = await Geolocation.requestPermissions();
-           if (requested.location !== 'granted') return;
-        }
-
-        const initial = await Geolocation.getCurrentPosition();
-        if (isActive) {
-          const loc = { lat: initial.coords.latitude, lng: initial.coords.longitude };
-          setUserLocation(loc);
-          // Center the map on initial load
-          const event = new CustomEvent('recenter-map', { detail: { location: loc, zoom: 14 } });
-          window.dispatchEvent(event);
-        }
+        const initial = await locateUser();
+        if (!initial || !isActive) return;
+        // MapView centres on the first known position once the map is ready (no event to miss).
+        setUserLocation(initial);
 
         watchId = await Geolocation.watchPosition({}, (position, err) => {
           if (err) {
@@ -70,12 +89,18 @@ const MapPage: React.FC = () => {
         });
       } catch (e) {
          console.warn("Geolocation failed", e);
+      } finally {
+        settingUp = false;
       }
     };
     setupLocation();
+    const resume = CapacitorApp.addListener('appStateChange', ({ isActive: active }) => {
+      if (active) setupLocation();
+    });
 
     return () => {
       isActive = false;
+      resume.then(h => h.remove());
       if (watchId) {
         Geolocation.clearWatch({ id: watchId });
       }
@@ -188,12 +213,13 @@ const MapPage: React.FC = () => {
        const event = new CustomEvent('recenter-map', { detail: { location: userLocation, zoom: 14 } });
        window.dispatchEvent(event);
     } else {
-       Geolocation.getCurrentPosition().then(pos => {
-         const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+       // A tap is a user gesture, so this is also where a skipped or failed prompt gets asked again.
+       locateUser().then(loc => {
+         if (!loc) return;
          setUserLocation(loc);
          const event = new CustomEvent('recenter-map', { detail: { location: loc, zoom: 14 } });
          window.dispatchEvent(event);
-       }).catch(e => console.warn(e));
+       }).catch(e => console.warn("Locate me failed", e));
     }
   };
 
