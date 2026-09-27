@@ -82,24 +82,31 @@ class IngestTests(unittest.TestCase):
 
     def test_successful_ingest_records_that_run(self):
         db = SimpleNamespace(ingest_runs=AsyncMock())
+        refresh_runs = AsyncMock(return_value={})
         with patch.dict(internal.JOBS, {"news": AsyncMock(return_value={"fetched": 0, "new": 0})}), \
              patch("app.routers.internal.get_db", return_value=db), \
-             patch.object(internal.layers, "refresh_snapshot_if_changed", AsyncMock(return_value=False)):
+             patch.object(internal.layers, "refresh_snapshot_if_changed", AsyncMock(return_value=False)), \
+             patch.object(internal.layers, "refresh_runs", refresh_runs):
             response = make_client().post("/internal/ingest/news")
         self.assertEqual(response.status_code, 200, response.text)
         query, update = db.ingest_runs.update_one.await_args.args[:2]
         self.assertEqual(query, {"_id": "run:news"})
         self.assertEqual(update["$set"]["job"], "news")
         self.assertEqual(update["$set"]["items_seen"], 0)
+        # The runs cache is refreshed even when the snapshot isn't rebuilt.
+        refresh_runs.assert_awaited_once_with(db)
 
     def test_failed_ingest_records_no_run(self):
         db = SimpleNamespace(ingest_runs=AsyncMock())
+        refresh_runs = AsyncMock(return_value={})
         with patch.dict(internal.JOBS, {"news": AsyncMock(side_effect=RuntimeError("boom"))}), \
              patch("app.routers.internal.get_db", return_value=db), \
-             patch.object(internal.layers, "refresh_snapshot_if_changed", AsyncMock(return_value=False)):
+             patch.object(internal.layers, "refresh_snapshot_if_changed", AsyncMock(return_value=False)), \
+             patch.object(internal.layers, "refresh_runs", refresh_runs):
             response = make_client().post("/internal/ingest/news")
         self.assertEqual(response.status_code, 502)
         db.ingest_runs.update_one.assert_not_awaited()
+        refresh_runs.assert_not_awaited()
 
     def test_here_job_runs_incidents_and_flow(self):
         async def check():

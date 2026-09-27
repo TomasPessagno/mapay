@@ -147,6 +147,34 @@ async def latest_runs(db) -> dict[str, dict]:
     return {doc["job"]: run_summary(doc) for doc in docs if doc.get("job")}
 
 
+# Run metadata lives outside the snapshot on purpose (A28): the snapshot is only rebuilt when a
+# hazard changes, so run freshness frozen inside it would hide a quiet job. The cache is loaded
+# lazily by the first /layers request and refreshed by /internal/ingest after every run, so
+# /layers never queries `ingest_runs` per request.
+_runs_cache: dict[str, dict] | None = None
+
+
+async def runs_freshness(db) -> dict[str, dict]:
+    """{job: run_summary}, read once per process and merged into `freshness` at render time."""
+    global _runs_cache
+    if _runs_cache is None:
+        _runs_cache = await latest_runs(db)
+    return _runs_cache
+
+
+async def refresh_runs(db) -> dict[str, dict]:
+    """Called by /internal/ingest right after recording the run, rebuilt or not."""
+    global _runs_cache
+    _runs_cache = await latest_runs(db)
+    return _runs_cache
+
+
+def clear_runs() -> None:
+    """Drop the run cache (tests need each fake database to load its own)."""
+    global _runs_cache
+    _runs_cache = None
+
+
 def feature_for(doc: dict, evidence_docs: list[dict], t: datetime) -> dict | None:
     kind = doc["hazard_type"]
     props = doc.get("properties") or {}
@@ -274,10 +302,10 @@ async def hazards_fingerprint(db) -> str:
     return fingerprint.hexdigest()
 
 
-async def collect_features(db, t: datetime) -> tuple[dict[str, list[Feature]], dict[str, object], str]:
+async def collect_features(db, t: datetime) -> tuple[dict[str, list[Feature]], dict[str, datetime], str]:
     """Every belief at `t` as encoded map feature bytes with bounds, per-source freshness
-    (`<source>` = last hazard change, `<job>_run` = last successful ingest run), and a content
-    fingerprint of the documents read.
+    (`<source>` = last hazard change; `<job>_run` is merged from the runs cache at render time),
+    and a content fingerprint of the documents read.
 
     This is the expensive step (one Mongo read of beliefs + evidence, Shapely per geometry);
     the snapshot calls it once and reuses the result instead of running it per request.
@@ -290,7 +318,7 @@ async def collect_features(db, t: datetime) -> tuple[dict[str, list[Feature]], d
         if item.get("hazard_id"):
             by_hazard.setdefault(item["hazard_id"], []).append(item)
     features: dict[str, list[Feature]] = {key: [] for key in CATEGORIES}
-    freshness: dict[str, object] = {}
+    freshness: dict[str, datetime] = {}
     for doc in beliefs:
         fingerprint.add_belief(doc)
         source = source_kind(doc["hazard_id"])
@@ -313,19 +341,23 @@ async def collect_features(db, t: datetime) -> tuple[dict[str, list[Feature]], d
         kind = "news" if item.get("type") == "news" else item.get("type")
         if created and kind:
             freshness[kind] = max(freshness.get(kind, created), created)
-    for job, run in (await latest_runs(db)).items():
-        freshness[f"{job}_run"] = run
     return features, freshness, fingerprint.hexdigest()
 
 
 _RADAR_BYTES = json.dumps(RADAR_OVERLAY, separators=(",", ":")).encode()
 
 
-def _render(t: datetime, features: dict[str, list[Feature]], freshness: dict[str, object],
-            area: Bounds | None = None) -> bytes:
-    """Join the pre-encoded feature bytes into the response JSON, without re-serialising them."""
+def _render(t: datetime, features: dict[str, list[Feature]], freshness: dict[str, datetime],
+            area: Bounds | None = None, runs: dict[str, dict] | None = None) -> bytes:
+    """Join the pre-encoded feature bytes into the response JSON, without re-serialising them.
+
+    `freshness` is the snapshot's per-source last-change map; `runs` (the ingest-run cache) is
+    merged in at render time as `<job>_run`, so run freshness moves even when the snapshot keeps
+    serving without a rebuild.
+    """
+    merged = {**freshness, **{f"{job}_run": run for job, run in (runs or {}).items()}}
     rendered = json.dumps({key: value.isoformat() if isinstance(value, datetime) else value
-                           for key, value in sorted(freshness.items())}, separators=(",", ":"))
+                           for key, value in sorted(merged.items())}, separators=(",", ":"))
     parts = [b'{"t":"', t.isoformat().encode(), b'","freshness":', rendered.encode(),
              b',"radar":', _RADAR_BYTES]
     for key in CATEGORIES:
@@ -346,7 +378,8 @@ def _render(t: datetime, features: dict[str, list[Feature]], freshness: dict[str
 async def build_layers(db, t: datetime, area=None) -> bytes:
     """Slow path: read and convert everything for this exact `t` (used when `t` is far from now)."""
     features, freshness, _ = await collect_features(db, t)
-    return _render(t, features, freshness, area.bounds if area is not None else None)
+    return _render(t, features, freshness, area.bounds if area is not None else None,
+                   await runs_freshness(db))
 
 
 class Snapshot:
@@ -359,7 +392,7 @@ class Snapshot:
     __slots__ = ("built_at", "built_monotonic", "count", "features", "fingerprint", "freshness")
 
     def __init__(self, built_at: datetime, features: dict[str, list[Feature]],
-                 freshness: dict[str, object], fingerprint: str):
+                 freshness: dict[str, datetime], fingerprint: str):
         self.built_at = built_at
         self.built_monotonic = time.monotonic()
         self.features = features
@@ -390,10 +423,11 @@ def _snapshot_lock() -> asyncio.Lock:
 
 
 def clear_snapshot() -> None:
-    """Drop the snapshot entirely (tests need each fake database to build its own)."""
+    """Drop the snapshot and the runs cache (tests need each fake database to build its own)."""
     global _snapshot
     _snapshot = None
     _layers_cache.clear()
+    clear_runs()
 
 
 async def _build_snapshot(db) -> Snapshot:
@@ -416,11 +450,10 @@ async def refresh_snapshot_if_changed(db) -> bool:
     Called from inside `/internal/ingest/*` (Cloud Run has CPU while the request runs) after the
     job. Jobs re-register unchanged hazards, so the content fingerprint decides, not their write
     count; an unchanged fingerprint restarts the snapshot's age clock (the ingest request just
-    verified it), so the TTL only expires on an instance that never receives ingest calls. An
-    unchanged build still refreshes `<job>_run` freshness: a run that added no hazards must move
-    `last_run_at` (A28) without paying for the full feature rebuild. Never raises: a failed check
-    drops the snapshot so the next `/layers` request rebuilds it inline. Returns whether the
-    snapshot was rebuilt.
+    verified it), so the TTL only expires on an instance that never receives ingest calls. Run
+    freshness is not part of the snapshot (A28): `/internal/ingest` refreshes the runs cache
+    separately. Never raises: a failed check drops the snapshot so the next `/layers` request
+    rebuilds it inline. Returns whether the snapshot was rebuilt.
     """
     global _snapshot
     async with _snapshot_lock():
@@ -433,13 +466,6 @@ async def refresh_snapshot_if_changed(db) -> bool:
                 _snapshot = None
                 return False
             if current == snapshot.fingerprint:
-                try:
-                    runs = await latest_runs(db)
-                except Exception:
-                    log.exception("Could not read ingest runs for freshness")
-                    runs = {}
-                snapshot.freshness = {**snapshot.freshness,
-                                      **{f"{job}_run": run for job, run in runs.items()}}
                 snapshot.mark_fresh()
                 log.info("Layers snapshot kept (%d features): no hazard change", snapshot.count)
                 return False
@@ -494,9 +520,11 @@ async def get_layers(t: Annotated[datetime | None, Query(description="Departure 
     # "Now" (and anything within 15 min) is time-independent enough to answer from the snapshot:
     # filter the prebuilt features by their bounds instead of reading all beliefs again.
     if abs((when - datetime.now(timezone.utc)).total_seconds()) <= SNAPSHOT_FRESH_SECONDS:
-        snapshot = await get_snapshot(get_db())
+        db = get_db()
+        snapshot = await get_snapshot(db)
         if snapshot is not None:
-            return _response(_render(when, snapshot.features, snapshot.freshness, area_bounds))
+            return _response(_render(when, snapshot.features, snapshot.freshness, area_bounds,
+                                     await runs_freshness(db)))
     # Every other `t` (the time scrubber) keeps the exact slow path, cached by minute + bbox for 60 s.
     key = (when.replace(second=0, microsecond=0), bbox)
     cached = _layers_cache.get(key)

@@ -164,6 +164,12 @@ async def ingest(job: str, _: Annotated[dict, Depends(require_scheduler)]):
         await record_ingest_run(db, job, started, result)
     except Exception:  # run metadata must never fail an otherwise good run
         log.exception("Could not record the %s ingest run", job)
+    # Run freshness lives outside the /layers snapshot (A28): refresh its cache on every run,
+    # whether or not the hazards (and therefore the snapshot) changed.
+    try:
+        await layers.refresh_runs(db)
+    except Exception:
+        log.exception("Could not refresh the ingest-run freshness cache")
     rebuilt = await _refresh_layers(db)
     seconds = round((datetime.now(timezone.utc) - started).total_seconds(), 1)
     log.info("Ingestion job %s finished in %ss, layers snapshot %s: %s", job, seconds,
