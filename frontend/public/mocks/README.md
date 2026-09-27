@@ -10,7 +10,7 @@ Example responses for every endpoint the app uses. They are the **API contract**
 | `preferences.json` | `GET /me/preferences` |
 | `routines.json` | `GET /routines` |
 | `routines-upcoming.json` | `GET /routines/upcoming` (the widget uses the same shape) |
-| `customize.json` | `POST /customize` |
+| `customize.json` | `POST /customize`. Request body: `{prompt, routine_id, leg}` for a routine leg, or `{prompt, origin: {lat, lng}, destination: {lat, lng}}` |
 | `neighborhoods.json` | `GET /neighborhoods` |
 | `report.json` | `POST /report` (a new report, or "Still there" / "Cleared" on a hazard) |
 

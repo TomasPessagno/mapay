@@ -123,8 +123,16 @@ export interface Neighborhood {
 }
 
 export interface CustomizeResponse {
-  constraints_extracted: Record<string, unknown>;
-  route_response: RouteResponse;
+  prompt: string;
+  constraints: Record<string, unknown>;
+  old_route: RouteOption;
+  new_route: RouteOption;
+  explanation: string;
+  deep_links: {
+    google_maps?: string;
+    apple_maps?: string;
+    waze?: string;
+  };
 }
 
 export interface LayersResponse {
