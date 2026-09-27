@@ -2,16 +2,82 @@
 
 One place for how MAPAY is built and run, as it stands on `main`. For the plan and the rules, see [`AGENTS.md`](../AGENTS.md). For the product, see [`README.md`](../README.md). For the visual spec, see [`design.md`](design.md). Production status is as of Sept 27, 2026.
 
-## At the table: quick answers
+## How it works, step by step
 
-- **What does AI do?** Gemini (Vertex AI) reads local news into structured events, turns a Customize prompt into route constraints, and explains route changes. It never chooses the route: Google gives up to 3 alternatives, and our deterministic scoring picks one.
-- **How is a route "hazard-aware"?** Each alternative costs its predicted minutes plus a penalty per active hazard within ~30 m of it: weight (avoid 10, prefer-avoid 2) × severity × probability × 3 min. If the best one still crosses a severe hazard you avoid, we add a steering waypoint ~300 m past it and ask Google again.
-- **Why the extra stops in Google Maps?** They are those steering waypoints. Google can't be told to avoid an arbitrary street, so we bend the route with up to 3 waypoints.
-- **How sure are you that a street is flooded?** Every hazard is a Bayesian log-odds belief. It starts from a prior (FEMA zone + tide above the flood threshold), and news (+0.5), satellite (+1.0) and user reports (+1.5) move it. It counts for routing at p ≥ 0.73. The numbers are hand-tuned, not calibrated.
-- **Is the satellite live?** Near real time: Copernicus GFM flood maps per Sentinel-1 pass, hours to ~2 days late, passes days apart. GFM has produced detections over Miami. Sentinel-2 construction detection is built but not running (Earth Engine isn't registered).
-- **Laya?** Open-source decision model, fine-tuned on Miami news as a first-pass filter. It isn't used in production: news goes straight to Gemini.
-- **Stack:** React + Ionic + Capacitor app, SwiftUI widget + Live Activity; FastAPI on Cloud Run (`min-instances=1`); MongoDB Atlas; Cloud Scheduler jobs; Google Maps Platform; Gemini on Vertex AI.
-- **Why no push notifications?** A free Apple ID can't receive them, so the phone schedules its own reminders and the widget fetches its own data.
+### 1. Data comes in (Cloud Scheduler → ingestion jobs)
+
+1. Cloud Scheduler calls `POST /internal/ingest/{job}` on a fixed schedule (see Jobs), with a Google-signed token that the backend checks. Each job runs inside that request, since Cloud Run gives no CPU between requests.
+2. Each job fetches its source: NOAA tides, FEMA zones and curated hotspots, NWS alerts, HERE incidents and flow, City of Miami projects and permits, OSM sidewalks, 311 potholes, Copernicus GFM flood maps, local news.
+3. Map layers become **hazards**. For each feature, the job calls `register_hazard(stable_id, kind, geometry, properties)`. The id stays the same across refreshes (the same permit is always the same hazard).
+   - A new id creates a belief with its **prior**: a starting probability from what the source says. For a flood, that's the FEMA zone plus how far the tide is above the minor-flood threshold. For a permit, its status (closed 0.95, active 0.8, …).
+   - An existing id only gets its prior updated, and the evidence it has already collected is kept.
+4. News goes through its own pipeline: new articles (never the same one twice) → Laya's yes/no filter if `LAYA_URL` is set (not in production) → Gemini extracts category, place, time, severity and summary → Google geocodes the place inside Miami-Dade → either
+   - it's within ~150 m of an existing hazard of the same kind: it becomes **evidence** on that hazard, or
+   - it's new (a crash, police activity, a closure): it registers a new hazard with a fixed prior, and the article is attached as evidence so its link shows on the map.
+5. Satellite (GFM) flood areas do the same: evidence on the flood hazards they overlap, and new flood hazards elsewhere.
+6. User reports (`POST /report`) linked to a hazard add crowd evidence, or "cleared" evidence if the user says it's gone.
+7. After each job, the backend records the run (shown as freshness on the map) and rebuilds the `/layers` snapshot if any hazard changed. This check is the one that currently re-reads the whole database (see Known limits).
+
+### 2. The model updates (hazard beliefs)
+
+1. Each hazard stores a **log-odds** value: `log(p / (1 − p))`. Adding evidence is just adding a number:
+
+   | Evidence | Adds | Decay |
+   |---|---|---|
+   | News article | +0.5 | None |
+   | Satellite detection | +1.0 | None |
+   | User report | +1.5 | Fades to 0 over 2 h |
+   | "Cleared" report | −1.5 | Fades to 0 over 2 h |
+
+2. Every piece of evidence is counted **once** (keyed by source + id), with a single atomic database update, so a re-delivered article or report never counts twice.
+3. When a prior changes (e.g. the tide rises), only the difference is applied, so the evidence stays.
+4. Decay isn't written by a timer. Whenever the backend reads the beliefs (for `/route`, `/layers`, upcoming legs), it recomputes the decaying contributions for "now".
+5. A hazard is **active** at log-odds ≥ 1.0, i.e. p ≥ 0.73. Only active hazards affect routing. Below that, the map shows it as "unconfirmed", and a hazard with only its prior shows as "predicted".
+6. Beliefs never expire. News-only hazards are filtered by age on the map instead (crash 3 h, flood 12 h, closure 24 h or its stated end, construction 30 days).
+
+Example: a street in FEMA zone AE starts at p 0.6 (log-odds 0.41, not active). One news article (+0.5) takes it to 0.91, which is p 0.71: still not active. A user report (+1.5) takes it to 2.41, p 0.92: now it's active and routes avoid it. Two hours later, with the report faded, it's back to 0.91.
+
+### 3. The map shows it (`GET /layers`)
+
+1. The app asks for `/layers` for the visible area.
+2. The backend serves it from an in-memory snapshot of all hazards: one GeoJSON collection per category, each hazard with its probability, severity, sources and times, plus freshness per source.
+3. The app draws each category with its own colour, icon and line style (`frontend/src/map/legend.ts`). Severity sets the line width, probability sets the opacity. Tapping a hazard opens its sources and confidence.
+
+### 4. A route is calculated (`POST /route`)
+
+1. The app sends origin, destination, departure time and the user's preferences (per category: avoid / prefer to avoid / don't care, avoided neighbourhoods, tolls, highways).
+2. The backend asks **Google Routes API** for up to 3 alternatives at that departure time, with Google's own traffic prediction.
+3. It loads the current beliefs (cached for 60 s per server) and keeps the active ones.
+4. It **scores** each alternative: `predicted minutes + Σ penalty`, one penalty per active hazard within ~30 m of the route. `penalty = weight × severity × p × 3 min`, where weight is 10 for "avoid", 2 for "prefer to avoid", 0 for "don't care". An avoided neighbourhood counts as a severity-5 hazard with p = 1. The cheapest route wins.
+   - Example: a 25-min route through an active flood (severity 4, p 0.9, "avoid") costs 25 + 10 × 4 × 0.9 × 3 = 133. A 31-min route with no hazards costs 31, so it wins.
+5. **Detour:** if the winner still crosses an "avoid" hazard of severity ≥ 4, the backend picks a point ~300 m past the hazard's edge, on the side with fewer hazards, and asks Google again with that point as a pass-through waypoint. At most 2 rounds and 3 waypoints. If nothing avoids it (e.g. the destination is in an avoided neighbourhood), it returns the best route and says so.
+6. The response has the chosen route, the scored alternatives, the hazards on the route, a short briefing, and deep links: Google Maps with the waypoints, Apple Maps and Waze with origin → destination only.
+7. **Start** opens Google Maps with that link. Google drives; MAPAY's waypoints steer it around the hazard.
+8. With `routine_id` + `leg`, the route and a snapshot of the beliefs on it are saved on that leg (`route_state`).
+
+### 5. Customize with a prompt (`POST /customize`)
+
+1. The user types e.g. "stop at a Starbucks and stay off the Palmetto".
+2. Gemini returns **constraints only** as JSON: stops, categories to avoid, neighbourhoods, roads, tolls, highways, departure time. A keyword parser takes over if Gemini is down.
+3. The backend resolves them: stops with Places Text Search near the current route, neighbourhood names to ids, road names to road geometry from a stored OpenStreetMap snapshot.
+4. The same scoring + detour runs with those constraints (an avoided road counts after ≥ 300 m of overlap).
+5. Gemini writes a 1–2 sentence explanation from the router's result. The app shows the old and new routes side by side.
+
+### 6. Routines and the heads-up
+
+1. A routine is a set of legs between saved places, each at a time ("at 09:30") or in a window ("between 17:00 and 19:00"), repeating daily, weekly or on chosen weekdays, in the routine's timezone.
+2. `GET /routines/upcoming` lists the next occurrences over 7 days. For each leg it **recomputes the route against the current beliefs** (the same scoring + detour; cached 15 min per server), and adds the top hazards, a signed Static Maps image and, for windows, the best time to leave (departures tried every 15 min across the window).
+3. The `briefings` job precomputes this every 10 min for legs leaving in the next 2 h, so the app and widget load it instantly.
+4. The **app** fetches it on launch, on resume and after routine edits. It schedules one local notification per leg at departure − 30 min (Start / Customize actions, route image), updates the in-app card and the Live Activity, and asks the widget to reload.
+5. The **widget** fetches the same list on its own (no App Groups on a free Apple ID), switches to heads-up mode at departure − 30 min with a countdown, and reloads 15 min before the next heads-up.
+
+### 7. Recalculating when conditions change
+
+1. **In practice:** every fetch of `/routines/upcoming` (the app refreshing, the widget reloading, the `briefings` job) routes the leg again with the latest beliefs. If a flood became active since the last fetch, the new route avoids it, and the notification, widget and card show the new route.
+2. **The pre-route check** (`POST /routines/{id}/pre-route-check`): 30–60 min before a leg, it compares the beliefs on the saved route with the snapshot saved on the leg.
+   - No hazard crossed the 0.73 line: nothing is recalculated and Gemini isn't called.
+   - A hazard crossed it: the backend reroutes (scoring only, without the detour step), saves the new route and snapshot, and Gemini explains what changed ("NE 151st St flood confirmed by a user report").
+   - The endpoint works, but **no client calls it yet**: the app and widget use `/routines/upcoming` instead. The demo's "Fire heads-up now" uses `POST /demo/heads-up`, which makes a leg due in 30 min.
 
 ## At a glance
 
@@ -78,7 +144,7 @@ User endpoints identify the device with the `X-Device-Id` header (anonymous, no 
 4. `deeplinks.py`: Google Maps link with up to 3 waypoints; Apple Maps and Waze get origin → destination only.
 5. `engine.py` is now just a thin wrapper over Routes API. The old OSMnx graph is gone.
 
-`routes_cache` has a 15-minute TTL index, but no code writes to it yet, so every `/route` call reaches Google.
+`routes_cache` has a 15-minute TTL index, but no code writes to it, so every `/route` call reaches Google. Upcoming-leg routes use a separate 15-minute in-memory cache per server (`briefings/builder.py`).
 
 ### Hazard beliefs (`beliefs.py`, `belief_config.py`)
 
@@ -187,7 +253,7 @@ The Console only offers an API in a key's API list once that API is enabled in t
 - A missing OSM sidewalk tag means *unknown*, not "no sidewalk".
 - Confidence values are heuristics.
 - Anonymous device ids are not authentication.
-- `/route` isn't cached yet (see Routing).
+- `/route` isn't cached (see Routing).
 - **MongoDB Atlas M0 throttling (Sept 27):** single-document queries took ~7.7 s, so Live `/route` and `/layers` timed out. Cause in the code: after every ingest job, `hazards_fingerprint` (`routers/layers.py`) streams every belief and evidence document from Atlas to decide whether to rebuild the `/layers` snapshot, and `weather` + `here` run every 5 min. Atlas Metrics showed ~14 MB/s network spikes every ~5 min and a ~300 ops/s spike. `weather` and `here` are paused until the fix (#150) is deployed; resume them with `gcloud scheduler jobs resume mapay-ingest-weather --location us-east1` (and `…-here`). If the throttle lasts, the Atlas Flex tier removes the M0 limits, at a monthly cost.
 
 ## Production status (Sept 27)
