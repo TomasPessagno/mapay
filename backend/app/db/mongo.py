@@ -33,6 +33,13 @@ async def init_indexes() -> None:
     # routines — persistent saved schedules
     await db.routines.create_index("user_id")
 
+    # places — saved places per device
+    await db.places.create_index("user_id")
+
+    # demo_overrides — "fire heads-up now"; each doc expires at its own expires_at
+    await db.demo_overrides.create_index("expires_at", expireAfterSeconds=0)
+    await db.demo_overrides.create_index("user_id")
+
 
 def close_client() -> None:
     global _client

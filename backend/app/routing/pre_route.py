@@ -55,9 +55,16 @@ async def leg_endpoints(db, routine: dict, leg: dict) -> tuple[tuple[float, floa
     return points[0], points[1]
 
 
-async def check_routine(db, routine: dict, leg_index: int, departure: datetime, now: datetime) -> dict:
-    """Re-check one leg's saved route 30–60 min before it leaves; recompute only on a crossing."""
-    leg = check_departure(routine, leg_index, departure)
+async def check_routine(db, routine: dict, leg_index: int, departure: datetime, now: datetime,
+                        demo: bool = False) -> dict:
+    """Re-check one leg's saved route 30–60 min before it leaves; recompute only on a crossing.
+    `demo`: the departure comes from a /demo/heads-up override, so it skips the schedule check."""
+    if demo:
+        if not 0 <= leg_index < len(routine.get("legs") or []):
+            raise ValueError(f"Routine has no leg {leg_index}")
+        leg = routine["legs"][leg_index]
+    else:
+        leg = check_departure(routine, leg_index, departure)
     minutes = (utc(departure) - utc(now)).total_seconds() / 60
     low, high = C["check_window_minutes"]
     if not low <= minutes <= high:

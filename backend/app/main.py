@@ -8,6 +8,7 @@ from app.db.mongo import close_client, init_indexes
 from app.routers import (
     alerts,
     customize,
+    demo,
     internal,
     layers,
     me,
@@ -47,6 +48,7 @@ app.include_router(internal.router)
 app.include_router(places.router)
 app.include_router(me.router)
 app.include_router(customize.router)
+app.include_router(demo.router)
 
 
 @app.get("/health")

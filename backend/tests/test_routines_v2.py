@@ -88,7 +88,7 @@ class Collection:
 
 class Api:
     def __init__(self):
-        self.db = SimpleNamespace(routines=Collection(), places=Collection(), users=Collection([
+        self.db = SimpleNamespace(routines=Collection(), places=Collection(), demo_overrides=Collection(), users=Collection([
             {"_id": DEV_A, "preferences": {"categories": {"flood": "ignore"}}}]))
         self.device = DEV_A
         app = FastAPI()

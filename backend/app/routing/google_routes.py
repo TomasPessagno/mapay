@@ -40,6 +40,21 @@ def decode_polyline(encoded: str) -> list[list[float]]:
     return coords
 
 
+def encode_polyline(coords) -> str:
+    """GeoJSON [lng, lat] coordinates → Google's encoded polyline (the inverse of decode_polyline)."""
+    out, prev_lat, prev_lng = [], 0, 0
+    for lng, lat in coords:
+        lat_e5, lng_e5 = round(lat * 1e5), round(lng * 1e5)
+        for delta in (lat_e5 - prev_lat, lng_e5 - prev_lng):
+            value = ~(delta << 1) if delta < 0 else delta << 1
+            while value >= 0x20:
+                out.append(chr((0x20 | (value & 0x1F)) + 63))
+                value >>= 5
+            out.append(chr(value + 63))
+        prev_lat, prev_lng = lat_e5, lng_e5
+    return "".join(out)
+
+
 def _seconds(duration: str | None) -> int:
     # Routes API durations are strings like "2460s".
     return round(float(duration.rstrip("s"))) if duration else 0
