@@ -104,7 +104,7 @@ class Collection:
     def __init__(self, docs=()):
         self.docs = list(docs)
 
-    def find(self, query):
+    def find(self, query, projection=None):
         def ok(doc):
             for key, value in query.items():
                 if isinstance(value, dict) and "$in" in value:

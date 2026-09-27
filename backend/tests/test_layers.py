@@ -11,6 +11,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.routers import layers
+from app.routing import pre_route
 from app.routing.beliefs import log_odds
 
 NOW = datetime(2026, 9, 28, 13, 0, tzinfo=timezone.utc)
@@ -18,19 +19,34 @@ MOCK = Path(__file__).resolve().parents[2] / "frontend" / "public" / "mocks" / "
 
 
 class FakeCursor:
-    """Motor cursor stand-in: supports to_list and async iteration, and honours projections."""
+    """Motor cursor stand-in: supports sort/limit, to_list, async iteration, and projections."""
 
     def __init__(self, docs, projection=None):
-        self.docs = docs
+        self.docs = list(docs)
         self.projection = projection or {}
 
     def _project(self, doc):
         if not self.projection:
             return doc
-        return {key: value for key, value in doc.items() if self.projection.get(key, 1)}
+        includes = {key for key, value in self.projection.items() if value}
+        if includes:  # an inclusion projection (plus `_id` unless excluded)
+            projected = {key: value for key, value in doc.items() if key in includes}
+            if self.projection.get("_id", 1):
+                projected["_id"] = doc["_id"]
+            return projected
+        return {key: value for key, value in doc.items() if not self.projection.get(key, 0)}
+
+    def sort(self, key, direction=1):
+        self.docs.sort(key=lambda doc: (doc.get(key) is None, doc.get(key)), reverse=direction < 0)
+        return self
+
+    def limit(self, count):
+        self.docs = self.docs[:count]
+        return self
 
     async def to_list(self, length=None):
-        return [self._project(doc) for doc in self.docs]
+        docs = self.docs[:length] if length else self.docs
+        return [self._project(doc) for doc in docs]
 
     async def _iterate(self):
         for doc in self.docs:
@@ -43,7 +59,7 @@ class FakeCursor:
 class FakeIntelCache:
     def __init__(self, docs):
         self.docs = docs
-        self.queries = []
+        self.queries = []  # (query, projection), so tests can tell full reads from the marker
 
     @staticmethod
     def _matches(doc, query):
@@ -56,8 +72,11 @@ class FakeIntelCache:
         return True
 
     def find(self, query, projection=None):
-        self.queries.append(query)
+        self.queries.append((query, projection))
         return FakeCursor([d for d in self.docs if self._matches(d, query)], projection)
+
+    async def count_documents(self, query):
+        return sum(1 for doc in self.docs if self._matches(doc, query))
 
 
 class FakeRuns:
@@ -77,8 +96,15 @@ class FakeDb:
 
     @property
     def evidence_queries(self):
-        """How many times the evidence collection was read: the snapshot build does it once."""
-        return sum(1 for q in self.intel_cache.queries if "_id" in q)
+        """How many times the evidence collection was fully read: the snapshot build does once."""
+        return sum(1 for query, projection in self.intel_cache.queries
+                   if "_id" in query and projection == layers.EVIDENCE_PROJECTION)
+
+    @property
+    def belief_reads(self):
+        """How many full belief reads happened; the marker reads one field, not documents."""
+        return sum(1 for _, projection in self.intel_cache.queries
+                   if projection == pre_route.BELIEF_PROJECTION)
 
 
 def point(lng, lat):
@@ -298,6 +324,15 @@ class SnapshotTests(unittest.TestCase):
         self.assertEqual(db.evidence_queries, 1)  # second request never reached Mongo
         self.assertEqual(self.ids(first.json(), "flood"), self.ids(second.json(), "flood"))
 
+    def test_snapshot_build_seeds_the_belief_cache(self):
+        db = FakeDb(self.seeded_now())
+        self.get(db)
+        self.assertEqual(db.belief_reads, 1)
+        # The route/pre-route path then shares the snapshot's read instead of querying again.
+        asyncio.run(pre_route.current_hazards(db, datetime.now(timezone.utc)))
+        asyncio.run(pre_route.current_hazards(db, datetime.now(timezone.utc)))
+        self.assertEqual(db.belief_reads, 1)
+
     def test_snapshot_stores_encoded_bytes_with_bounds(self):
         self.get(FakeDb(self.seeded_now()))
         encoded, bounds = layers._snapshot.features["flood"][0]
@@ -363,7 +398,8 @@ class SnapshotTests(unittest.TestCase):
 
 
 class RefreshTests(unittest.TestCase):
-    """A27: ingest refreshes the snapshot inline, and only when a belief changed."""
+    """A27/A29: ingest refreshes the snapshot inline, only when the cheap marker changed, and at
+    most once per MIN_REBUILD_SECONDS."""
 
     def setUp(self):
         layers.clear_snapshot()
@@ -378,17 +414,23 @@ class RefreshTests(unittest.TestCase):
     def build(self, db):
         return asyncio.run(layers.get_snapshot(db))
 
+    def age_snapshot(self):
+        """Pretend the last rebuild was long enough ago for the min interval to have passed."""
+        layers._snapshot.rebuilt_monotonic -= layers.MIN_REBUILD_SECONDS + 1
+
     def test_no_snapshot_is_built_inline(self):
         db = FakeDb(self.seeded_now())
         self.assertTrue(asyncio.run(layers.refresh_snapshot_if_changed(db)))
         self.assertIsNotNone(layers._snapshot)
 
-    def test_unchanged_hazards_keep_the_snapshot(self):
+    def test_unchanged_marker_causes_no_full_read(self):
         db = FakeDb(self.seeded_now())
         self.build(db)
+        self.assertEqual(db.belief_reads, 1)  # the build's one read
         before = layers._snapshot
         self.assertFalse(asyncio.run(layers.refresh_snapshot_if_changed(db)))
-        self.assertIs(before, layers._snapshot)  # not replaced by a new snapshot
+        self.assertIs(before, layers._snapshot)
+        self.assertEqual(db.belief_reads, 1)  # the marker reads one field, not the documents
 
     def test_unchanged_ingest_resets_the_snapshot_age(self):
         db = FakeDb(self.seeded_now())
@@ -401,13 +443,17 @@ class RefreshTests(unittest.TestCase):
         self.assertLess(time.monotonic() - snapshot.built_monotonic, 1.0)
         self.assertIs(asyncio.run(layers.get_snapshot(db)), snapshot)
 
-    def test_re_registered_last_updated_alone_keeps_the_snapshot(self):
+    def test_rebuild_inside_the_min_interval_is_skipped(self):
         base = self.seeded_now()
         self.build(FakeDb(base))
-        before = layers._snapshot
+        snapshot = layers._snapshot
         bumped = FakeDb([dict(doc, last_updated=datetime.now(timezone.utc)) for doc in base])
         self.assertFalse(asyncio.run(layers.refresh_snapshot_if_changed(bumped)))
-        self.assertIs(before, layers._snapshot)
+        self.assertIs(snapshot, layers._snapshot)  # throttled: no full read
+        self.assertEqual(bumped.belief_reads, 0)
+        self.age_snapshot()
+        self.assertTrue(asyncio.run(layers.refresh_snapshot_if_changed(bumped)))
+        self.assertIsNot(snapshot, layers._snapshot)  # the accepted cost of the cheap marker
 
     def test_unchanged_hazards_leave_run_freshness_to_the_cache(self):
         base = self.seeded_now()
@@ -422,53 +468,63 @@ class RefreshTests(unittest.TestCase):
     def test_changed_belief_rebuilds_inside_the_call(self):
         base = self.seeded_now()
         self.build(FakeDb(base))
-        before = layers._snapshot
+        snapshot = layers._snapshot
+        self.age_snapshot()
         added = belief("flood:new", "flood", point(-80.18, 25.76), 0.9, updated=datetime.now(timezone.utc))
         changed = FakeDb(base + [added])
         self.assertTrue(asyncio.run(layers.refresh_snapshot_if_changed(changed)))
-        self.assertIsNot(before, layers._snapshot)  # already rebuilt when the call returned
+        self.assertIsNot(snapshot, layers._snapshot)  # already rebuilt when the call returned
         self.assertEqual(layers._snapshot.count, 3)
 
     def test_changed_evidence_rebuilds(self):
         base = self.seeded_now()
         self.build(FakeDb(base))
-        before = layers._snapshot
+        snapshot = layers._snapshot
+        self.age_snapshot()
         evidence = {"_id": "evidence:news:x", "type": "news", "hazard_id": "flood:near",
                     "title": "NBC6: street flooding", "created_at": datetime.now(timezone.utc),
                     "expires_at": datetime.now(timezone.utc) + timedelta(hours=3)}
         self.assertTrue(asyncio.run(layers.refresh_snapshot_if_changed(FakeDb(base + [evidence]))))
-        self.assertIsNot(before, layers._snapshot)
+        self.assertIsNot(snapshot, layers._snapshot)
 
 
-class FingerprintTests(unittest.TestCase):
-    """The fingerprint ignores write timestamps but notices any content change or removal."""
+class MarkerTests(unittest.TestCase):
+    """A29: the cheap change marker — counts and newest timestamps only, no document bodies."""
 
     @staticmethod
-    def fingerprint(docs):
-        return asyncio.run(layers.hazards_fingerprint(FakeDb(docs)))
+    def marker(docs):
+        return asyncio.run(layers.hazards_marker(FakeDb(docs)))
 
-    def test_last_updated_alone_does_not_change_it(self):
+    def test_unchanged_store_has_the_same_marker(self):
         docs = seeded()
+        self.assertEqual(self.marker(docs), self.marker([dict(doc) for doc in docs]))
+
+    def test_added_or_removed_belief_changes_it(self):
+        docs = seeded()
+        base = self.marker(docs)
+        added = [*docs, belief("flood:new", "flood", point(-80.2, 25.8), 0.5)]
+        removed = [doc for doc in docs if doc["_id"] != "belief:here:1"]
+        self.assertNotEqual(base, self.marker(added))
+        self.assertNotEqual(base, self.marker(removed))
+
+    def test_newer_last_updated_or_evidence_created_at_changes_it(self):
+        docs = seeded()
+        base = self.marker(docs)
         bumped = [{**doc, "last_updated": doc["last_updated"] + timedelta(hours=1)}
                   if "last_updated" in doc else dict(doc) for doc in docs]
-        self.assertEqual(self.fingerprint(docs), self.fingerprint(bumped))
+        added_evidence = [*docs, {"_id": "evidence:news:zz", "type": "news", "hazard_id": "flood:x",
+                                  "created_at": datetime.now(timezone.utc) + timedelta(hours=1)}]
+        self.assertNotEqual(base, self.marker(bumped))
+        self.assertNotEqual(base, self.marker(added_evidence))
 
-    def test_content_change_does_change_it(self):
-        docs = seeded()
-        base = self.fingerprint(docs)
-        changed_belief = [dict(doc) for doc in docs]
-        changed_belief[0]["log_odds"] += 0.5
-        changed_properties = [dict(doc) for doc in docs]
-        changed_properties[2]["properties"] = {**changed_properties[2]["properties"],
-                                              "end_time": "2026-09-29T00:00:00Z"}
-        removed = [doc for doc in docs if doc["_id"] != "belief:here:1"]
-        changed_evidence = [*docs[:-1], {**docs[-1], "title": "NBC6: crash on I-95 (updated)"}]
-        for changed in (changed_belief, changed_properties, removed, changed_evidence):
-            self.assertNotEqual(base, self.fingerprint(changed))
-
-    def test_document_order_does_not_change_it(self):
-        docs = seeded()
-        self.assertEqual(self.fingerprint(docs), self.fingerprint(list(reversed(docs))))
+    def test_marker_reads_no_document_bodies(self):
+        db = FakeDb(seeded())
+        asyncio.run(layers.hazards_marker(db))
+        self.assertEqual(db.belief_reads, 0)
+        self.assertEqual(db.evidence_queries, 0)
+        projections = [projection for _, projection in db.intel_cache.queries]
+        self.assertIn({"last_updated": 1}, projections)
+        self.assertIn({"created_at": 1}, projections)
 
 
 class PayloadTests(unittest.TestCase):

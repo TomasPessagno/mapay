@@ -19,17 +19,28 @@ def on_route(route: dict, hazards: list[dict]) -> dict:
     return {h["hazard_id"]: snapshot(h) for h in hazards if corridor.intersects(shape(h["geometry"]))}
 
 
-BELIEF_CACHE_SECONDS = 60  # ingestion runs every 5+ min; ~30k beliefs take seconds to read
+# A29: Atlas M0 throttles (~7.7 s for one document), so a full belief read is a last resort:
+# route requests and /layers share one read per 15 min, and the snapshot rebuild is the only
+# place that drops the cache, seeding it with the documents it just read.
+BELIEF_CACHE_SECONDS = 15 * 60
+# Only the fields the map and the router read; `_id`, `type` and any future ingestion-only
+# field stay on the server, so the read stays as small as it can be (A29).
+BELIEF_PROJECTION = {
+    "_id": 0, "hazard_id": 1, "hazard_type": 1, "geometry": 1, "severity": 1,
+    "prior_log_odds": 1, "log_odds": 1, "evidence": 1, "properties": 1,
+    "created_at": 1, "last_updated": 1,
+}
 _belief_cache: dict[int, tuple[float, list[dict]]] = {}
 
 
 async def belief_docs(db) -> list[dict]:
-    """All stored belief documents, cached per process for BELIEF_CACHE_SECONDS. Callers must not
-    mutate them (belief_at returns copies)."""
+    """All stored belief documents, cached per process for BELIEF_CACHE_SECONDS. The /layers
+    snapshot rebuild clears the cache before its own read, so the snapshot and the router share
+    one query. Callers must not mutate the docs (belief_at returns copies)."""
     cached = _belief_cache.get(id(db))
     if cached and time.monotonic() - cached[0] < BELIEF_CACHE_SECONDS:
         return cached[1]
-    docs = await db.intel_cache.find({"type": "hazard_belief"}).to_list(length=None)
+    docs = await db.intel_cache.find({"type": "hazard_belief"}, BELIEF_PROJECTION).to_list(length=None)
     _belief_cache[id(db)] = (time.monotonic(), docs)
     return docs
 

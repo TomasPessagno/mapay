@@ -9,11 +9,16 @@ within SNAPSHOT_FRESH_SECONDS of now filters those bytes (a plain bounds check, 
 round-trip, no per-request Shapely parsing). Once the snapshot is older than SNAPSHOT_TTL_SECONDS
 it is rebuilt inline, inside the request: Cloud Run only gives CPU while a request is in flight,
 so a task left running between requests could stall mid-build while holding its memory. For the
-same reason `/internal/ingest/*` rebuilds it inline after the job, and only when a cheap content
-fingerprint of the belief and evidence documents shows the job actually changed something.
+same reason `/internal/ingest/*` rebuilds it inline after the job.
+
+Change detection is a cheap marker, not a content fingerprint (A29): Atlas M0 got throttled by the
+old full-collection `hazards_fingerprint`, which streamed every belief and evidence document on
+every ingest run (~30k docs, ~19 MB) just to decide whether anything changed. The marker is four
+index-covered queries (counts + newest timestamps), and a changed marker rebuilds at most once per
+MIN_REBUILD_SECONDS so the weather/HERE jobs every 5 min can't cause a full read each time. The
+snapshot and `belief_docs` (routes, pre-route check) share the one full read per rebuild.
 """
 import asyncio
-import hashlib
 import json
 import logging
 import time
@@ -73,6 +78,9 @@ MIN_PROBABILITY = 0.1
 # fallback for an instance that receives no ingest calls at all (A27).
 SNAPSHOT_TTL_SECONDS = 30 * 60
 SNAPSHOT_FRESH_SECONDS = 15 * 60
+# A29: the shortest gap between two full rebuilds. Weather/HERE re-register hazards every 5 min,
+# bumping `last_updated`, so without this the marker would trigger a full read every 5 min.
+MIN_REBUILD_SECONDS = 15 * 60
 
 
 def source_kind(hazard_id: str) -> str:
@@ -245,74 +253,49 @@ def _intersects(bounds: Bounds, area: Bounds) -> bool:
     return minx <= east and maxx >= west and miny <= north and maxy >= south
 
 
-def _digest(doc: dict, skip: tuple[str, ...] = ()) -> bytes:
-    """Digest of one document's content, with `skip` fields left out.
+# Only the evidence fields `feature_for` reads; the stored polygon (`geometry`, kept for the
+# 2dsphere index), contribution and pass metadata stay on the server (A29).
+EVIDENCE_PROJECTION = {
+    "_id": 0, "hazard_id": 1, "type": 1, "title": 1, "summary": 1,
+    "source_url": 1, "created_at": 1, "expires_at": 1,
+}
 
-    `last_updated` is bumped by every re-registration even when geometry, properties and prior are
-    identical, so hashing it would rebuild the snapshot after every weather and HERE run.
+
+async def _newest(db, query: dict, field: str) -> datetime | None:
+    """Newest `field` among `query`: one index-covered document, no bodies streamed."""
+    cursor = db.intel_cache.find(query, {field: 1}).sort(field, -1).limit(1)
+    docs = await cursor.to_list(length=1)
+    return docs[0].get(field) if docs else None
+
+
+async def hazards_marker(db) -> tuple:
+    """Cheap change marker: (belief count, newest belief `last_updated`, evidence count, newest
+    evidence `created_at`), four index-covered queries (A29).
+
+    It replaces the full-collection fingerprint, which streamed every document on every ingest run
+    and got the M0 cluster throttled. Trade-off: a change that keeps both the count and the newest
+    timestamp is missed (register_hazard always bumps `last_updated`, evidence documents are
+    insert-only), and a re-registration that only bumps `last_updated` looks like a change.
+    MIN_REBUILD_SECONDS caps how often that can trigger a full rebuild.
     """
-    payload = {key: value for key, value in doc.items() if key not in skip}
-    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()
-    return hashlib.blake2b(encoded, digest_size=16).digest()
+    beliefs = await db.intel_cache.count_documents({"type": "hazard_belief"})
+    evidence = await db.intel_cache.count_documents({"_id": {"$regex": "^evidence:"}})
+    return (beliefs, await _newest(db, {"type": "hazard_belief"}, "last_updated"),
+            evidence, await _newest(db, {"_id": {"$regex": "^evidence:"}}, "created_at"))
 
 
-class Fingerprint:
-    """Content hash of the belief store: XOR of per-document digests plus counts.
+async def collect_features(db, t: datetime,
+                           beliefs: list[dict]) -> tuple[dict[str, list[Feature]], dict[str, datetime]]:
+    """Every belief at `t` as encoded map feature bytes with bounds and per-source freshness
+    (`<source>` = last hazard change; `<job>_run` is merged from the runs cache at render time).
 
-    XOR makes the result independent of the order documents come back in, so no sort is needed.
+    This is the expensive step (one Mongo read of evidence plus the caller's one read of beliefs,
+    Shapely per geometry); the snapshot calls it once and reuses the result instead of running it
+    per request. `beliefs` comes from `belief_docs`, so the snapshot and the router share the one
+    full belief read per rebuild (A29).
     """
-
-    __slots__ = ("_beliefs_xor", "_evidence_xor", "beliefs", "evidence")
-
-    def __init__(self) -> None:
-        self.beliefs = 0
-        self.evidence = 0
-        self._beliefs_xor = bytearray(16)
-        self._evidence_xor = bytearray(16)
-
-    @staticmethod
-    def _xor(target: bytearray, digest: bytes) -> None:
-        for index, byte in enumerate(digest):
-            target[index] ^= byte
-
-    def add_belief(self, doc: dict) -> None:
-        self.beliefs += 1
-        self._xor(self._beliefs_xor, _digest(doc, ("last_updated",)))
-
-    def add_evidence(self, doc: dict) -> None:
-        self.evidence += 1
-        self._xor(self._evidence_xor, _digest(doc))
-
-    def hexdigest(self) -> str:
-        digest = hashlib.blake2b(digest_size=16)
-        digest.update(self.beliefs.to_bytes(8, "big"))
-        digest.update(bytes(self._beliefs_xor))
-        digest.update(self.evidence.to_bytes(8, "big"))
-        digest.update(bytes(self._evidence_xor))
-        return digest.hexdigest()
-
-
-async def hazards_fingerprint(db) -> str:
-    """Fingerprint of every belief + evidence document, streamed: it never holds the whole store."""
-    fingerprint = Fingerprint()
-    async for doc in db.intel_cache.find({"type": "hazard_belief"}, {"last_updated": 0}):
-        fingerprint.add_belief(doc)
-    async for doc in db.intel_cache.find({"_id": {"$regex": "^evidence:"}}):
-        fingerprint.add_evidence(doc)
-    return fingerprint.hexdigest()
-
-
-async def collect_features(db, t: datetime) -> tuple[dict[str, list[Feature]], dict[str, datetime], str]:
-    """Every belief at `t` as encoded map feature bytes with bounds, per-source freshness
-    (`<source>` = last hazard change; `<job>_run` is merged from the runs cache at render time),
-    and a content fingerprint of the documents read.
-
-    This is the expensive step (one Mongo read of beliefs + evidence, Shapely per geometry);
-    the snapshot calls it once and reuses the result instead of running it per request.
-    """
-    beliefs = await belief_docs(db)
-    evidence_docs = await db.intel_cache.find({"_id": {"$regex": "^evidence:"}}).to_list(length=None)
-    fingerprint = Fingerprint()
+    evidence_docs = await db.intel_cache.find({"_id": {"$regex": "^evidence:"}},
+                                              EVIDENCE_PROJECTION).to_list(length=None)
     by_hazard: dict[str, list[dict]] = {}
     for item in evidence_docs:
         if item.get("hazard_id"):
@@ -320,7 +303,6 @@ async def collect_features(db, t: datetime) -> tuple[dict[str, list[Feature]], d
     features: dict[str, list[Feature]] = {key: [] for key in CATEGORIES}
     freshness: dict[str, datetime] = {}
     for doc in beliefs:
-        fingerprint.add_belief(doc)
         source = source_kind(doc["hazard_id"])
         if doc.get("last_updated"):
             freshness[source] = max(freshness.get(source, utc(doc["last_updated"])), utc(doc["last_updated"]))
@@ -336,12 +318,11 @@ async def collect_features(db, t: datetime) -> tuple[dict[str, list[Feature]], d
             encoded = json.dumps(feature, separators=(",", ":"), default=str).encode()
             features[doc["hazard_type"]].append((encoded, geometry_bounds(feature["geometry"])))
     for item in evidence_docs:
-        fingerprint.add_evidence(item)
         created = _parse(item.get("created_at"))
         kind = "news" if item.get("type") == "news" else item.get("type")
         if created and kind:
             freshness[kind] = max(freshness.get(kind, created), created)
-    return features, freshness, fingerprint.hexdigest()
+    return features, freshness
 
 
 _RADAR_BYTES = json.dumps(RADAR_OVERLAY, separators=(",", ":")).encode()
@@ -377,27 +358,32 @@ def _render(t: datetime, features: dict[str, list[Feature]], freshness: dict[str
 
 async def build_layers(db, t: datetime, area=None) -> bytes:
     """Slow path: read and convert everything for this exact `t` (used when `t` is far from now)."""
-    features, freshness, _ = await collect_features(db, t)
+    beliefs = await belief_docs(db)
+    features, freshness = await collect_features(db, t, beliefs)
     return _render(t, features, freshness, area.bounds if area is not None else None,
                    await runs_freshness(db))
 
 
 class Snapshot:
-    """Encoded map features at one build time, with bounds and a content fingerprint.
+    """Encoded map features at one build time, with bounds and the change marker it was built from.
 
     Features are compact JSON `bytes`, not nested dicts: the snapshot is a few MB instead of tens
     of MB, and rendering a response is a join instead of a re-serialisation (A27).
     """
 
-    __slots__ = ("built_at", "built_monotonic", "count", "features", "fingerprint", "freshness")
+    __slots__ = ("built_at", "built_monotonic", "count", "features", "freshness", "marker",
+                 "rebuilt_monotonic")
 
     def __init__(self, built_at: datetime, features: dict[str, list[Feature]],
-                 freshness: dict[str, datetime], fingerprint: str):
+                 freshness: dict[str, datetime], marker: tuple):
         self.built_at = built_at
         self.built_monotonic = time.monotonic()
+        # Moved only by a real rebuild, unlike built_monotonic (mark_fresh restarts the TTL
+        # clock): the min rebuild interval must not restart when an ingest finds no change (A29).
+        self.rebuilt_monotonic = self.built_monotonic
         self.features = features
         self.freshness = freshness
-        self.fingerprint = fingerprint
+        self.marker = marker
         self.count = sum(len(entries) for entries in features.values())
 
     def mark_fresh(self) -> None:
@@ -430,13 +416,18 @@ def clear_snapshot() -> None:
     clear_runs()
 
 
-async def _build_snapshot(db) -> Snapshot:
+async def _build_snapshot(db, marker: tuple | None = None) -> Snapshot:
     started = time.monotonic()
     built_at = datetime.now(timezone.utc)
-    # The shared belief cache may be up to a minute old: a fresh snapshot must not inherit it.
+    if marker is None:
+        marker = await hazards_marker(db)
+    # The shared belief cache may be up to BELIEF_CACHE_SECONDS old: a fresh snapshot must not
+    # inherit it. This is the one place the cache is dropped: the read right after seeds it with
+    # the snapshot's own documents, so routes and the map share one query per rebuild (A29).
     clear_belief_cache()
-    features, freshness, fingerprint = await collect_features(db, built_at)
-    snapshot = Snapshot(built_at, features, freshness, fingerprint)
+    beliefs = await belief_docs(db)
+    features, freshness = await collect_features(db, built_at, beliefs)
+    snapshot = Snapshot(built_at, features, freshness, marker)
     # Far-`t` answers cached before this build are based on the old hazards.
     _layers_cache.clear()
     log.info("Layers snapshot rebuilt in %.0f ms: %d features", (time.monotonic() - started) * 1000,
@@ -448,29 +439,36 @@ async def refresh_snapshot_if_changed(db) -> bool:
     """Rebuild the snapshot inline when the belief store changed since it was built.
 
     Called from inside `/internal/ingest/*` (Cloud Run has CPU while the request runs) after the
-    job. Jobs re-register unchanged hazards, so the content fingerprint decides, not their write
-    count; an unchanged fingerprint restarts the snapshot's age clock (the ingest request just
-    verified it), so the TTL only expires on an instance that never receives ingest calls. Run
-    freshness is not part of the snapshot (A28): `/internal/ingest` refreshes the runs cache
-    separately. Never raises: a failed check drops the snapshot so the next `/layers` request
-    rebuilds it inline. Returns whether the snapshot was rebuilt.
+    job. The cheap marker (A29: counts + newest timestamps, not a full read) decides whether
+    anything changed; an unchanged marker restarts the snapshot's age clock (the ingest request
+    just verified it), so the TTL only expires on an instance that never receives ingest calls.
+    A changed marker rebuilds at most once per MIN_REBUILD_SECONDS, because weather/HERE
+    re-registrations bump `last_updated` every 5 min and a full read each time is what throttled
+    Atlas M0. Run freshness is not part of the snapshot (A28): `/internal/ingest` refreshes the
+    runs cache separately. Never raises: a failed check drops the snapshot so the next `/layers`
+    request rebuilds it inline. Returns whether the snapshot was rebuilt.
     """
     global _snapshot
     async with _snapshot_lock():
         snapshot = _snapshot
+        try:
+            marker = await hazards_marker(db)
+        except Exception:
+            log.exception("Layers change marker failed; dropping the snapshot")
+            _snapshot = None
+            return False
         if snapshot is not None:
-            try:
-                current = await hazards_fingerprint(db)
-            except Exception:
-                log.exception("Layers fingerprint check failed; dropping the snapshot")
-                _snapshot = None
-                return False
-            if current == snapshot.fingerprint:
+            if marker == snapshot.marker:
                 snapshot.mark_fresh()
                 log.info("Layers snapshot kept (%d features): no hazard change", snapshot.count)
                 return False
+            age = time.monotonic() - snapshot.rebuilt_monotonic
+            if age < MIN_REBUILD_SECONDS:
+                log.info("Layers snapshot kept (%d features): changed, but rebuilt %.0f s ago",
+                         snapshot.count, age)
+                return False
         try:
-            _snapshot = await _build_snapshot(db)
+            _snapshot = await _build_snapshot(db, marker)
         except Exception:
             log.exception("Layers snapshot rebuild failed; dropping the snapshot")
             _snapshot = None
