@@ -65,6 +65,7 @@ jobs:
           filters: |
             backend:
               - 'backend/**'
+              - '.github/workflows/ci-cd.yml' # deploy settings changed: redeploy
             frontend:
               - 'frontend/**'
 
@@ -187,5 +188,6 @@ jobs:
             --region "${{ vars.GCP_REGION }}" \
             --source backend/ \
             --set-env-vars "^##^${vars#\#\#}" \
+            --memory 1Gi \
             "${sa_flag[@]}" \
             --quiet
