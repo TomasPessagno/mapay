@@ -5,14 +5,21 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.db.mongo import close_client, init_indexes
-from app.routers import alerts, layers, neighborhoods, reports, routes, routines
+from app.routers import (
+    alerts,
+    internal,
+    layers,
+    neighborhoods,
+    reports,
+    routes,
+    routines,
+)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_indexes()
-    # TODO: load pickled OSMnx graph into app.state (routing.graph.load_graph)
-    # TODO: start ingestion pollers (tides, NWS, news)
+    # No in-process pollers: Cloud Scheduler calls POST /internal/ingest/{job} (routers/internal.py).
     yield
     close_client()
 
@@ -33,6 +40,7 @@ app.include_router(alerts.router)
 app.include_router(reports.router)
 app.include_router(routines.router)
 app.include_router(neighborhoods.router)
+app.include_router(internal.router)
 
 
 @app.get("/health")
