@@ -35,8 +35,8 @@ const CustomizeSheet: React.FC<CustomizeSheetProps> = ({ isOpen, onClose, routin
     setLoading(true);
     setError(null);
     try {
-      // Post to /customize API
-      const res = await api.customize({ prompt, routineId, legIndex }) as CustomizeResponse;
+      // Request body documented in public/mocks/README.md (snake_case like the rest of the API).
+      const res = await api.customize({ prompt, routine_id: routineId, leg: legIndex }) as CustomizeResponse;
       setResult(res);
       
       const syntheticRouteResponse: RouteResponse = {
