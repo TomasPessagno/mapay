@@ -143,7 +143,8 @@
           "title": "Flooded street",
           "probability": 0.88
         }
-      ]
+      ],
+      "neighborhoods_crossed": []
     },
     {
       "summary": "via SW 8th St and Biscayne Blvd",
@@ -209,7 +210,8 @@
           "title": "Construction",
           "probability": 0.8
         }
-      ]
+      ],
+      "neighborhoods_crossed": []
     }
   ],
   "waypoints": [

@@ -18,6 +18,8 @@ class RouteRequest(BaseModel):
     depart_at: datetime | None = None
     avoid_tolls: bool = False
     avoid_highways: bool = False
+    # Same shape as users.preferences; overrides the user's and the routine's (A6 scoring).
+    preferences: dict | None = None
     routine_id: str | None = None
     mode: Literal["drive", "walk"] = "drive"
 
@@ -28,9 +30,10 @@ class RouteAlternative(BaseModel):
     duration_s: int
     static_duration_s: int
     distance_m: int
-    score: float | None = None  # filled by route scoring (A6)
+    score: float | None = None  # predicted minutes + hazard penalty minutes (routing/scoring.py)
     recommended: bool = False
     hazards_on_route: list[dict] = []
+    neighborhoods_crossed: list[str] = []  # avoided neighbourhood ids this route still enters
 
 
 class RouteResponse(BaseModel):

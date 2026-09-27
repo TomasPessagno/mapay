@@ -71,6 +71,7 @@ export interface RouteOption {
   score: number;
   recommended: boolean;
   hazards_on_route: HazardOnRoute[];
+  neighborhoods_crossed?: string[]; // avoided neighbourhood ids this route still enters
 }
 
 export interface RouteResponse {

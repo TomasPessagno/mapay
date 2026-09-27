@@ -9,6 +9,7 @@ from app.agents.briefing import explain_recalculation
 from app.routing.belief_config import BELIEF_CONFIG as C
 from app.routing.beliefs import belief_at, snapshot, threshold_changes, utc
 from app.routing.engine import weighted_route
+from app.routing.scoring import merge_preferences
 
 
 def on_route(route: dict, hazards: list[dict]) -> dict:
@@ -47,7 +48,8 @@ async def check_routine(db, routine: dict, departure: datetime, now: datetime) -
     route = await weighted_route(routine["origin"], routine["destination"], hazards,
                                  avoid_tolls=preferences.get("avoid_tolls", False), depart_at=departure,
                                  avoid_highways=preferences.get("avoid_highways", False),
-                                 mode=preferences.get("mode", "drive"))
+                                 mode=preferences.get("mode", "drive"),
+                                 preferences=merge_preferences(preferences))
     state = {"departure": utc(departure), "computed_at": utc(now), "route_geojson": route,
              "beliefs": on_route(route, hazards)}
     # Prevent concurrent checks from overwriting a newer route state.
