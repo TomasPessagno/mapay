@@ -23,6 +23,9 @@ import PreferencesPage from './pages/PreferencesPage';
 import CustomizeSheet from './headsup/CustomizeSheet';
 import ErrorBoundary from './components/ErrorBoundary';
 import { getDataSource, isDemo, setDataSource, type DataSource } from './lib/dataSource';
+import Onboarding from './onboarding/Onboarding';
+import { OPEN_ONBOARDING_EVENT } from './onboarding/events';
+import { hasSeenOnboarding } from './onboarding/storage';
 
 const DesktopDataSourceSwitch: React.FC = () => {
   const [source, setSource] = useState<DataSource>(() => getDataSource());
@@ -44,11 +47,19 @@ const DesktopDataSourceSwitch: React.FC = () => {
 
 const App: React.FC = () => {
   const [demo] = useState(() => isDemo());
+  const [onboarding, setOnboarding] = useState(() => !hasSeenOnboarding());
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [customizeRoutine, setCustomizeRoutine] = useState<string | undefined>();
   const [customizeLeg, setCustomizeLeg] = useState<number | undefined>();
   useHeadsUpSync();
   useDeepLinks();
+
+  // Preferences › About › "Show intro" re-opens the first-run flow.
+  useEffect(() => {
+    const open = () => setOnboarding(true);
+    window.addEventListener(OPEN_ONBOARDING_EVENT, open);
+    return () => window.removeEventListener(OPEN_ONBOARDING_EVENT, open);
+  }, []);
 
   useEffect(() => {
     // Listen for deep links like mapay://customize?routine=...&leg=...
@@ -123,6 +134,8 @@ const App: React.FC = () => {
         routineId={customizeRoutine}
         legIndex={customizeLeg}
       />
+
+      {onboarding && <Onboarding onDone={() => setOnboarding(false)} />}
     </IonApp>
   );
 };
