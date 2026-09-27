@@ -5,6 +5,12 @@ import type { HazardType, RouteOption } from '../lib/types';
 // Each layer is its own google.maps.Data instance so it can be toggled/replaced independently.
 const layers = new Map<string, google.maps.Data>();
 const layerMarkers = new Map<string, google.maps.marker.AdvancedMarkerElement[]>();
+// Real data has ~27k hazards across Miami-Dade (mostly construction permits). One DOM marker per
+// hazard would stall a phone, so icons are drawn only for layers with few hazards in the fetched
+// area, and the dense layers are skipped entirely when zoomed out.
+const MAX_MARKERS_PER_LAYER = 150;
+const DENSE_LAYERS = new Set(['construction', 'no_sidewalk', 'pothole']);
+const DENSE_MIN_ZOOM = 12;
 const layerVisibility = new Map<string, boolean>();
 const layerDataCache = new Map<string, GeoJSON.FeatureCollection>();
 
@@ -188,9 +194,12 @@ export async function upsertGeoJsonLayer(
   markers = [];
   layerMarkers.set(id, markers);
   
-  layer.addGeoJson(data);
-
   const zoom = map.getZoom() ?? 0;
+  if (!(DENSE_LAYERS.has(id) && zoom < DENSE_MIN_ZOOM)) {
+    layer.addGeoJson(data);
+  }
+  const showMarkers = (data.features?.length ?? 0) <= MAX_MARKERS_PER_LAYER;
+
   let isVisible = layerVisibility.get(id) !== false;
   if (id === 'no_sidewalk' && zoom < 15) {
     isVisible = false;
@@ -202,8 +211,8 @@ export async function upsertGeoJsonLayer(
     const probability = feature.getProperty('probability') as number ?? 1.0;
     const status = feature.getProperty('status') as string;
     
-    // Skip markers for congestion and no_sidewalk lines
-    if (hazardType === 'congestion' || hazardType === 'no_sidewalk') return;
+    // Skip markers for congestion and no_sidewalk lines, and for crowded layers (shapes only)
+    if (!showMarkers || hazardType === 'congestion' || hazardType === 'no_sidewalk') return;
     
     const centroid = getCentroid(feature);
     if (!centroid) return;

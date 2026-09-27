@@ -72,7 +72,9 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ ...rest, origin: [origin.lat, origin.lng], destination: [destination.lat, destination.lng] }),
     }),
-  layers: (t: Date) => request<LayersResponse>(`/layers?t=${t.toISOString()}`),
+  // bbox = [west, south, east, north]; without it /layers returns all of Miami-Dade (~800 KB gzipped).
+  layers: (t: Date, bbox?: [number, number, number, number]) =>
+    request<LayersResponse>(`/layers?t=${t.toISOString()}${bbox ? `&bbox=${bbox.join(",")}` : ""}`),
   alerts: () => request<{ nws: unknown[]; news: unknown[] }>("/alerts"),
   report: (data: { type: string; lat: number; lng: number; hazard_id?: string; cleared?: boolean }) =>
     request("/report", { method: "POST", body: JSON.stringify(data) }),
