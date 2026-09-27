@@ -119,28 +119,43 @@ class FakeRoutines:
         self.docs = docs
 
     async def find_one(self, query):
-        return next((d for d in self.docs if d["_id"] == query["_id"]), None)
+        return next((d for d in self.docs if all(d.get(k) == v for k, v in query.items())), None)
 
     async def update_one(self, query, update):
         doc = await self.find_one(query)
-        doc.update(update["$set"])
+        for path, value in update["$set"].items():  # supports "legs.<i>.route_state"
+            target, *keys, last = [doc, *path.split(".")]
+            for key in keys:
+                target = target[int(key)] if key.isdigit() else target[key]
+            target[last] = value
         return SimpleNamespace(matched_count=1)
 
 
 class RouteEndpointTests(unittest.TestCase):
     def setUp(self):
-        self.routines = FakeRoutines([{"_id": "r1", "origin": list(MMC), "destination": list(BBC)}])
-        self.db = SimpleNamespace(intel_cache=SimpleNamespace(find=lambda q: FakeCursor()), routines=self.routines)
+        self.routines = FakeRoutines([{"_id": "r1", "user_id": "dev", "legs": [
+            {"from_place": "mmc", "to_place": "bbc", "when": {"kind": "at", "time": "09:30"}}]}])
+        places = {"mmc": {"location": {"coordinates": [MMC[1], MMC[0]]}},
+                  "bbc": {"location": {"coordinates": [BBC[1], BBC[0]]}}}
+
+        async def find_place(query):
+            return places.get(query["_id"])
+
+        async def no_user(query):
+            return None
+
+        self.db = SimpleNamespace(intel_cache=SimpleNamespace(find=lambda q: FakeCursor()), routines=self.routines,
+                                  places=SimpleNamespace(find_one=find_place), users=SimpleNamespace(find_one=no_user))
         app = FastAPI()
         app.include_router(routes.router)
         self.client = TestClient(app)
 
-    def post(self, body, handler):
+    def post(self, body, handler, headers=None):
         real_client = httpx.AsyncClient
         with settings(), patch("app.routers.routes.get_db", return_value=self.db), \
              patch("app.routing.google_routes.httpx.AsyncClient",
                    lambda **kw: real_client(transport=httpx.MockTransport(handler))):
-            return self.client.post("/route", json=body)
+            return self.client.post("/route", json=body, headers=headers or {})
 
     def test_returns_mock_shape_without_a_graph(self):
         ok = lambda r: httpx.Response(200, json=payload(("SR-826", 2460, 1980, 31800), ("US-1", 2700, 2100, 29900)))
@@ -157,10 +172,15 @@ class RouteEndpointTests(unittest.TestCase):
 
     def test_routine_route_saves_route_state(self):
         ok = lambda r: httpx.Response(200, json=payload(("SR-826", 2460, 1980, 31800)))
-        response = self.post({"origin": list(MMC), "destination": list(BBC), "routine_id": "r1",
-                              "depart_at": "2099-09-28T09:30:00-04:00"}, ok)
+        body = {"origin": list(MMC), "destination": list(BBC), "routine_id": "r1", "leg": 0,
+                "depart_at": "2099-09-28T09:30:00-04:00"}
+        self.assertEqual(self.post(body, ok).status_code, 401)  # writing to a routine needs the device id
+        self.assertEqual(self.post(body, ok, {"X-Device-Id": "other"}).status_code, 404)
+        self.assertEqual(self.post({**body, "leg": 3}, ok, {"X-Device-Id": "dev"}).status_code, 422)
+        self.assertEqual(self.post({**body, "destination": [25.0, -80.0]}, ok, {"X-Device-Id": "dev"}).status_code, 422)
+        response = self.post(body, ok, {"X-Device-Id": "dev"})
         self.assertEqual(response.status_code, 200, response.text)
-        state = self.routines.docs[0]["route_state"]
+        state = self.routines.docs[0]["legs"][0]["route_state"]
         self.assertEqual(state["route_geojson"], response.json()["route_geojson"])
         self.assertEqual(state["beliefs"], {})
 
