@@ -54,7 +54,8 @@ class BeliefAtTests(unittest.IsolatedAsyncioTestCase):
         now = datetime.now(timezone.utc)
         self.assertEqual(belief_at(self.doc(now), now - timedelta(hours=2))['log_odds'], 2.0)
 
-    async def test_current_hazards_is_one_query(self):
+    async def test_current_hazards_is_one_projected_query(self):
+        from app.routing import pre_route
         from app.routing.pre_route import current_hazards
         now = datetime.now(timezone.utc)
         cursor = SimpleNamespace(to_list=AsyncMock(return_value=[self.doc(now)] * 3))
@@ -63,7 +64,7 @@ class BeliefAtTests(unittest.IsolatedAsyncioTestCase):
         hazards = await current_hazards(SimpleNamespace(intel_cache=collection), now)
         self.assertEqual(len(hazards), 3)
         self.assertAlmostEqual(hazards[0]['log_odds'], 1.25)
-        collection.find.assert_called_once_with({'type': 'hazard_belief'})
+        collection.find.assert_called_once_with({'type': 'hazard_belief'}, pre_route.BELIEF_PROJECTION)
         collection.find_one.assert_not_awaited()
         collection.update_one.assert_not_awaited()
 
@@ -139,17 +140,37 @@ class BulkRegisterTests(unittest.IsolatedAsyncioTestCase):
 
 
 class BeliefCacheTests(unittest.IsolatedAsyncioTestCase):
-    async def test_second_read_within_a_minute_is_cached(self):
+    """A29: one full belief read per 15 min per process, shared by routes, pre-route and /layers."""
+
+    @staticmethod
+    def db():
+        doc = {'_id': 'belief:h', 'hazard_id': 'h', 'log_odds': 2.0, 'prior_log_odds': 2.0, 'evidence': {}}
+        cursor = SimpleNamespace(to_list=AsyncMock(return_value=[doc]))
+        return SimpleNamespace(intel_cache=SimpleNamespace(find=MagicMock(return_value=cursor)))
+
+    async def test_reads_are_served_from_cache_until_the_window_passes(self):
         from unittest.mock import patch
 
         from app.routing import pre_route
         now = datetime.now(timezone.utc)
-        doc = {'_id': 'belief:h', 'hazard_id': 'h', 'log_odds': 2.0, 'prior_log_odds': 2.0, 'evidence': {}}
-        cursor = SimpleNamespace(to_list=AsyncMock(return_value=[doc]))
-        db = SimpleNamespace(intel_cache=SimpleNamespace(find=MagicMock(return_value=cursor)))
+        db = self.db()
+        with patch('app.routing.pre_route.time.monotonic', return_value=1000.0):
+            await pre_route.current_hazards(db, now)
+            await pre_route.current_hazards(db, now)
+            db.intel_cache.find.assert_called_once_with({'type': 'hazard_belief'},
+                                                        pre_route.BELIEF_PROJECTION)
+        with patch('app.routing.pre_route.time.monotonic',
+                   return_value=1000.0 + pre_route.BELIEF_CACHE_SECONDS + 1):
+            await pre_route.current_hazards(db, now)
+        self.assertEqual(db.intel_cache.find.call_count, 2)
+
+    async def test_clear_belief_cache_forces_a_fresh_read(self):
+        from app.routing import pre_route
+        now = datetime.now(timezone.utc)
+        db = self.db()
         await pre_route.current_hazards(db, now)
         await pre_route.current_hazards(db, now)
         db.intel_cache.find.assert_called_once()
-        with patch('app.routing.pre_route.time.monotonic', return_value=10**9):  # a minute later
-            await pre_route.current_hazards(db, now)
+        pre_route.clear_belief_cache()  # what a snapshot rebuild does before its own read
+        await pre_route.current_hazards(db, now)
         self.assertEqual(db.intel_cache.find.call_count, 2)
