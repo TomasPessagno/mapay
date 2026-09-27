@@ -127,17 +127,15 @@ const MapPage: React.FC = () => {
     if (!selectedPlace) return;
     try {
       const places = await api.places();
-      setSavedPlaces(places);
-      
-      // Save place first
       const savedPlace = await api.savePlace({
         name: selectedPlace.name,
-        address: selectedPlace.address || '',
-        location: {
-          lat: selectedPlace.location.lat,
-          lng: selectedPlace.location.lng,
-        }
+        lat: selectedPlace.location.lat,
+        lng: selectedPlace.location.lng,
+        google_place_id: selectedPlace.placeId,
+        address: selectedPlace.address,
       });
+      // The editor's place picker resolves ids from this list, so include the new place.
+      setSavedPlaces([...places.filter((p) => p._id !== savedPlace._id), savedPlace]);
 
       // Prepare new routine
       setNewRoutine({
@@ -147,7 +145,7 @@ const MapPage: React.FC = () => {
         active: true,
         legs: [{
           from_place: '',
-          to_place: savedPlace._id || '',
+          to_place: savedPlace._id,
           when: { kind: 'at', time: '09:00' },
           anchor: 'depart',
           days: null

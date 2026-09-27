@@ -40,11 +40,8 @@ const SearchField: React.FC<SearchFieldProps> = ({ onSearch, onFocus, placeholde
 
   // Debounced so typing doesn't send one billed Places request per keystroke.
   useEffect(() => {
-    if (!placesLibrary || !query.trim()) {
-      setSuggestions([]);
-      setError(false);
-      return;
-    }
+    // An empty query shows nothing: visibleSuggestions and the error line both check query.trim().
+    if (!placesLibrary || !query.trim()) return;
     let isActive = true;
     const timer = setTimeout(async () => {
       try {

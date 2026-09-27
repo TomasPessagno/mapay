@@ -19,7 +19,10 @@ interface PlacePickerProps {
   onPlacesUpdated?: () => void;
 }
 
-export default function PlacePicker({ label, value, places, onChange, onPlacesUpdated }: PlacePickerProps) {
+export default function PlacePicker({ label, value, places: savedPlaces, onChange, onPlacesUpdated }: PlacePickerProps) {
+  // Places searched and saved from this picker, until the parent's list includes them.
+  const [added, setAdded] = useState<Place[]>([]);
+  const places = [...savedPlaces, ...added.filter((a) => !savedPlaces.some((p) => p._id === a._id))];
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState('');
 
@@ -33,13 +36,10 @@ export default function PlacePicker({ label, value, places, onChange, onPlacesUp
 
   const handleSearchSelect = async (destination: {lat: number, lng: number}, name: string) => {
     try {
-      const newPlace = await api.savePlace({
-        name,
-        address: name,
-        location: destination
-      });
+      const newPlace = await api.savePlace({ name, lat: destination.lat, lng: destination.lng });
+      setAdded((prev) => [...prev, newPlace]);
       if (onPlacesUpdated) onPlacesUpdated();
-      onChange(newPlace._id || (newPlace as unknown as {id: string}).id);
+      onChange(newPlace._id);
       setIsOpen(false);
     } catch (e) {
       console.error('Failed to save place', e);

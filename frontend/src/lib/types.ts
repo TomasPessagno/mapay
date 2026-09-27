@@ -12,12 +12,13 @@ export interface Preferences {
 
 export interface Place {
   _id: string;
-  user_id: string;
+  user_id?: string;
   name: string;
-  address: string;
+  google_place_id?: string;
+  address?: string; // display only; not part of the stored place
   location: {
-    lat: number;
-    lng: number;
+    type: 'Point';
+    coordinates: [number, number]; // [lng, lat], as in public/mocks/places.json
   };
 }
 
