@@ -1,6 +1,6 @@
 """Build app/data/neighborhoods.geojson from Miami open data and Census TIGER/Line.
 
-Run from backend/: python -m scripts.build_neighborhoods
+Run from backend/: python -m scripts.build_neighborhoods  (needs requirements-dev.txt: geopandas)
 
 The result is a normalised FeatureCollection whose properties are exactly the
 `GET /neighborhoods` contract: {id (slug), name, source}. Routing (A6) and
