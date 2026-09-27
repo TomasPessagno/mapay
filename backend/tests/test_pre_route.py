@@ -57,7 +57,13 @@ class PreRouteTests(unittest.IsolatedAsyncioTestCase):
                 {'type': 'Feature', 'geometry': {'type': 'LineString', 'coordinates': coords}, 'properties': {}}]}}
         fast = alt([[0, 0], [1, 0], [2, 0]], 100)
         slow = alt([[0, 0], [1, 1], [2, 0]], 200)
-        hazard = {'geometry': {'type': 'Point', 'coordinates': [1, 0]}, 'log_odds': 1.5}
-        self.assertIs(pick_route([fast, slow]), fast)
-        self.assertIs(pick_route([fast, slow], [hazard]), slow)
-        self.assertIs(pick_route([fast, slow], [{**hazard, 'log_odds': 0.9}]), fast)
+        hazard = {'hazard_id': 'flood-1', 'hazard_type': 'flood', 'severity': 3,
+                  'geometry': {'type': 'Point', 'coordinates': [1, 0]}, 'log_odds': 1.5}
+        def picked(*args):
+            return pick_route([fast, slow], *args)['route_geojson']
+        self.assertEqual(picked(), fast['route_geojson'])
+        self.assertEqual(picked([hazard]), slow['route_geojson'])
+        self.assertEqual(picked([{**hazard, 'log_odds': 0.9}]), fast['route_geojson'])
+        ignore_floods = {'categories': {'flood': 'ignore'}}
+        from app.routing.scoring import merge_preferences
+        self.assertEqual(picked([hazard], merge_preferences(ignore_floods)), fast['route_geojson'])
