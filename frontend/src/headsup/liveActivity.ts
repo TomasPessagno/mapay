@@ -24,6 +24,8 @@ function mockDeparture(now: number): number {
   try { localStorage.setItem(MOCK_KEY, String(fresh)); } catch { /* private mode */ }
   return fresh;
 }
+/** The demo leg's departure (Demo data): the banner's countdown, which the demo notification follows. */
+export const demoDeparture = (now = Date.now()) => mockDeparture(now);
 function resetMockDeparture() {
   try { localStorage.removeItem(MOCK_KEY); } catch { /* private mode */ }
 }

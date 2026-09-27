@@ -4,8 +4,10 @@ import { Capacitor } from '@capacitor/core';
 import { LocalNotifications, type LocalNotificationSchema } from '@capacitor/local-notifications';
 import { Directory, Filesystem } from '@capacitor/filesystem';
 import { api } from '../lib/api';
+import { isDemo } from '../lib/dataSource';
 import type { UpcomingLeg } from '../lib/types';
 import { openCustomize, startLeg } from './deeplinks';
+import { demoDeparture } from './liveActivity';
 
 // Heads-up notifications (#28, AGENTS.md › Pre-route heads-up › Local notifications). A free Apple ID
 // can't receive server push, so the phone schedules one local notification per upcoming leg at
@@ -88,17 +90,37 @@ async function toNotification(leg: UpcomingLeg, at: Date): Promise<LocalNotifica
   };
 }
 
+// Demo data: the mock's fixed times are days away, so the demo notification follows the demo banner
+// instead. Every fresh countdown (first launch, or the launch after Start) delivers it 5 s later.
+const DEMO_NOTIFIED_KEY = 'mapay_demo_notified_departure';
+
+async function scheduleDemoHeadsUpForBanner() {
+  const { display } = await LocalNotifications.checkPermissions();
+  // Ask on launch in Demo mode so the demo doesn't depend on finding the Preferences toggle.
+  if (display !== 'granted' && !(display.startsWith('prompt') && (await enableHeadsUpNotifications()))) return;
+  const departure = demoDeparture();
+  let notified: string | null = null;
+  try { notified = localStorage.getItem(DEMO_NOTIFIED_KEY); } catch { /* private mode */ }
+  if (notified === String(departure)) return;
+  await scheduleDemoHeadsUp();
+  try { localStorage.setItem(DEMO_NOTIFIED_KEY, String(departure)); } catch { /* private mode */ }
+}
+
 /** Replaces the pending heads-ups with one per upcoming leg (by id); drops ones that no longer exist. */
 export async function scheduleHeadsUps() {
+  if (!isNative()) return;
+  if (isDemo()) await scheduleDemoHeadsUpForBanner();
   if (!(await notificationsAllowed())) return;
   await registerActionTypes();
   const now = Date.now();
   const { items } = await api.upcomingRoutines(DAYS);
-  const upcoming = items.filter(leg => new Date(leg.heads_up_at).getTime() > now);
+  // Demo data: no notifications at the mock's fixed times (the demo one above replaces them).
+  const upcoming = isDemo() ? [] : items.filter(leg => new Date(leg.heads_up_at).getTime() > now);
   const wanted = new Set(upcoming.map(leg => notificationId(legKey(leg))));
 
   const { notifications: pending } = await LocalNotifications.getPending();
-  const stale = pending.filter(n => n.extra?.key && !wanted.has(n.id));
+  // Only the regular heads-ups: a pending demo one (5 s out) must survive the reschedule on resume.
+  const stale = pending.filter(n => n.extra?.key && !n.extra?.demo && !wanted.has(n.id));
   if (stale.length) await LocalNotifications.cancel({ notifications: stale.map(n => ({ id: n.id })) });
 
   const scheduled = await Promise.all(upcoming.map(leg => toNotification(leg, new Date(leg.heads_up_at))));
@@ -112,7 +134,9 @@ export async function scheduleDemoHeadsUp(delayMs = 5000) {
   const { items } = await api.upcomingRoutines(DAYS);
   if (!items.length) return;
   const notification = await toNotification(items[0], new Date(Date.now() + delayMs));
-  await LocalNotifications.schedule({ notifications: [{ ...notification, id: notification.id ^ 1 }] });
+  await LocalNotifications.schedule({
+    notifications: [{ ...notification, id: notification.id ^ 1, extra: { ...notification.extra, demo: true } }],
+  });
 }
 
 /** Reschedules on launch, on resume and after routine edits; routes the Start / Customize actions. */
