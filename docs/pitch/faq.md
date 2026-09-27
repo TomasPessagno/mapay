@@ -2,7 +2,15 @@
 
 ### Why not just use Google Maps or Waze?
 
-They’re excellent at navigation and traffic. MAPAY adds a Miami street-problem view, remembers routine trips and preferences, and gives you a heads-up before departure; it hands the selected route to Google Maps for turn-by-turn directions.
+They’re excellent at navigation and traffic. MAPAY adds a Miami street-problem view, remembers routine trips and preferences, and gives you a heads-up before departure. It previews the route and why it changed in the app (#135), then hands it to Google Maps for the drive—so you keep live traffic, voice, lane guidance, CarPlay and rerouting you already trust.
+
+### Why does Google Maps show extra stops?
+
+Those are MAPAY’s steering waypoints. Google can’t be told to avoid an arbitrary flooded street or closure it doesn’t know about, so MAPAY adds a stop that bends the route around it—for example, away from flooded NE 151st Street. In Customize, the Starbucks is a real stop; the waypoint that keeps you off the Palmetto is a steering point. We show what each stop is for, and you can remove it. Google Maps links keep the steering stops; Apple Maps and Waze links currently carry only the origin and destination.
+
+### Why not navigate inside the app?
+
+Google’s navigation is the best in the world, and Google Maps Platform terms reserve live turn-by-turn navigation for its Navigation SDK. MAPAY previews the new route in-app (#135), where you can inspect the hazards and steering stops, then hands off to Google Maps for the drive. In-app navigation is on our roadmap.
 
 ### Where does the information come from?
 
