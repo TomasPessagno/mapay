@@ -4,8 +4,10 @@ from fastapi import APIRouter, Header, HTTPException
 
 from app.db.models import RouteAlternative, RouteRequest, RouteResponse
 from app.db.mongo import get_db
+from app.routing.deeplinks import deep_links
+from app.routing.detour import briefing, plan_detour
 from app.routing.engine import route_alternatives
-from app.routing.google_routes import NoRouteFound, RoutesApiError
+from app.routing.google_routes import NoRouteFound, RoutesApiError, compute_routes
 from app.routing.pre_route import current_hazards, on_route
 from app.routing.scoring import merge_preferences, rank
 
@@ -51,7 +53,17 @@ async def compute_route(req: RouteRequest, x_device_id: str | None = Header(defa
         raise HTTPException(502, str(exc)) from exc
     baseline = alternatives[0]["route_geojson"]  # Google's own first choice
     ranked = rank(alternatives, hazards, preferences)
-    chosen = ranked[0]
+
+    async def with_waypoints(waypoints):
+        return await compute_routes(req.origin, req.destination, depart_at=req.depart_at,
+                                    avoid_tolls=preferences["avoid_tolls"],
+                                    avoid_highways=preferences["avoid_highways"], mode=req.mode,
+                                    intermediates=waypoints)
+
+    plan = await plan_detour(ranked[0], hazards, preferences, with_waypoints)
+    chosen, waypoints = plan["route"], plan["waypoints"]
+    if waypoints:  # the detour beat every plain alternative
+        ranked = [{**chosen, "recommended": True}] + [{**alt, "recommended": False} for alt in ranked]
     route = chosen["route_geojson"]
     if req.routine_id:
         await db.routines.update_one({'_id': req.routine_id}, {'$set': {'route_state': {
@@ -62,5 +74,8 @@ async def compute_route(req: RouteRequest, x_device_id: str | None = Header(defa
         route_geojson=route,
         baseline_geojson=baseline,
         alternatives=[RouteAlternative(**alt) for alt in ranked],
+        waypoints=waypoints,
         hazards_on_route=chosen["hazards_on_route"],
+        deep_links=deep_links(req.origin, req.destination, waypoints, req.mode),
+        briefing=briefing(chosen, bool(waypoints), plan["unavoidable"]),
     )
