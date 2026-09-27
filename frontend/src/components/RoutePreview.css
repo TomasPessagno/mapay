@@ -122,7 +122,6 @@ ion-modal.route-preview-modal::part(content) {
   font-size: 13px;
   font-weight: 700;
   line-height: 18px;
-  text-transform: capitalize;
 }
 
 .maneuver-copy h2 {
@@ -164,6 +163,19 @@ ion-modal.route-preview-modal::part(content) {
   flex: 0 0 auto;
   color: var(--hazard-color);
   font-size: 23px;
+}
+
+.route-preview-hazard-marker {
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 2px solid white;
+  border-radius: 50%;
+  background: var(--glass-solid);
+  box-shadow: 0 2px 8px rgb(0 0 0 / 0.28);
+  color: var(--hazard-color);
+  font-size: 18px;
 }
 
 .route-preview-hazard div {
