@@ -16,7 +16,7 @@ One place for how MAPAY is built and run, as it stands on `main`. For the plan a
    - it's new (a crash, police activity, a closure): it registers a new hazard with a fixed prior, and the article is attached as evidence so its link shows on the map.
 5. Satellite (GFM) flood areas do the same: evidence on the flood hazards they overlap, and new flood hazards elsewhere.
 6. User reports (`POST /report`) linked to a hazard add crowd evidence, or "cleared" evidence if the user says it's gone.
-7. After each job, the backend records the run (shown as freshness on the map) and rebuilds the `/layers` snapshot if any hazard changed. The check is cheap: counts and newest timestamps of beliefs and evidence (`hazards_marker`), not a read of every document. A rebuild happens at most once every 15 min per server (#151).
+7. After each job, the backend records the run (shown as freshness on the map) and rebuilds the `/layers` snapshot if any hazard changed. The check is cheap: counts and newest timestamps of beliefs and evidence (`hazards_marker`), not a read of every document. A rebuild happens at most once every 15 min per server (#151). No user request waits for one: the server builds the snapshot at startup, before taking traffic; later rebuilds do their heavy work on a worker thread while the old snapshot keeps serving; and a failed rebuild keeps the old one.
 
 ### 2. The model updates (hazard beliefs)
 
@@ -40,7 +40,7 @@ Example: a street in FEMA zone AE starts at p 0.6 (log-odds 0.41, not active). O
 ### 3. The map shows it (`GET /layers`)
 
 1. The app asks for `/layers` for the visible area.
-2. The backend serves it from an in-memory snapshot of all hazards: one GeoJSON collection per category, each hazard with its probability, severity, sources and times, plus freshness per source.
+2. The backend serves it from an in-memory snapshot of all hazards (never rebuilt while a request waits): one GeoJSON collection per category, each hazard with its probability, severity, sources and times, plus freshness per source.
 3. The app draws each category with its own colour, icon and line style (`frontend/src/map/legend.ts`). Severity sets the line width, probability sets the opacity. Tapping a hazard opens its sources and confidence.
 
 ### 4. A route is calculated (`POST /route`)
