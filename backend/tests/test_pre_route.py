@@ -79,3 +79,16 @@ class PreRouteTests(unittest.IsolatedAsyncioTestCase):
         ignore_floods = {'categories': {'flood': 'ignore'}}
         from app.routing.scoring import merge_preferences
         self.assertEqual(picked([hazard], merge_preferences(ignore_floods)), fast['route_geojson'])
+
+    async def test_demo_departure_just_under_30_min_is_checked(self):
+        departure = self.now + timedelta(minutes=29, seconds=55)  # fired at T-30, checked 5 s later
+        with patch('app.routing.pre_route.current_hazards', AsyncMock(return_value=[self.hazard])), \
+             patch('app.routing.pre_route.weighted_route', AsyncMock(return_value=self.route)), \
+             patch('app.routing.pre_route.explain_recalculation', AsyncMock(return_value='x')):
+            demo = await check_routine(self.db, self.routine, 0, departure, self.now, demo=True)
+            normal = await check_routine(self.db, self.routine, 0, self.departure - timedelta(minutes=15, seconds=5),
+                                         self.now)
+            past = await check_routine(self.db, self.routine, 0, self.now - timedelta(minutes=1), self.now, demo=True)
+        self.assertNotEqual(demo['reason'], 'outside_pre_route_window')
+        self.assertEqual(normal['reason'], 'outside_pre_route_window')  # the schedule path keeps 30-60 min
+        self.assertEqual(past['reason'], 'outside_pre_route_window')
