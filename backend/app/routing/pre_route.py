@@ -20,8 +20,8 @@ def on_route(route: dict, hazards: list[dict]) -> dict:
 
 
 # A29: Atlas M0 throttles (~7.7 s for one document), so a full belief read is a last resort:
-# route requests and /layers share one read per 15 min, and the snapshot rebuild is the only
-# place that drops the cache, seeding it with the documents it just read.
+# route requests and /layers share one read per 15 min, and the snapshot rebuild replaces the
+# cache with the documents it just read (only once the rebuild is done, so routes never wait on it).
 BELIEF_CACHE_SECONDS = 15 * 60
 # Only the fields the map and the router read; `_id`, `type` and any future ingestion-only
 # field stay on the server, so the read stays as small as it can be (A29).
@@ -33,16 +33,34 @@ BELIEF_PROJECTION = {
 _belief_cache: dict[int, tuple[float, list[dict]]] = {}
 
 
+async def read_belief_docs(db) -> list[dict]:
+    """One fresh full read of the beliefs, without touching the cache."""
+    return await db.intel_cache.find({"type": "hazard_belief"}, BELIEF_PROJECTION).to_list(length=None)
+
+
 async def belief_docs(db) -> list[dict]:
     """All stored belief documents, cached per process for BELIEF_CACHE_SECONDS. The /layers
-    snapshot rebuild clears the cache before its own read, so the snapshot and the router share
-    one query. Callers must not mutate the docs (belief_at returns copies)."""
+    snapshot rebuild reads its own copy and seeds the cache with it once the build is done, so
+    routes keep the previous list while a rebuild runs instead of waiting for it. Callers must not
+    mutate the docs (belief_at returns copies)."""
     cached = _belief_cache.get(id(db))
     if cached and time.monotonic() - cached[0] < BELIEF_CACHE_SECONDS:
         return cached[1]
-    docs = await db.intel_cache.find({"type": "hazard_belief"}, BELIEF_PROJECTION).to_list(length=None)
+    docs = await read_belief_docs(db)
     _belief_cache[id(db)] = (time.monotonic(), docs)
     return docs
+
+
+def seed_belief_cache(db, docs: list[dict]) -> None:
+    """Replace the cache with a freshly read list (the snapshot rebuild's own read)."""
+    _belief_cache[id(db)] = (time.monotonic(), docs)
+
+
+def touch_belief_cache(db) -> None:
+    """The store was just verified unchanged: restart the cache's clock without a read."""
+    cached = _belief_cache.get(id(db))
+    if cached:
+        _belief_cache[id(db)] = (time.monotonic(), cached[1])
 
 
 def clear_belief_cache() -> None:

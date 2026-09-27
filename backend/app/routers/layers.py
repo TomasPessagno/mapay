@@ -6,10 +6,14 @@ decay back (refresh_belief persists decay only for "now"). Shape: frontend/publi
 Serving is snapshot-first (A27): `collect_features` runs `feature_for` over every belief once and
 encodes each feature as compact JSON `bytes` with its bounds precomputed. A request whose `t` is
 within SNAPSHOT_FRESH_SECONDS of now filters those bytes (a plain bounds check, no Mongo
-round-trip, no per-request Shapely parsing). Once the snapshot is older than SNAPSHOT_TTL_SECONDS
-it is rebuilt inline, inside the request: Cloud Run only gives CPU while a request is in flight,
-so a task left running between requests could stall mid-build while holding its memory. For the
-same reason `/internal/ingest/*` rebuilds it inline after the job.
+round-trip, no per-request Shapely parsing).
+
+No user request waits for a rebuild (A30). The app builds the snapshot at startup, before it
+listens (`warm_snapshot`). Past SNAPSHOT_TTL_SECONDS, requests keep getting the current snapshot
+while one background rebuild runs. `/internal/ingest/*` rebuilds after its job, holding its own
+request open (Cloud Run gives CPU only while a request is in flight). Every rebuild does its CPU
+work in a worker thread, so the server keeps answering meanwhile, and a failed rebuild keeps the
+previous snapshot.
 
 Change detection is a cheap marker, not a content fingerprint (A29): Atlas M0 got throttled by the
 old full-collection `hazards_fingerprint`, which streamed every belief and evidence document on
@@ -30,7 +34,7 @@ from shapely.geometry import box, mapping, shape
 
 from app.db.mongo import get_db
 from app.routing.beliefs import belief_at, probability, utc
-from app.routing.pre_route import belief_docs, clear_belief_cache
+from app.routing.pre_route import belief_docs, read_belief_docs, seed_belief_cache, touch_belief_cache
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/layers", tags=["layers"])
@@ -291,11 +295,20 @@ async def collect_features(db, t: datetime,
 
     This is the expensive step (one Mongo read of evidence plus the caller's one read of beliefs,
     Shapely per geometry); the snapshot calls it once and reuses the result instead of running it
-    per request. `beliefs` comes from `belief_docs`, so the snapshot and the router share the one
-    full belief read per rebuild (A29).
+    per request. `beliefs` is the rebuild's one full belief read, shared with the router (A29).
+
+    The Mongo read stays on the event loop (it's async I/O); the CPU part (Shapely per geometry,
+    JSON encoding of ~30k features) runs in a worker thread, so a rebuild never stops the server
+    from answering /route and /layers meanwhile.
     """
     evidence_docs = await db.intel_cache.find({"_id": {"$regex": "^evidence:"}},
                                               EVIDENCE_PROJECTION).to_list(length=None)
+    return await asyncio.to_thread(_encode_features, beliefs, evidence_docs, t)
+
+
+def _encode_features(beliefs: list[dict], evidence_docs: list[dict],
+                     t: datetime) -> tuple[dict[str, list[Feature]], dict[str, datetime]]:
+    """The CPU-bound half of collect_features: pure, so it can run off the event loop."""
     by_hazard: dict[str, list[dict]] = {}
     for item in evidence_docs:
         if item.get("hazard_id"):
@@ -413,6 +426,7 @@ def clear_snapshot() -> None:
     global _snapshot
     _snapshot = None
     _layers_cache.clear()
+    _rebuild_tasks.clear()
     clear_runs()
 
 
@@ -421,13 +435,13 @@ async def _build_snapshot(db, marker: tuple | None = None) -> Snapshot:
     built_at = datetime.now(timezone.utc)
     if marker is None:
         marker = await hazards_marker(db)
-    # The shared belief cache may be up to BELIEF_CACHE_SECONDS old: a fresh snapshot must not
-    # inherit it. This is the one place the cache is dropped: the read right after seeds it with
-    # the snapshot's own documents, so routes and the map share one query per rebuild (A29).
-    clear_belief_cache()
-    beliefs = await belief_docs(db)
+    # Its own fresh read, not the shared belief cache (up to BELIEF_CACHE_SECONDS old). Routes keep
+    # the previous cache while this runs, and it's replaced below only once the build succeeded, so
+    # routes and the map still share one query per rebuild (A29) and no route waits on a rebuild.
+    beliefs = await read_belief_docs(db)
     features, freshness = await collect_features(db, built_at, beliefs)
     snapshot = Snapshot(built_at, features, freshness, marker)
+    seed_belief_cache(db, beliefs)
     # Far-`t` answers cached before this build are based on the old hazards.
     _layers_cache.clear()
     log.info("Layers snapshot rebuilt in %.0f ms: %d features", (time.monotonic() - started) * 1000,
@@ -440,13 +454,14 @@ async def refresh_snapshot_if_changed(db) -> bool:
 
     Called from inside `/internal/ingest/*` (Cloud Run has CPU while the request runs) after the
     job. The cheap marker (A29: counts + newest timestamps, not a full read) decides whether
-    anything changed; an unchanged marker restarts the snapshot's age clock (the ingest request
-    just verified it), so the TTL only expires on an instance that never receives ingest calls.
-    A changed marker rebuilds at most once per MIN_REBUILD_SECONDS, because weather/HERE
-    re-registrations bump `last_updated` every 5 min and a full read each time is what throttled
-    Atlas M0. Run freshness is not part of the snapshot (A28): `/internal/ingest` refreshes the
-    runs cache separately. Never raises: a failed check drops the snapshot so the next `/layers`
-    request rebuilds it inline. Returns whether the snapshot was rebuilt.
+    anything changed; an unchanged marker restarts the snapshot's and the belief cache's age clocks
+    (the ingest request just verified them), so the TTL only expires on an instance that never
+    receives ingest calls. A changed marker rebuilds at most once per MIN_REBUILD_SECONDS, because
+    weather/HERE re-registrations bump `last_updated` every 5 min and a full read each time is what
+    throttled Atlas M0. The build's CPU work runs in a thread, so user requests keep being served
+    from the current snapshot meanwhile. Run freshness is not part of the snapshot (A28):
+    `/internal/ingest` refreshes the runs cache separately. Never raises: a failed check or rebuild
+    keeps the current snapshot serving. Returns whether the snapshot was rebuilt.
     """
     global _snapshot
     async with _snapshot_lock():
@@ -454,12 +469,12 @@ async def refresh_snapshot_if_changed(db) -> bool:
         try:
             marker = await hazards_marker(db)
         except Exception:
-            log.exception("Layers change marker failed; dropping the snapshot")
-            _snapshot = None
+            log.exception("Layers change marker failed; keeping the current snapshot")
             return False
         if snapshot is not None:
             if marker == snapshot.marker:
                 snapshot.mark_fresh()
+                touch_belief_cache(db)
                 log.info("Layers snapshot kept (%d features): no hazard change", snapshot.count)
                 return False
             age = time.monotonic() - snapshot.rebuilt_monotonic
@@ -470,38 +485,81 @@ async def refresh_snapshot_if_changed(db) -> bool:
         try:
             _snapshot = await _build_snapshot(db, marker)
         except Exception:
-            log.exception("Layers snapshot rebuild failed; dropping the snapshot")
-            _snapshot = None
+            log.exception("Layers snapshot rebuild failed; keeping the current snapshot")
             return False
         return True
 
 
-async def get_snapshot(db) -> Snapshot | None:
-    """The snapshot, rebuilt inline when missing or older than the TTL.
+def _is_fresh(snapshot: Snapshot | None) -> bool:
+    return snapshot is not None and time.monotonic() - snapshot.built_monotonic < SNAPSHOT_TTL_SECONDS
 
-    There is no background rebuild: Cloud Run throttles CPU between requests, so a task could
-    stall halfway while holding its memory. A failed rebuild keeps the previous snapshot serving.
-    """
+
+async def _rebuild_if_stale(db) -> None:
+    """One rebuild under the lock, skipped if another one already made the snapshot fresh."""
     global _snapshot
-    snapshot = _snapshot
-    if snapshot is not None and time.monotonic() - snapshot.built_monotonic < SNAPSHOT_TTL_SECONDS:
-        return snapshot
     async with _snapshot_lock():
-        snapshot = _snapshot
-        if snapshot is not None and time.monotonic() - snapshot.built_monotonic < SNAPSHOT_TTL_SECONDS:
-            return snapshot
+        if _is_fresh(_snapshot):
+            return
         try:
             _snapshot = await _build_snapshot(db)
         except Exception:
-            log.exception("Layers snapshot rebuild failed")
-            return _snapshot
-        return _snapshot
+            log.exception("Layers snapshot rebuild failed; keeping the current snapshot")
 
 
-def warm_snapshot() -> None:
-    """Used to start the first build in the background (A26). Kept for the app startup call site
-    (main.py); there are no background builds any more, so the first /layers request builds it
-    inline instead (A27)."""
+# The background rebuild per event loop (one loop in the app, several in tests). Kept referenced
+# so it isn't garbage-collected mid-build; at most one runs at a time.
+_rebuild_tasks: dict[int, asyncio.Task] = {}
+
+
+def rebuild_in_background(db) -> asyncio.Task:
+    """Start a background rebuild unless one is already running, and return it."""
+    loop = asyncio.get_running_loop()
+    task = _rebuild_tasks.get(id(loop))
+    if task is None or task.done():
+        task = loop.create_task(_rebuild_if_stale(db))
+        _rebuild_tasks[id(loop)] = task
+    return task
+
+
+async def get_snapshot(db) -> Snapshot | None:
+    """The snapshot, never waiting for a rebuild when one exists (stale-while-revalidate).
+
+    Past the TTL, the current snapshot is served straight away and one background rebuild starts;
+    the next requests get the new one once it's ready. Only an instance with no snapshot at all
+    builds inline, and the startup warm-up (`warm_snapshot`) makes that rare. Cloud Run only gives
+    CPU while a request is in flight, so a background rebuild may pause between requests; that only
+    delays it, and the old snapshot serves meanwhile. A failed rebuild keeps the previous snapshot.
+    """
+    snapshot = _snapshot
+    if snapshot is not None:
+        if not _is_fresh(snapshot):
+            rebuild_in_background(db)
+        return snapshot
+    await _rebuild_if_stale(db)
+    return _snapshot
+
+
+# Cloud Run's default startup probe gives the container 240 s to start listening; stay well inside.
+WARM_TIMEOUT_SECONDS = 120
+
+
+async def warm_snapshot(db=None) -> None:
+    """Build the snapshot before the server accepts traffic (awaited from the app's lifespan).
+
+    Cloud Run routes requests to a new instance only once it's listening, and uvicorn listens only
+    after startup, so no user request meets a cold instance. On a deploy the old revision keeps
+    serving until then. Never raises: past WARM_TIMEOUT_SECONDS startup goes on and the build
+    finishes in the background; if it fails, the first /layers request builds it instead.
+    """
+    try:
+        task = asyncio.ensure_future(_rebuild_if_stale(db if db is not None else get_db()))
+        await asyncio.wait_for(asyncio.shield(task), WARM_TIMEOUT_SECONDS)
+    except asyncio.TimeoutError:
+        log.warning("Layers snapshot warm-up still running after %d s; starting anyway",
+                    WARM_TIMEOUT_SECONDS)
+        _rebuild_tasks[id(asyncio.get_running_loop())] = task
+    except Exception:
+        log.exception("Layers snapshot warm-up failed; the first /layers request will build it")
 
 
 def _response(body: bytes) -> Response:

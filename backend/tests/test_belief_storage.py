@@ -171,6 +171,6 @@ class BeliefCacheTests(unittest.IsolatedAsyncioTestCase):
         await pre_route.current_hazards(db, now)
         await pre_route.current_hazards(db, now)
         db.intel_cache.find.assert_called_once()
-        pre_route.clear_belief_cache()  # what a snapshot rebuild does before its own read
+        pre_route.clear_belief_cache()
         await pre_route.current_hazards(db, now)
         self.assertEqual(db.intel_cache.find.call_count, 2)

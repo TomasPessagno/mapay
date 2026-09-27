@@ -342,15 +342,22 @@ class SnapshotTests(unittest.TestCase):
         self.assertEqual(feature["type"], "Feature")
         self.assertEqual(set(feature), {"type", "geometry", "properties"})
 
-    def test_ttl_rebuilds_inline_without_an_ingest(self):
+    def test_ttl_serves_the_old_snapshot_and_rebuilds_in_the_background(self):
         db = FakeDb(self.seeded_now())
         self.get(db)
         old = layers._snapshot
         old.built_monotonic -= layers.SNAPSHOT_TTL_SECONDS + 1
         added = belief("flood:new", "flood", point(-80.18, 25.76), 0.9, updated=datetime.now(timezone.utc))
-        served = self.get(FakeDb(self.seeded_now() + [added])).json()
-        self.assertIsNot(layers._snapshot, old)  # rebuilt inside the request
-        self.assertIn("flood:new", self.ids(served, "flood"))
+        db.intel_cache.docs.append(added)
+
+        async def stale_request():
+            served = await layers.get_snapshot(db)
+            self.assertIs(served, old)  # answered from the old snapshot, without waiting
+            await layers._rebuild_tasks[id(asyncio.get_running_loop())]
+
+        asyncio.run(stale_request())
+        self.assertIsNot(layers._snapshot, old)  # rebuilt in the background
+        self.assertIn("flood:new", self.snapshot_ids("flood"))
 
     def test_run_freshness_moves_without_a_snapshot_rebuild(self):
         docs = self.seeded_now()
@@ -567,3 +574,119 @@ class PayloadTests(unittest.TestCase):
             response = TestClient(main.app).get("/layers", headers={"Accept-Encoding": "gzip"})
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.headers.get("content-encoding"), "gzip")
+
+
+class NonBlockingRebuildTests(unittest.TestCase):
+    """A30: no user request waits for a snapshot rebuild, and a rebuild doesn't stop the server."""
+
+    def setUp(self):
+        layers.clear_snapshot()
+
+    @staticmethod
+    def docs():
+        moment = datetime.now(timezone.utc)
+        return [belief("flood:near", "flood", point(-80.19, 25.76), 0.8, updated=moment),
+                belief("here:closure", "closure", point(-80.20, 25.77), 0.9, updated=moment)]
+
+    def test_feature_encoding_runs_off_the_event_loop(self):
+        import threading
+        threads = []
+        real = layers._encode_features
+
+        def spy(*args):
+            threads.append(threading.current_thread())
+            return real(*args)
+
+        with patch.object(layers, "_encode_features", spy):
+            asyncio.run(layers.get_snapshot(FakeDb(self.docs())))
+        self.assertEqual(len(threads), 1)
+        self.assertIsNot(threads[0], threading.main_thread())
+
+    def test_routes_keep_the_old_beliefs_while_a_rebuild_runs(self):
+        db = FakeDb(self.docs())
+        asyncio.run(layers.get_snapshot(db))
+        cached = asyncio.run(pre_route.belief_docs(db))
+        db.intel_cache.docs.append(belief("flood:new", "flood", point(-80.18, 25.76), 0.9,
+                                          updated=datetime.now(timezone.utc)))
+        seen = []
+        real = layers.collect_features
+
+        async def mid_build(db_, t, beliefs):
+            seen.append(await pre_route.belief_docs(db_))  # a /route request during the build
+            return await real(db_, t, beliefs)
+
+        layers._snapshot.rebuilt_monotonic -= layers.MIN_REBUILD_SECONDS + 1
+        with patch.object(layers, "collect_features", mid_build):
+            self.assertTrue(asyncio.run(layers.refresh_snapshot_if_changed(db)))
+        self.assertIs(seen[0], cached)  # served the previous list, no extra read
+        self.assertEqual(db.belief_reads, 2)  # first build + the rebuild's own read
+        after = asyncio.run(pre_route.belief_docs(db))
+        self.assertIn("flood:new", [doc["hazard_id"] for doc in after])  # seeded once built
+        self.assertEqual(db.belief_reads, 2)
+
+    def test_failed_rebuild_keeps_the_current_snapshot(self):
+        db = FakeDb(self.docs())
+        asyncio.run(layers.get_snapshot(db))
+        current = layers._snapshot
+        layers._snapshot.rebuilt_monotonic -= layers.MIN_REBUILD_SECONDS + 1
+        db.intel_cache.docs.append(belief("flood:new", "flood", point(-80.18, 25.76), 0.9,
+                                          updated=datetime.now(timezone.utc)))
+        with patch.object(layers, "collect_features", side_effect=RuntimeError("boom")):
+            self.assertFalse(asyncio.run(layers.refresh_snapshot_if_changed(db)))
+        self.assertIs(layers._snapshot, current)
+        with patch.object(layers, "hazards_marker", side_effect=RuntimeError("down")):
+            self.assertFalse(asyncio.run(layers.refresh_snapshot_if_changed(db)))
+        self.assertIs(layers._snapshot, current)
+
+    def test_unchanged_ingest_restarts_the_belief_cache_clock(self):
+        db = FakeDb(self.docs())
+        asyncio.run(layers.get_snapshot(db))
+        stamp, docs = pre_route._belief_cache[id(db)]
+        pre_route._belief_cache[id(db)] = (stamp - pre_route.BELIEF_CACHE_SECONDS - 1, docs)
+        self.assertFalse(asyncio.run(layers.refresh_snapshot_if_changed(db)))  # nothing changed
+        asyncio.run(pre_route.belief_docs(db))
+        self.assertEqual(db.belief_reads, 1)  # the verified cache was reused, not re-read
+
+    def test_only_one_background_rebuild_at_a_time(self):
+        db = FakeDb(self.docs())
+        asyncio.run(layers.get_snapshot(db))
+        layers._snapshot.built_monotonic -= layers.SNAPSHOT_TTL_SECONDS + 1
+
+        async def burst():
+            for _ in range(5):
+                await layers.get_snapshot(db)
+            await layers._rebuild_tasks[id(asyncio.get_running_loop())]
+
+        asyncio.run(burst())
+        self.assertEqual(db.belief_reads, 2)  # first build + one rebuild, not five
+
+    def test_warm_up_builds_before_returning(self):
+        db = FakeDb(self.docs())
+        asyncio.run(layers.warm_snapshot(db))
+        self.assertIsNotNone(layers._snapshot)
+        self.assertEqual(db.belief_reads, 1)
+
+    def test_warm_up_never_raises(self):
+        db = FakeDb(self.docs())
+        with patch.object(layers, "hazards_marker", side_effect=RuntimeError("mongo down")):
+            asyncio.run(layers.warm_snapshot(db))  # startup goes on
+        self.assertIsNone(layers._snapshot)
+        asyncio.run(layers.get_snapshot(db))  # the first request builds it instead
+        self.assertIsNotNone(layers._snapshot)
+
+    def test_slow_warm_up_lets_startup_continue(self):
+        db = FakeDb(self.docs())
+        real = layers.collect_features
+
+        async def slow(*args):
+            await asyncio.sleep(0.2)
+            return await real(*args)
+
+        async def startup():
+            await layers.warm_snapshot(db)
+            self.assertIsNone(layers._snapshot)  # startup didn't wait for it
+            await layers._rebuild_tasks[id(asyncio.get_running_loop())]
+
+        with patch.object(layers, "WARM_TIMEOUT_SECONDS", 0.05), patch.object(layers, "collect_features", slow):
+            asyncio.run(startup())
+        self.assertIsNotNone(layers._snapshot)  # finished in the background
