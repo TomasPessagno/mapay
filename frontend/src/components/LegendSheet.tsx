@@ -13,7 +13,7 @@ import {
   IonButtons,
   IonButton
 } from '@ionic/react';
-import { HAZARD_TOKENS } from '../map/legend';
+import { HAZARD_TOKENS, TRAFFIC_COLORS } from '../map/legend';
 import { getShowUnconfirmed, setShowUnconfirmed } from '../map/layers';
 import type { HazardType } from '../lib/types';
 import { closeOutline } from 'ionicons/icons';
@@ -76,7 +76,7 @@ const LegendSheet: React.FC<Props> = ({ isOpen, onDidDismiss, toggled, onToggle 
                 <IonLabel>
                   <h2>{token.name}</h2>
                   {hazard === 'congestion' && (
-                    <div style={{ marginTop: '6px', height: '4px', background: 'linear-gradient(to right, #FFCC00, #FF3B30, #A50E0E)', borderRadius: '2px', width: '100%' }} />
+                    <div style={{ marginTop: '6px', height: '4px', background: `linear-gradient(to right, ${TRAFFIC_COLORS.moderate}, ${TRAFFIC_COLORS.heavy}, ${TRAFFIC_COLORS.severe})`, borderRadius: '2px', width: '100%' }} />
                   )}
                 </IonLabel>
                 <IonToggle 

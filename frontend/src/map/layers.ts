@@ -1,4 +1,4 @@
-import { HAZARD_TOKENS, type LegendToken } from './legend';
+import { HAZARD_TOKENS, TRAFFIC_COLORS, type LegendToken } from './legend';
 import type { HazardType, RouteOption } from '../lib/types';
 
 // Hazard layer renderers: flood, closures, potholes, reports, walk overlay.
@@ -21,17 +21,6 @@ const CITY_PERMIT_MIN_ZOOM = 15;
 const UNCONFIRMED_THRESHOLD = 0.5;
 const layerVisibility = new Map<string, boolean>();
 const layerDataCache = new Map<string, GeoJSON.FeatureCollection>();
-
-// Congestion is Google's own live traffic (TrafficLayer), drawn by Google inside the map like on
-// Google Maps. The HERE flow hazards behind the old congestion lines still count in routing; they
-// just aren't drawn on top of the map any more.
-const TRAFFIC_ID = 'congestion';
-let trafficLayer: google.maps.TrafficLayer | null = null;
-
-function setTrafficVisible(map: google.maps.Map, visible: boolean): void {
-  if (!trafficLayer) trafficLayer = new google.maps.TrafficLayer();
-  trafficLayer.setMap(visible ? map : null);
-}
 
 // Line widths follow the zoom like Google's roads (in screen pixels), so a hazard line reads as
 // part of the street instead of a fixed-width stroke painted over it. ~4 px at zoom 14, doubling
@@ -260,11 +249,6 @@ export async function upsertGeoJsonLayer(
 ): Promise<void> {
   setupMapListeners(map);
   layerDataCache.set(id, data);
-
-  if (id === TRAFFIC_ID) {
-    setTrafficVisible(map, layerVisibility.get(id) !== false);
-    return;
-  }
   
   if (!advancedMarkerLib) {
     advancedMarkerLib = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary;
@@ -458,20 +442,22 @@ export async function upsertGeoJsonLayer(
         }];
         break;
       case 'congestion': {
+        // Google Maps traffic look: solid, road-width, no edge, the same colour in light and dark.
         const level = (feature.getProperty('level') as string || '').toLowerCase();
         const ratio = feature.getProperty('ratio') as number;
-        
-        let congColor = '#FFCC00'; // Default yellow
-        if (level === 'severe' || level === 'dark red') congColor = '#A50E0E';
-        else if (level === 'heavy' || level === 'red') congColor = '#FF3B30';
+
+        let congColor: string = TRAFFIC_COLORS.moderate;
+        if (level === 'severe' || level === 'dark red') congColor = TRAFFIC_COLORS.severe;
+        else if (level === 'heavy' || level === 'red') congColor = TRAFFIC_COLORS.heavy;
         else if (ratio !== undefined) {
-          if (ratio > 0.7) congColor = '#A50E0E';
-          else if (ratio > 0.4) congColor = '#FF3B30';
+          if (ratio > 0.7) congColor = TRAFFIC_COLORS.severe;
+          else if (ratio > 0.4) congColor = TRAFFIC_COLORS.heavy;
         }
-        
+
         options.strokeColor = congColor;
-        options.strokeWeight = severity * 2 + 1; // 1pt wider per spec
-        options.strokeOpacity = strokeOpacity;
+        options.strokeWeight = line ? roadWidth(zoom) : 2;
+        options.strokeOpacity = isFocused(getCentroid(feature)) ? 0.95 : 0.3;
+        options.zIndex = 1;
         break;
       }
       case 'no_sidewalk':
@@ -542,11 +528,6 @@ function upsertEdgeLayer(map: google.maps.Map, id: string, source: google.maps.D
 
 export function toggleLayer(id: string, map: google.maps.Map, visible: boolean): void {
   layerVisibility.set(id, visible);
-
-  if (id === TRAFFIC_ID) {
-    setTrafficVisible(map, visible);
-    return;
-  }
   
   const zoom = map.getZoom() ?? 0;
   let isVisible = visible;
@@ -570,7 +551,6 @@ export function toggleLayer(id: string, map: google.maps.Map, visible: boolean):
 }
 
 export function removeLayer(id: string): void {
-  if (id === TRAFFIC_ID) trafficLayer?.setMap(null);
   layers.get(id)?.setMap(null);
   layers.delete(id);
   edgeLayers.get(id)?.setMap(null);

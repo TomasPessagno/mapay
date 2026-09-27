@@ -27,9 +27,13 @@ export const HAZARD_TOKENS: Record<HazardType, LegendToken> = {
   weather: { name: 'Heavy rain / weather alert', chipName: 'Weather alert', colorLight: '#5856D6', colorDark: '#5E5CE6', icon: rainyOutline, drawnAs: 'Translucent area (25 %), no outline, cloud-rain icon' },
   construction: { name: 'Construction', chipName: 'Roadwork', colorLight: '#FF9500', colorDark: '#FF9F0A', icon: constructOutline, drawnAs: 'Cone icon + area outline' },
   closure: { name: 'Road closure', chipName: 'Closure', colorLight: '#1C1C1E', colorDark: '#F2F2F7', icon: removeCircleOutline, drawnAs: 'Dashed line + no-entry icon' },
-  congestion: { name: 'Congestion', chipName: 'Traffic', colorLight: '#FF3B30', colorDark: '#FF3B30', icon: carOutline, drawnAs: 'Line along the road' },
+  congestion: { name: 'Congestion', chipName: 'Traffic', colorLight: '#F23C32', colorDark: '#F23C32', icon: carOutline, drawnAs: 'Line along the road, in Google Maps traffic colours' },
   no_sidewalk: { name: 'No sidewalk', chipName: 'No sidewalk', colorLight: '#AF52DE', colorDark: '#BF5AF2', icon: walkOutline, drawnAs: 'Dotted line, zoom ≥ 15 only' },
   pothole: { name: 'Pothole', chipName: 'Pothole', colorLight: '#A2845E', colorDark: '#AC8E68', icon: discOutline, drawnAs: 'Small dot' },
   incident: { name: 'Incident / police / news', chipName: 'Incident', colorLight: '#FF2D55', colorDark: '#FF375F', icon: warningOutline, drawnAs: 'Pin with !' },
   event: { name: 'Event / holiday', chipName: 'Event', colorLight: '#34C759', colorDark: '#30D158', icon: calendarOutline, drawnAs: 'Pin with calendar icon' },
 };
+
+// Traffic in Google Maps' colours: orange = slow, red = heavy, dark red = very slow. There is no
+// green: only congested roads are drawn (HERE flow gives moderate / heavy / severe, never free flow).
+export const TRAFFIC_COLORS = { moderate: '#FF974D', heavy: '#F23C32', severe: '#811F1F' } as const;
