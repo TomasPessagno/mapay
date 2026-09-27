@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
 import { IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonNote, IonPage, IonTitle, IonToast, IonToggle, IonToolbar } from '@ionic/react';
-import { notificationsOutline } from 'ionicons/icons';
+import { notificationsOutline, sparklesOutline } from 'ionicons/icons';
 import { Haptics, NotificationType } from '@capacitor/haptics';
 import { enableHeadsUpNotifications, notificationsAllowed } from '../headsup/notifications';
 import { NOTIFY_IN_MS, fireHeadsUpNow } from '../headsup/demo';
@@ -9,6 +9,7 @@ import PreferencesTab from '../routines/PreferencesTab';
 import { getDeviceId } from '../lib/api';
 import { MapayNative, isNativeIOS } from '../lib/native';
 import { App as CapacitorApp } from '@capacitor/app';
+import { openOnboarding } from '../onboarding/events';
 
 // Debug line for #19: the app's identifierForVendor, to compare with the widget's. Native only.
 const DeviceIdLine: React.FC = () => {
@@ -86,6 +87,14 @@ const FireHeadsUpItem: React.FC = () => {
   );
 };
 
+// #139: the intro lives in frontend/src/onboarding; this row re-opens it any time.
+const ShowIntroItem: React.FC = () => (
+  <IonItem button detail={false} onClick={() => openOnboarding()}>
+    <IonIcon icon={sparklesOutline} slot="start" color="primary" />
+    <IonLabel>Show intro</IonLabel>
+  </IonItem>
+);
+
 // Heads-up notifications (#28): permission is asked from this toggle, a user gesture. Native only.
 const NotificationsRow: React.FC = () => {
   const native = Capacitor.isNativePlatform();
@@ -120,7 +129,7 @@ const NotificationsRow: React.FC = () => {
 
 const PreferencesPage: React.FC = () => {
   return (
-    <IonPage>
+    <IonPage className="preferences-page">
       <IonHeader translucent={true} className="ion-no-border">
         <IonToolbar className="glass">
           <IonTitle>Preferences</IonTitle>
@@ -135,6 +144,14 @@ const PreferencesPage: React.FC = () => {
         
         <PreferencesTab />
         <NotificationsRow />
+
+        <h2 style={{ marginLeft: 16, marginTop: 24, marginBottom: 8, fontSize: 14, textTransform: 'uppercase', color: 'var(--ion-color-medium)' }}>
+          About
+        </h2>
+        <IonList inset>
+          <ShowIntroItem />
+        </IonList>
+
         <DeviceIdLine />
       </IonContent>
     </IonPage>

@@ -42,6 +42,7 @@ const LegendSheet: React.FC<Props> = ({ isOpen, onDidDismiss, toggled, onToggle 
 
   return (
     <IonModal
+      className="desktop-sidebar-sheet legend-sheet"
       isOpen={isOpen}
       onDidDismiss={onDidDismiss}
       initialBreakpoint={0.5}

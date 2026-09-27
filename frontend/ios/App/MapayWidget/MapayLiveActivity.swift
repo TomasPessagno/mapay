@@ -62,68 +62,90 @@ struct Countdown: View {
     }
 }
 
+/// "via SR-836 and SR-826" → "SR-836 → SR-826", so the route fits on one line.
+func shortRoute(_ summary: String) -> String {
+    var text = summary.trimmingCharacters(in: .whitespaces)
+    if text.lowercased().hasPrefix("via ") { text = String(text.dropFirst(4)) }
+    let parts = text.components(separatedBy: " and ").flatMap { $0.components(separatedBy: ", ") }
+    return parts.filter { !$0.isEmpty }.joined(separator: " → ")
+}
+
 struct LockScreenBanner: View {
     let context: ActivityViewContext<MapayActivityAttributes>
 
     var body: some View {
         let state = context.state
+        let attributes = context.attributes
         let style = HazardStyle.of(state.topHazardType)
         let leaving = context.isStale || state.departure <= .now
+        let route = shortRoute(state.summary)
 
-        HStack(alignment: .center, spacing: 12) {
-            VStack(alignment: .leading, spacing: 6) {
-                HStack(spacing: 6) {
-                    Image(systemName: style.symbol)
-                        .font(.caption.weight(.bold))
-                        .padding(5)
-                        .background(.white.opacity(0.25), in: Circle())
-                    Text(state.hazardCount == 0 ? "No hazards" : state.hazardCount == 1 ? "1 hazard" : "\(state.hazardCount) hazards")
-                        .font(.caption.weight(.semibold))
-                }
-
+        VStack(alignment: .leading, spacing: 6) {
+            // Countdown, what it's for, and the hazard count as a small trailing badge.
+            HStack(alignment: .center, spacing: 10) {
                 Countdown(departure: state.departure, isStale: context.isStale)
-                    .font(.system(size: 40, weight: .bold, design: .rounded))
+                    .font(.system(size: 38, weight: .bold, design: .rounded))
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
-
-                Text(leaving ? "to \(context.attributes.toName)" : "left to leave for \(context.attributes.toName)")
-                    .font(.system(.subheadline, design: .rounded).weight(.semibold))
-
-                Text("\(context.attributes.fromName) → \(context.attributes.toName) · \(state.durationMin) min trip · \(state.summary)")
-                    .font(.caption)
-                    .opacity(0.85)
-                    .lineLimit(1)
-
-                HStack(spacing: 8) {
-                    Link(destination: deepLink("start", context.attributes)) {
-                        Label("Start", systemImage: "location.fill")
-                            .font(.caption.weight(.bold))
-                            .padding(.horizontal, 12).padding(.vertical, 6)
-                            .background(.white, in: Capsule())
-                            .foregroundStyle(style.color)
-                    }
-                    Link(destination: deepLink("customize", context.attributes)) {
-                        Label("Customize", systemImage: "slider.horizontal.3")
-                            .font(.caption.weight(.bold))
-                            .padding(.horizontal, 12).padding(.vertical, 6)
-                            .background(.white.opacity(0.25), in: Capsule())
-                    }
+                    .frame(maxWidth: 106, alignment: .leading)
+                VStack(alignment: .leading, spacing: 0) {
+                    Text(leaving ? "Time to go" : "left to leave")
+                        .font(.caption.weight(.semibold))
+                        .opacity(0.85)
+                    Text("for \(attributes.toName)")
+                        .font(.subheadline.weight(.semibold))
                 }
-                .padding(.top, 2)
+                .lineLimit(1)
+                Spacer(minLength: 4)
+                Label(state.hazardCount == 0 ? "Clear" : state.hazardCount == 1 ? "1 hazard" : "\(state.hazardCount) hazards",
+                      systemImage: style.symbol)
+                    .font(.caption2.weight(.bold))
+                    .lineLimit(1)
+                    .padding(.horizontal, 8).padding(.vertical, 4)
+                    .background(.white.opacity(0.25), in: Capsule())
+                    .fixedSize() // the destination text gives way first
             }
 
-            Spacer(minLength: 0)
+            // What the hazard is (the top one), one line.
+            Text(state.topHazardTitle ?? "No hazards on your route")
+                .font(.system(.subheadline, design: .rounded).weight(.bold))
+                .lineLimit(1)
 
-            // The "mascot": a car heading into the top hazard.
-            ZStack(alignment: .topTrailing) {
-                Image(systemName: "car.fill")
-                    .font(.system(size: 54, weight: .bold))
-                    .padding(.top, 22).padding(.trailing, 16)
-                Image(systemName: style.symbol)
-                    .font(.system(size: 30, weight: .bold))
-                    .padding(8)
-                    .background(.white.opacity(0.25), in: Circle())
+            Text(route.isEmpty ? "From \(attributes.fromName) · \(state.durationMin) min"
+                               : "From \(attributes.fromName) · \(state.durationMin) min · \(route)")
+                .font(.caption)
+                .opacity(0.85)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+
+            HStack(spacing: 8) {
+                Link(destination: deepLink("start", attributes)) {
+                    Label("Start", systemImage: "location.fill")
+                        .font(.caption.weight(.bold))
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(.white, in: Capsule())
+                        .foregroundStyle(style.color)
+                }
+                Link(destination: deepLink("customize", attributes)) {
+                    Label("Customize", systemImage: "slider.horizontal.3")
+                        .font(.caption.weight(.bold))
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(.white.opacity(0.25), in: Capsule())
+                }
+                Spacer(minLength: 0)
+                // The "mascot": a car heading into the top hazard.
+                ZStack(alignment: .topTrailing) {
+                    Image(systemName: "car.fill")
+                        .font(.system(size: 26, weight: .bold))
+                        .padding(.top, 8).padding(.trailing, 10)
+                    Image(systemName: style.symbol)
+                        .font(.system(size: 12, weight: .bold))
+                        .padding(4)
+                        .background(.white.opacity(0.25), in: Circle())
+                }
+                .accessibilityHidden(true)
             }
+            .padding(.top, 2)
         }
         .foregroundStyle(.white)
         .padding(16)
