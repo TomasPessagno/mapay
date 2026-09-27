@@ -1,13 +1,14 @@
 import { useEffect, useState, useRef } from "react";
-import { Map, useMap } from "@vis.gl/react-google-maps";
+import { Map, useMap, AdvancedMarker } from "@vis.gl/react-google-maps";
 import { IonFab, IonFabButton, IonIcon } from "@ionic/react";
-import { layersOutline } from "ionicons/icons";
+import { layersOutline, locateOutline } from "ionicons/icons";
 import type { RouteResponse, RouteOption } from "../lib/types";
 import { api } from "../lib/api";
 import { upsertGeoJsonLayer, toggleLayer, setOnHazardClick } from "./layers";
 import LegendSheet from "../components/LegendSheet";
 import HazardSheet, { type HazardProperties } from "../components/HazardSheet";
 import ReportFab from "../components/ReportFab";
+import type { PlaceData } from "../components/PlaceCard";
 
 const MIAMI = { lat: 25.7617, lng: -80.1918 };
 
@@ -16,6 +17,8 @@ interface Props {
   routeResponse: RouteResponse | null;
   selectedRouteIndex: number;
   mapId: string;
+  userLocation: {lat: number, lng: number} | null;
+  onLocateMe: () => void;
 }
 
 export default function MapView(props: Props) {
@@ -40,12 +43,28 @@ export default function MapView(props: Props) {
         gestureHandling="greedy"
         disableDefaultUI
         colorScheme="FOLLOW_SYSTEM"
-      />
+      >
+        {props.userLocation && (
+          <AdvancedMarker position={props.userLocation} zIndex={100}>
+            <div style={{
+              width: '18px', height: '18px',
+              backgroundColor: '#007AFF',
+              borderRadius: '50%',
+              border: '3px solid white',
+              boxShadow: '0 0 6px rgba(0,0,0,0.3)'
+            }} />
+          </AdvancedMarker>
+        )}
+        <MapController />
+      </Map>
       <MapLayers {...props} layersToggled={layersToggled} />
       
-      <IonFab slot="fixed" vertical="top" horizontal="end" style={{ top: '60px', right: '16px' }}>
+      <IonFab slot="fixed" vertical="top" horizontal="end" style={{ top: '60px', right: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         <IonFabButton aria-label="Legend and Layers" className="glass" onClick={() => setShowLegend(true)} style={{ width: '44px', height: '44px', borderRadius: '50%' }}>
           <IonIcon icon={layersOutline} color="primary" />
+        </IonFabButton>
+        <IonFabButton aria-label="Locate Me" className="glass" onClick={props.onLocateMe} style={{ width: '44px', height: '44px', borderRadius: '50%' }}>
+          <IonIcon icon={locateOutline} color="primary" />
         </IonFabButton>
       </IonFab>
 
@@ -62,6 +81,37 @@ export default function MapView(props: Props) {
         onDidDismiss={() => setSelectedHazard(null)}
       />
       <ReportFab />
+    </>
+  );
+}
+
+function MapController() {
+  const map = useMap();
+  const [selectedPlace, setSelectedPlace] = useState<PlaceData | null>(null);
+
+  useEffect(() => {
+    const handleRecenter = (e: Event) => {
+      if (!map) return;
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.location) {
+        map.panTo(customEvent.detail.location);
+        if (customEvent.detail.zoom) {
+          map.setZoom(customEvent.detail.zoom);
+        }
+      }
+      if (customEvent.detail?.place !== undefined) {
+         setSelectedPlace(customEvent.detail.place);
+      }
+    };
+    window.addEventListener('recenter-map', handleRecenter);
+    return () => window.removeEventListener('recenter-map', handleRecenter);
+  }, [map]);
+
+  return (
+    <>
+      {selectedPlace && (
+        <AdvancedMarker position={selectedPlace.location} zIndex={50} />
+      )}
     </>
   );
 }

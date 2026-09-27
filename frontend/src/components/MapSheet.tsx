@@ -2,6 +2,8 @@ import React, { useRef, useEffect, useState } from 'react';
 import { IonModal, IonContent, IonButton } from '@ionic/react';
 import SearchField from './SearchField';
 import RouteOptions from './RouteOptions';
+import PlaceCard from './PlaceCard';
+import type { PlaceData } from './PlaceCard';
 import type { RouteResponse, UpcomingLeg } from '../lib/types';
 import { api } from '../lib/api';
 import HeadsUpCard from '../headsup/HeadsUpCard';
@@ -9,13 +11,20 @@ import HeadsUpCard from '../headsup/HeadsUpCard';
 interface MapSheetProps {
   isOpen: boolean;
   routeResponse: RouteResponse | null;
-  onSearch: (destination: {lat: number, lng: number}, name: string) => void;
+  selectedPlace: PlaceData | null;
+  onSearch: (destination: {lat: number, lng: number}, name: string, address?: string, type?: string, placeId?: string) => void;
   onRouteSelect: (index: number) => void;
   selectedRouteIndex: number;
   onClearRoute: () => void;
+  onClearPlace: () => void;
+  onRequestRoute: () => void;
+  onAddToRoutine: () => void;
 }
 
-const MapSheet: React.FC<MapSheetProps> = ({ isOpen, routeResponse, onSearch, onRouteSelect, selectedRouteIndex, onClearRoute }) => {
+const MapSheet: React.FC<MapSheetProps> = ({ 
+  isOpen, routeResponse, selectedPlace, onSearch, 
+  onRouteSelect, selectedRouteIndex, onClearRoute, onClearPlace, onRequestRoute, onAddToRoutine 
+}) => {
   const modal = useRef<HTMLIonModalElement>(null);
   const [upcomingLegs, setUpcomingLegs] = useState<UpcomingLeg[]>([]);
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -41,12 +50,12 @@ const MapSheet: React.FC<MapSheetProps> = ({ isOpen, routeResponse, onSearch, on
     return nowTime >= headsUp && nowTime <= end;
   });
 
-  // If a route is fetched OR active leg is shown, move to medium breakpoint
+  // If a route is fetched OR active leg is shown OR place is selected, move to medium breakpoint
   useEffect(() => {
-    if ((routeResponse || activeLeg) && modal.current) {
+    if ((routeResponse || activeLeg || selectedPlace) && modal.current) {
       modal.current.setCurrentBreakpoint(0.5);
     }
-  }, [routeResponse, activeLeg]);
+  }, [routeResponse, activeLeg, selectedPlace]);
 
   return (
     <IonModal
@@ -67,7 +76,6 @@ const MapSheet: React.FC<MapSheetProps> = ({ isOpen, routeResponse, onSearch, on
               size="small" 
               fill="outline" 
               onClick={() => {
-                // mock 'rt-fiu' leg 0 heads_up is 9:00, departure 9:30 on 2026-09-28
                 const target = new Date("2026-09-28T09:05:00-04:00").getTime();
                 setTimeOffsetMs(target - Date.now());
               }}
@@ -77,11 +85,18 @@ const MapSheet: React.FC<MapSheetProps> = ({ isOpen, routeResponse, onSearch, on
           </div>
         )}
 
-        {activeLeg && !routeResponse ? (
+        {activeLeg && !routeResponse && !selectedPlace ? (
           <HeadsUpCard leg={activeLeg} timeOffsetMs={timeOffsetMs} />
         ) : null}
 
-        {!routeResponse ? (
+        {selectedPlace && !routeResponse ? (
+          <PlaceCard 
+            place={selectedPlace} 
+            onClose={onClearPlace} 
+            onRoute={onRequestRoute} 
+            onAddToRoutine={onAddToRoutine} 
+          />
+        ) : !routeResponse ? (
           <SearchField 
             onSearch={onSearch} 
             onFocus={() => modal.current?.setCurrentBreakpoint(0.9)}

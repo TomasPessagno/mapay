@@ -73,7 +73,17 @@ export const api = {
   saveRoutine: (r: Routine) => request<Routine>("/routines", { method: "POST", body: JSON.stringify(r) }),
   upcomingRoutines: (days: number = 7) => request<UpcomingRoutinesResponse>(`/routines/upcoming?days=${days}`),
   places: () => request<Place[]>("/places"),
-  savePlace: (p: Partial<Place>) => request<Place>("/places", { method: "POST", body: JSON.stringify(p) }),
+  // Stored shape follows public/mocks/places.json (GeoJSON Point). The mock is a GET list, so with
+  // mocks on this returns the new place locally instead of POSTing.
+  savePlace: async (p: { name: string; lat: number; lng: number; google_place_id?: string; address?: string }) => {
+    const body = {
+      name: p.name,
+      google_place_id: p.google_place_id,
+      location: { type: 'Point' as const, coordinates: [p.lng, p.lat] as [number, number] },
+    };
+    if (USE_MOCKS) return { _id: `pl-${Date.now()}`, user_id: 'device-demo', address: p.address, ...body } as Place;
+    return request<Place>("/places", { method: "POST", body: JSON.stringify(body) });
+  },
   neighborhoods: async (q?: string) => {
     let res = await request<Neighborhood[]>(`/neighborhoods${q ? `?q=${encodeURIComponent(q)}` : ''}`);
     if (USE_MOCKS && q) {
