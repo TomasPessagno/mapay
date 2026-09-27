@@ -1,6 +1,8 @@
 import { Device } from '@capacitor/device';
 import type { RouteResponse, Routine, UpcomingRoutinesResponse, Neighborhood, Preferences, LayersResponse, Place } from "./types";
 
+type LatLngObj = { lat: number; lng: number };
+
 const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true';
 // Paths start with "/", so drop any trailing slash ("http://localhost:8000/" would call "//route").
 const BASE = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000").replace(/\/+$/, "");
@@ -64,7 +66,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  route: (body: unknown) => request<RouteResponse>("/route", { method: "POST", body: JSON.stringify(body) }),
+  // POST /route takes origin/destination as [lat, lng] pairs (backend LatLng); the app passes {lat, lng}.
+  route: ({ origin, destination, ...rest }: { origin: LatLngObj; destination: LatLngObj } & Record<string, unknown>) =>
+    request<RouteResponse>("/route", {
+      method: "POST",
+      body: JSON.stringify({ ...rest, origin: [origin.lat, origin.lng], destination: [destination.lat, destination.lng] }),
+    }),
   layers: (t: Date) => request<LayersResponse>(`/layers?t=${t.toISOString()}`),
   alerts: () => request<{ nws: unknown[]; news: unknown[] }>("/alerts"),
   report: (data: { type: string; lat: number; lng: number; hazard_id?: string; cleared?: boolean }) =>
