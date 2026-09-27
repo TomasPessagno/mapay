@@ -56,16 +56,20 @@ const RouteOptions: React.FC<RouteOptionsProps> = ({
       <div className="route-options-header">
         <div>
           <IonText color="dark"><h2 className="dynamic-title2" style={{ fontWeight: 'bold', margin: 0 }}>Route Options</h2></IonText>
-          <IonText color="medium"><p className="route-departure-summary" aria-live="polite">{departureSummary}</p></IonText>
         </div>
         <IonButton fill="clear" color="medium" onClick={onClose} aria-label="Close route options" style={{ margin: 0, height: '44px' }}>
           <IonIcon aria-hidden="true" slot="icon-only" icon={closeOutline} />
         </IonButton>
       </div>
+      <div className="route-time-control">
+        <TimeScrubber
+          compact
+          compactLabel={departureSummary}
+          value={selectedDeparture}
+          onChange={onDepartureChange}
+        />
+      </div>
       <div className="route-options-list">
-        <div className="route-time-control">
-          <TimeScrubber value={selectedDeparture} onChange={onDepartureChange} />
-        </div>
         <div className="route-options-secondary-actions">
           <IonButton
             expand="block"

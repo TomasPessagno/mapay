@@ -111,7 +111,7 @@ const MapSheet: React.FC<MapSheetProps> = ({
       const timeout = window.setTimeout(() => moveToBreakpoint(COLLAPSED_BREAKPOINT), 0);
       return () => window.clearTimeout(timeout);
     }
-    const breakpoint = routeResponse || selectedPlace || activeLeg ? 0.9 : 0.5;
+    const breakpoint = routeResponse ? 1 : selectedPlace || activeLeg ? 0.9 : 0.5;
     const timeout = window.setTimeout(() => moveToBreakpoint(breakpoint), 0);
     return () => window.clearTimeout(timeout);
   }, [routeResponse, activeLeg, selectedPlace, moveToBreakpoint]);
@@ -121,10 +121,10 @@ const MapSheet: React.FC<MapSheetProps> = ({
       ref={modal}
       isOpen={isOpen}
       keepContentsMounted={true}
-      handle={!isCollapsed}
+      handle={!isCollapsed && !routeResponse}
       backdropBreakpoint={0.5}
-      initialBreakpoint={COLLAPSED_BREAKPOINT}
-      breakpoints={[COLLAPSED_BREAKPOINT, 0.5, 0.9]}
+      initialBreakpoint={routeResponse ? 1 : COLLAPSED_BREAKPOINT}
+      breakpoints={routeResponse ? [1] : [COLLAPSED_BREAKPOINT, 0.5, 0.9, 1]}
       backdropDismiss={false}
       canDismiss={false}
       className={`map-sheet${isCollapsed ? ' map-sheet-compact' : ''}${routeResponse ? ' map-sheet-routes' : ''}`}
@@ -132,7 +132,9 @@ const MapSheet: React.FC<MapSheetProps> = ({
         void modal.current?.getCurrentBreakpoint().then((breakpoint) => {
           if (breakpoint !== undefined) setSheetBreakpoint(breakpoint);
         }).catch(() => {});
-        if (activeLeg && !routeResponse && !selectedPlace) {
+        if (routeResponse) {
+          moveToBreakpoint(1);
+        } else if (activeLeg && !selectedPlace) {
           moveToBreakpoint(0.9);
         }
       }}

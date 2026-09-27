@@ -11,6 +11,13 @@ export function toDeviceOffsetISOString(date: Date): string {
   return `${localTime}${sign}${hours}:${minutes}`;
 }
 
+/** IonDatetime treats ISO components as wall time and ignores their timezone suffix. */
+export function toLocalDatetimeValue(date: Date): string {
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+    .toISOString()
+    .replace(/\.\d{3}Z$/, '');
+}
+
 export function localClockTime(date: Date): string {
   return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }

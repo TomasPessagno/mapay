@@ -418,6 +418,7 @@ ion-modal.map-sheet.map-sheet-compact::part(content) {
   flex-direction: column;
   flex: 1 1 0;
   min-height: 0;
+  max-height: 100%;
   overflow: hidden;
   width: 100%;
 }
@@ -441,6 +442,8 @@ ion-modal.map-sheet.map-sheet-compact::part(content) {
 }
 
 .route-options-footer {
+  position: relative;
+  z-index: 2;
   flex: 0 0 auto;
   padding: 10px 16px 4px;
   border-top: 1px solid var(--separator);
@@ -462,6 +465,44 @@ ion-modal.map-sheet.map-sheet-compact::part(content) {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
+}
+
+.route-time-control {
+  flex: 0 0 auto;
+  margin: 0 16px 8px;
+}
+
+.departure-time-control-compact {
+  display: block;
+}
+
+.departure-compact-row {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 8px 0 12px;
+  border: 1px solid var(--separator);
+  border-radius: 14px;
+  background: var(--secondary-system-background);
+  color: var(--label);
+}
+
+.departure-compact-label {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--label);
+  font-size: 14px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.departure-compact-row ion-button {
+  flex: 0 0 auto;
+  min-height: 44px;
+  margin: 0;
 }
 
 .route-options-secondary-actions ion-button {
@@ -571,17 +612,6 @@ ion-modal.map-sheet.map-sheet-compact::part(content) {
   .departure-datetime {
     --wheel-fade-background-rgb: 28, 28, 30;
   }
-}
-
-.route-departure-summary {
-  margin: 2px 0 0;
-  color: var(--secondary-label);
-  font-size: 13px;
-  line-height: 18px;
-}
-
-.route-time-control {
-  margin: 0 0 14px;
 }
 
 .departure-map-chip {
