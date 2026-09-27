@@ -25,13 +25,15 @@ Read [`AGENTS.md`](../AGENTS.md) ("Working on a task"), [`docs/design.md`](desig
 
 | Order | Issue | Branch | Notes |
 | --- | --- | --- | --- |
-| 1 | #19 B2 · Capacitor iOS project + widget target + AltStore proof | `b2-capacitor-ios` | Prepared: `frontend/capacitor.config.ts`, the Capacitor iOS packages, `frontend/scripts/build-ipa.sh` |
-| 2 | #28 B8 · Local notifications + `mapay://` deep links | `b8-notifications` | After #19 merges; can run alongside #29 |
-| 2 | #29 B9 · Home-screen widget (SwiftUI) | `b9-widget` | After #19 merges |
-| 3 | #36 B12 · Demo button | `b12-demo-button` | After #28 and #29 |
-| P1 | #37 B14 · Live Activity + Lock Screen widgets, #41 B15 · design polish on the iPhone | | Only after the P0 ones |
+| ✅ | #19 B2 · Capacitor iOS project + widget target + AltStore proof | `b2-capacitor-ios` | Merged (PR #73). App and widget `identifierForVendor` match on the iPhone. |
+| 1 | #76 B16 · iPhone fit: keyboard doesn't move the UI; tab bar height and safe areas | `b16-iphone-fit` | Small; from Tomas's first iPhone test |
+| 2 | #37 B14 · Duolingo-style Live Activity (Lock Screen banner + Dynamic Island) | `b14-live-activity` | **P0**, the demo's centrepiece; spec in the issue and docs/design.md › The heads-up |
+| 3 | #28 B8 · Local notifications + `mapay://` deep links | `b8-notifications` | Its tap opens the app, which starts the Live Activity |
+| 3 | #29 B9 · Home-screen widget (SwiftUI) | `b9-widget` | Replaces the #19 placeholder |
+| 4 | #36 B12 · Demo button | `b12-demo-button` | After #28, #29 and #37 |
+| P1 | #41 B15 · design polish on the iPhone | | Only after the P0 ones; also removes the device id debug line |
 
-For each later task: `git fetch && git switch -c <branch> origin/main`, open a draft PR into `main` that says `Closes #<N>` and links this file, and use it the same way.
+For each task after #19: `git fetch && git switch -c <branch> origin/main`, open a draft PR into `main` that says `Closes #<N>` and links this file, and use it the same way.
 
 ## #19 step by step
 
@@ -67,3 +69,7 @@ For each later task: `git fetch && git switch -c <branch> origin/main`, open a d
 - API shapes come from `frontend/public/mocks/`; if one must change, ask the orchestrator first.
 - Keys and tokens never go in git, a PR or a comment (the repo is public).
 - Everything free: a free Apple ID, no paid Apple Developer features (no push, App Groups, iCloud, Sign in with Apple).
+
+## Testing on the iPhone
+
+The iPhone may be with Tomas at the Windows PC instead of the Mac. Then build with `frontend/scripts/build-ipa.sh`, attach `frontend/build/Mapay.ipa` to a **draft** GitHub release named `<branch>-ipa-<short sha>` (`gh release create <tag> frontend/build/Mapay.ipa --draft --target <branch>`), and post `[mac → orchestrator]` with the tag. The orchestrator installs it through AltServer for Windows, reports back in the PR, and deletes the draft release after merging.
