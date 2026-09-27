@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		0BAC4DE47CF0F3CAE3AD6C97 /* MapayWidgetExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 5F9AEB142D9767F730D1686B /* MapayWidgetExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		2FAD9763203C412B000D30F8 /* config.xml in Resources */ = {isa = PBXBuildFile; fileRef = 2FAD9762203C412B000D30F8 /* config.xml */; };
+		40BCBF6AD7ED8CF139AD0724 /* MapayNativePlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28DB49C67E9FFB21CA071730 /* MapayNativePlugin.swift */; };
 		4D22ABE92AF431CB00220026 /* CapApp-SPM in Frameworks */ = {isa = PBXBuildFile; productRef = 4D22ABE82AF431CB00220026 /* CapApp-SPM */; };
 		4D4811369F408C945D0CC980 /* SwiftUI.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 9DA00290F38C25145371E4A5 /* SwiftUI.framework */; };
 		50379B232058CBB4000EE86E /* capacitor.config.json in Resources */ = {isa = PBXBuildFile; fileRef = 50379B222058CBB4000EE86E /* capacitor.config.json */; };
@@ -17,10 +18,14 @@
 		504EC30F1FED79650016851F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 504EC30E1FED79650016851F /* Assets.xcassets */; };
 		504EC3121FED79650016851F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 504EC3101FED79650016851F /* LaunchScreen.storyboard */; };
 		50B271D11FEDC1A000F3C39B /* public in Resources */ = {isa = PBXBuildFile; fileRef = 50B271D01FEDC1A000F3C39B /* public */; };
+		70F47D511E79223D55855D5E /* MapayActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8D0EA6BF6F4F5775EBA43F4 /* MapayActivityAttributes.swift */; };
+		74D0418A8284473672F12021 /* MapayViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1DE3D4F3F51F75F8FEA64C6 /* MapayViewController.swift */; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
 		E230DE38A50CCCC5ACAD5C38 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EABE6D6FDBAF87F1955EB522 /* WidgetKit.framework */; };
 		E4C1FAA386B463CC2ACC46B7 /* MapayWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 748641C0F79D62B23370ACCB /* MapayWidget.swift */; };
 		E866B90A4A87A64BF0CC6B54 /* MapayWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EFEF4609BD667D4FD7F522A /* MapayWidgetBundle.swift */; };
+		ED61FA99E530066E38B2172A /* MapayLiveActivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ECC6D2BFC45324BB42D9113 /* MapayLiveActivity.swift */; };
+		F2A6AA9A6AE9B7AF97E85D3E /* MapayActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8D0EA6BF6F4F5775EBA43F4 /* MapayActivityAttributes.swift */; };
 		F8E96B489493195D98DAD37C /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F9ACEFDEB288C027CF80A518 /* Foundation.framework */; };
 /* End PBXBuildFile section */
 
@@ -50,6 +55,8 @@
 
 /* Begin PBXFileReference section */
 		0EFEF4609BD667D4FD7F522A /* MapayWidgetBundle.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MapayWidgetBundle.swift; sourceTree = "<group>"; };
+		1ECC6D2BFC45324BB42D9113 /* MapayLiveActivity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MapayLiveActivity.swift; sourceTree = "<group>"; };
+		28DB49C67E9FFB21CA071730 /* MapayNativePlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MapayNativePlugin.swift; sourceTree = "<group>"; };
 		2FAD9762203C412B000D30F8 /* config.xml */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = config.xml; sourceTree = "<group>"; };
 		50379B222058CBB4000EE86E /* capacitor.config.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = capacitor.config.json; sourceTree = "<group>"; };
 		504EC3041FED79650016851F /* App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = App.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -64,8 +71,10 @@
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		9DA00290F38C25145371E4A5 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/SwiftUI.framework; sourceTree = DEVELOPER_DIR; };
+		B1DE3D4F3F51F75F8FEA64C6 /* MapayViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MapayViewController.swift; sourceTree = "<group>"; };
 		EABE6D6FDBAF87F1955EB522 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/WidgetKit.framework; sourceTree = DEVELOPER_DIR; };
 		F7C5F98D3BCFD7F44FAE3466 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		F8D0EA6BF6F4F5775EBA43F4 /* MapayActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MapayActivityAttributes.swift; sourceTree = "<group>"; };
 		F9ACEFDEB288C027CF80A518 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
 
@@ -101,6 +110,15 @@
 			name = iOS;
 			sourceTree = "<group>";
 		};
+		2F0D0F72669B39D60E256F16 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				F8D0EA6BF6F4F5775EBA43F4 /* MapayActivityAttributes.swift */,
+			);
+			name = Shared;
+			path = Shared;
+			sourceTree = "<group>";
+		};
 		504EC2FB1FED79650016851F = {
 			isa = PBXGroup;
 			children = (
@@ -109,6 +127,7 @@
 				504EC3051FED79650016851F /* Products */,
 				8790386CD1DC8095E4E15825 /* Frameworks */,
 				6C5886CFCA466A17F0A84E87 /* MapayWidget */,
+				2F0D0F72669B39D60E256F16 /* Shared */,
 			);
 			sourceTree = "<group>";
 		};
@@ -133,6 +152,8 @@
 				504EC3131FED79650016851F /* Info.plist */,
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
+				28DB49C67E9FFB21CA071730 /* MapayNativePlugin.swift */,
+				B1DE3D4F3F51F75F8FEA64C6 /* MapayViewController.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -143,6 +164,7 @@
 				748641C0F79D62B23370ACCB /* MapayWidget.swift */,
 				0EFEF4609BD667D4FD7F522A /* MapayWidgetBundle.swift */,
 				F7C5F98D3BCFD7F44FAE3466 /* Info.plist */,
+				1ECC6D2BFC45324BB42D9113 /* MapayLiveActivity.swift */,
 			);
 			name = MapayWidget;
 			path = MapayWidget;
@@ -266,6 +288,9 @@
 			files = (
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
+				70F47D511E79223D55855D5E /* MapayActivityAttributes.swift in Sources */,
+				40BCBF6AD7ED8CF139AD0724 /* MapayNativePlugin.swift in Sources */,
+				74D0418A8284473672F12021 /* MapayViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -275,6 +300,8 @@
 			files = (
 				E4C1FAA386B463CC2ACC46B7 /* MapayWidget.swift in Sources */,
 				E866B90A4A87A64BF0CC6B54 /* MapayWidgetBundle.swift in Sources */,
+				F2A6AA9A6AE9B7AF97E85D3E /* MapayActivityAttributes.swift in Sources */,
+				ED61FA99E530066E38B2172A /* MapayLiveActivity.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

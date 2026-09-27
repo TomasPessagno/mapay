@@ -5,5 +5,6 @@ import WidgetKit
 struct MapayWidgetBundle: WidgetBundle {
     var body: some Widget {
         MapayWidget()
+        MapayLiveActivity()
     }
 }
