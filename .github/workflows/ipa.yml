@@ -10,7 +10,7 @@ name: ipa
 
 on:
   push:
-    branches: [main]
+    branches: [main, o1-ipa-ci] # temp: test on this branch, reverted before the PR
     paths: ["frontend/**", ".github/workflows/ipa.yml"]
   workflow_dispatch:
 
@@ -33,12 +33,14 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Select Xcode
-        # The iOS project links the iPhoneOS26 SDK frameworks and Capacitor 8's SPM package,
-        # so use an Xcode 26 toolchain (the macOS-15 image's default is still Xcode 16.4).
+        # Capacitor 8's binary xcframeworks are built with the Xcode 26 toolchain, so prefer
+        # any Xcode 26 the image has; fall back to the newest one otherwise.
         run: |
-          for xcode in /Applications/Xcode_26.0.1.app /Applications/Xcode_26.0.app /Applications/Xcode.app; do
-            if [ -d "$xcode" ]; then sudo xcode-select -s "$xcode"; break; fi
-          done
+          xcode="$(ls -d /Applications/Xcode_26*.app 2>/dev/null | sort -V | tail -1)"
+          if [ -z "$xcode" ]; then
+            xcode="$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)"
+          fi
+          if [ -n "$xcode" ]; then sudo xcode-select -s "$xcode"; fi
           xcodebuild -version
 
       - uses: actions/setup-node@v4
