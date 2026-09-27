@@ -1,6 +1,7 @@
 import asyncio
 import json
 import re
+import time
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -323,7 +324,18 @@ class RefreshTests(unittest.TestCase):
         self.build(db)
         before = layers._snapshot
         self.assertFalse(asyncio.run(layers.refresh_snapshot_if_changed(db)))
-        self.assertIs(before, layers._snapshot)  # not replaced, not touched
+        self.assertIs(before, layers._snapshot)  # not replaced by a new snapshot
+
+    def test_unchanged_ingest_resets_the_snapshot_age(self):
+        db = FakeDb(self.seeded_now())
+        self.build(db)
+        snapshot = layers._snapshot
+        snapshot.built_monotonic = time.monotonic() - layers.SNAPSHOT_TTL_SECONDS + 1  # about to expire
+        self.assertFalse(asyncio.run(layers.refresh_snapshot_if_changed(db)))
+        self.assertIs(snapshot, layers._snapshot)
+        # The ingest request verified the content: the next /layers request must not rebuild.
+        self.assertLess(time.monotonic() - snapshot.built_monotonic, 1.0)
+        self.assertIs(asyncio.run(layers.get_snapshot(db)), snapshot)
 
     def test_re_registered_last_updated_alone_keeps_the_snapshot(self):
         base = self.seeded_now()

@@ -67,8 +67,10 @@ NEWS_WINDOWS = {"incident": timedelta(hours=3), "flood": timedelta(hours=12), "c
 # Cleared / ended hazards drop to p ≈ 0.05; keep them off the map.
 MIN_PROBABILITY = 0.1
 
-# Snapshot tuning (A26): rebuild when older than 5 min, but serve `t` within 15 min of now from it.
-SNAPSHOT_TTL_SECONDS = 300
+# Snapshot tuning (A26): serve `t` within 15 min of now from the snapshot. Ingest (weather and
+# HERE every 5 min) verifies the content and restarts the age clock, so the TTL is only the
+# fallback for an instance that receives no ingest calls at all (A27).
+SNAPSHOT_TTL_SECONDS = 30 * 60
 SNAPSHOT_FRESH_SECONDS = 15 * 60
 
 
@@ -341,6 +343,10 @@ class Snapshot:
         self.fingerprint = fingerprint
         self.count = sum(len(entries) for entries in features.values())
 
+    def mark_fresh(self) -> None:
+        """An ingest verified the content is unchanged: restart the TTL clock without a rebuild."""
+        self.built_monotonic = time.monotonic()
+
 
 LAYERS_CACHE_SECONDS = 60
 _layers_cache: dict[tuple, tuple[float, bytes]] = {}
@@ -385,8 +391,10 @@ async def refresh_snapshot_if_changed(db) -> bool:
 
     Called from inside `/internal/ingest/*` (Cloud Run has CPU while the request runs) after the
     job. Jobs re-register unchanged hazards, so the content fingerprint decides, not their write
-    count. Never raises: a failed check drops the snapshot so the next `/layers` request rebuilds
-    it inline. Returns whether the snapshot was rebuilt.
+    count; an unchanged fingerprint restarts the snapshot's age clock (the ingest request just
+    verified it), so the TTL only expires on an instance that never receives ingest calls. Never
+    raises: a failed check drops the snapshot so the next `/layers` request rebuilds it inline.
+    Returns whether the snapshot was rebuilt.
     """
     global _snapshot
     async with _snapshot_lock():
@@ -399,6 +407,7 @@ async def refresh_snapshot_if_changed(db) -> bool:
                 _snapshot = None
                 return False
             if current == snapshot.fingerprint:
+                snapshot.mark_fresh()
                 log.info("Layers snapshot kept (%d features): no hazard change", snapshot.count)
                 return False
         try:
