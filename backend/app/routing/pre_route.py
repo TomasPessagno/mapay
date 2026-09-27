@@ -1,4 +1,5 @@
 """Client-timer pre-route checks; no push infrastructure or LLM decisions."""
+import time
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
@@ -18,10 +19,28 @@ def on_route(route: dict, hazards: list[dict]) -> dict:
     return {h["hazard_id"]: snapshot(h) for h in hazards if corridor.intersects(shape(h["geometry"]))}
 
 
-async def current_hazards(db, now):
-    """Every belief evaluated at `now`: one query, decay computed in memory (see belief_at)."""
+BELIEF_CACHE_SECONDS = 60  # ingestion runs every 5+ min; ~30k beliefs take seconds to read
+_belief_cache: dict[int, tuple[float, list[dict]]] = {}
+
+
+async def belief_docs(db) -> list[dict]:
+    """All stored belief documents, cached per process for BELIEF_CACHE_SECONDS. Callers must not
+    mutate them (belief_at returns copies)."""
+    cached = _belief_cache.get(id(db))
+    if cached and time.monotonic() - cached[0] < BELIEF_CACHE_SECONDS:
+        return cached[1]
     docs = await db.intel_cache.find({"type": "hazard_belief"}).to_list(length=None)
-    return [belief_at(doc, now) for doc in docs]
+    _belief_cache[id(db)] = (time.monotonic(), docs)
+    return docs
+
+
+def clear_belief_cache() -> None:
+    _belief_cache.clear()
+
+
+async def current_hazards(db, now):
+    """Every belief evaluated at `now`: one (cached) query, decay computed in memory (see belief_at)."""
+    return [belief_at(doc, now) for doc in await belief_docs(db)]
 
 
 def check_departure(routine: dict, leg_index: int, departure: datetime) -> dict:

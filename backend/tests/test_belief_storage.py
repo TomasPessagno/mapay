@@ -136,3 +136,20 @@ class BulkRegisterTests(unittest.IsolatedAsyncioTestCase):
                                                 datetime.now(timezone.utc)), 2500)
         self.assertEqual(len(cache.docs), 2500)
         self.assertEqual(cache.bulk_calls, 3)  # 1000 per batch
+
+
+class BeliefCacheTests(unittest.IsolatedAsyncioTestCase):
+    async def test_second_read_within_a_minute_is_cached(self):
+        from unittest.mock import patch
+
+        from app.routing import pre_route
+        now = datetime.now(timezone.utc)
+        doc = {'_id': 'belief:h', 'hazard_id': 'h', 'log_odds': 2.0, 'prior_log_odds': 2.0, 'evidence': {}}
+        cursor = SimpleNamespace(to_list=AsyncMock(return_value=[doc]))
+        db = SimpleNamespace(intel_cache=SimpleNamespace(find=MagicMock(return_value=cursor)))
+        await pre_route.current_hazards(db, now)
+        await pre_route.current_hazards(db, now)
+        db.intel_cache.find.assert_called_once()
+        with patch('app.routing.pre_route.time.monotonic', return_value=10**9):  # a minute later
+            await pre_route.current_hazards(db, now)
+        self.assertEqual(db.intel_cache.find.call_count, 2)
