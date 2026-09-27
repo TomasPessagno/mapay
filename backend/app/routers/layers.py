@@ -2,7 +2,16 @@
 
 Read-only: probabilities for time `t` are computed from each belief's evidence without writing
 decay back (refresh_belief persists decay only for "now"). Shape: frontend/public/mocks/layers.json.
+
+Serving is snapshot-first (A26): `collect_features` runs `feature_for` over every belief once and
+keeps the result with bounds precomputed per feature. A request whose `t` is within
+SNAPSHOT_FRESH_SECONDS of now filters that in-process snapshot (a plain bounds check, no Mongo
+round-trip, no per-request Shapely parsing); once the snapshot is older than SNAPSHOT_TTL_SECONDS
+it is rebuilt in the background while the stale copy keeps serving (stale-while-revalidate), and
+`/internal/ingest/*` invalidates it when a job finishes. `t` further away keeps the exact slow
+path, since only time-dependent predictions (crowd decay, news windows) care about it.
 """
+import asyncio
 import json
 import logging
 import time
@@ -55,6 +64,10 @@ NEWS_WINDOWS = {"incident": timedelta(hours=3), "flood": timedelta(hours=12), "c
                 "construction": timedelta(days=30)}
 # Cleared / ended hazards drop to p ≈ 0.05; keep them off the map.
 MIN_PROBABILITY = 0.1
+
+# Snapshot tuning (A26): rebuild when older than 5 min, but serve `t` within 15 min of now from it.
+SNAPSHOT_TTL_SECONDS = 300
+SNAPSHOT_FRESH_SECONDS = 15 * 60
 
 
 def source_kind(hazard_id: str) -> str:
@@ -151,42 +164,164 @@ def feature_for(doc: dict, evidence_docs: list[dict], t: datetime) -> dict | Non
     return {"type": "Feature", "geometry": slim_geometry(doc["geometry"]), "properties": properties}
 
 
-async def build_layers(db, t: datetime, area=None) -> dict:
+Bounds = tuple[float, float, float, float]
+Feature = tuple[dict, Bounds]
+
+
+def geometry_bounds(geometry: dict) -> Bounds:
+    """(west, south, east, north) walked straight from the GeoJSON coordinates (no Shapely)."""
+    coords = geometry.get("coordinates")
+    if coords is None:  # GeometryCollection and friends: let Shapely handle it (build time only)
+        return shape(geometry).bounds
+
+    def walk(part):
+        if part and isinstance(part[0], (int, float)):
+            return part[0], part[1], part[0], part[1]
+        boxes = [walk(c) for c in part]
+        if not boxes:  # empty geometry: bounds that never intersect a bbox
+            return 180.0, 90.0, -180.0, -90.0
+        return (min(b[0] for b in boxes), min(b[1] for b in boxes),
+                max(b[2] for b in boxes), max(b[3] for b in boxes))
+
+    return walk(coords)
+
+
+def _intersects(bounds: Bounds, area: Bounds) -> bool:
+    west, south, east, north = area
+    minx, miny, maxx, maxy = bounds
+    return minx <= east and maxx >= west and miny <= north and maxy >= south
+
+
+async def collect_features(db, t: datetime) -> tuple[dict[str, list[Feature]], dict[str, datetime]]:
+    """Every belief at `t` as a map feature with its bounds, plus per-source freshness.
+
+    This is the expensive step (one Mongo read of beliefs + evidence, Shapely per geometry);
+    the snapshot calls it once and reuses the result instead of running it per request.
+    """
     beliefs = await belief_docs(db)
     evidence_docs = await db.intel_cache.find({"_id": {"$regex": "^evidence:"}}).to_list(length=None)
     by_hazard: dict[str, list[dict]] = {}
     for item in evidence_docs:
         if item.get("hazard_id"):
             by_hazard.setdefault(item["hazard_id"], []).append(item)
-    layers = {key: {"type": "FeatureCollection", "features": []} for key in CATEGORIES}
+    features: dict[str, list[Feature]] = {key: [] for key in CATEGORIES}
     freshness: dict[str, datetime] = {}
     for doc in beliefs:
         source = source_kind(doc["hazard_id"])
         if doc.get("last_updated"):
             freshness[source] = max(freshness.get(source, utc(doc["last_updated"])), utc(doc["last_updated"]))
-        if doc.get("hazard_type") not in layers:
+        if doc.get("hazard_type") not in features:
             continue
         try:
-            geometry = shape(doc["geometry"])
+            shape(doc["geometry"])
         except Exception:  # noqa: BLE001 - one malformed belief must not break the map
             log.warning("Skipping belief with malformed geometry: %s", doc["hazard_id"])
             continue
-        if area is not None and not geometry.intersects(area):
-            continue
         feature = feature_for(doc, by_hazard.get(doc["hazard_id"], []), t)
         if feature:
-            layers[doc["hazard_type"]]["features"].append(feature)
+            features[doc["hazard_type"]].append((feature, geometry_bounds(feature["geometry"])))
     for item in evidence_docs:
         created = _parse(item.get("created_at"))
         kind = "news" if item.get("type") == "news" else item.get("type")
         if created and kind:
             freshness[kind] = max(freshness.get(kind, created), created)
+    return features, freshness
+
+
+def _render(t: datetime, features: dict[str, list[Feature]], freshness: dict[str, datetime],
+            area: Bounds | None = None) -> dict:
+    layers = {key: {"type": "FeatureCollection",
+                    "features": [feature for feature, bounds in entries
+                                 if area is None or _intersects(bounds, area)]}
+              for key, entries in features.items()}
     return {"t": t.isoformat(), "freshness": {k: v.isoformat() for k, v in sorted(freshness.items())},
             "radar": RADAR_OVERLAY, **layers}
 
 
+async def build_layers(db, t: datetime, area=None) -> dict:
+    """Slow path: read and convert everything for this exact `t` (used when `t` is far from now)."""
+    features, freshness = await collect_features(db, t)
+    return _render(t, features, freshness, area.bounds if area is not None else None)
+
+
+class Snapshot:
+    """All map features at one build time, each with precomputed bounds; read-only once built."""
+
+    __slots__ = ("built_at", "built_monotonic", "count", "features", "freshness")
+
+    def __init__(self, built_at: datetime, features: dict[str, list[Feature]], freshness: dict[str, datetime]):
+        self.built_at = built_at
+        self.built_monotonic = time.monotonic()
+        self.features = features
+        self.freshness = freshness
+        self.count = sum(len(entries) for entries in features.values())
+
+
 LAYERS_CACHE_SECONDS = 60
 _layers_cache: dict[tuple, tuple[float, bytes]] = {}
+
+_snapshot: Snapshot | None = None
+_rebuild_task: asyncio.Task | None = None
+_generation = 0
+
+
+def invalidate_snapshot() -> None:
+    """Ingestion finished: the next request rebuilds instead of serving pre-ingest features."""
+    global _snapshot, _generation
+    _snapshot = None
+    _generation += 1
+    _layers_cache.clear()
+
+
+async def _rebuild(db, generation: int) -> None:
+    global _snapshot
+    started = time.monotonic()
+    built_at = datetime.now(timezone.utc)
+    try:
+        features, freshness = await collect_features(db, built_at)
+    except Exception:
+        log.exception("Layers snapshot rebuild failed")
+        return
+    if generation != _generation:  # an ingest invalidated us mid-build; the next request retries
+        return
+    _snapshot = Snapshot(built_at, features, freshness)
+    log.info("Layers snapshot rebuilt in %.0f ms: %d features", (time.monotonic() - started) * 1000, _snapshot.count)
+
+
+def _kick_rebuild(db) -> asyncio.Task | None:
+    global _rebuild_task
+    if _rebuild_task is not None and not _rebuild_task.done():
+        return _rebuild_task
+    try:
+        _rebuild_task = asyncio.get_running_loop().create_task(_rebuild(db, _generation))
+    except RuntimeError:  # no running loop; callers fall back to the slow path
+        return None
+    return _rebuild_task
+
+
+async def get_snapshot(db) -> Snapshot | None:
+    """The snapshot, rebuilding it in the background when stale. A request never waits for a
+    rebuild while a snapshot exists; when none has ever been built it waits for the first one."""
+    snapshot = _snapshot
+    if snapshot is None:
+        task = _kick_rebuild(db)
+        if task is not None:
+            await task
+        return _snapshot
+    if time.monotonic() - snapshot.built_monotonic >= SNAPSHOT_TTL_SECONDS:
+        _kick_rebuild(db)
+    return snapshot
+
+
+def warm_snapshot() -> None:
+    """Start the first build in the background; app startup doesn't wait for it (A26)."""
+    _kick_rebuild(get_db())
+
+
+def _response(payload: dict) -> Response:
+    body = json.dumps(payload, separators=(",", ":"), default=str).encode()
+    return Response(content=body, media_type="application/json",
+                    headers={"Cache-Control": "public, max-age=60"})
 
 
 @router.get("")
@@ -194,15 +329,23 @@ async def get_layers(t: Annotated[datetime | None, Query(description="Departure 
                      bbox: Annotated[str | None, Query(description="west,south,east,north")] = None):
     when = utc(t) if t and t.tzinfo else (t.replace(tzinfo=timezone.utc) if t else datetime.now(timezone.utc))
     area = parse_bbox(bbox)
-    # Every map load asks for "now": answers for the same minute and bbox are shared for 60 s, as
-    # finished JSON (re-encoding ~30k features took seconds per request).
+    area_bounds = area.bounds if area is not None else None
+    # "Now" (and anything within 15 min) is time-independent enough to answer from the snapshot:
+    # filter the prebuilt features by their bounds instead of reading all beliefs again.
+    if abs((when - datetime.now(timezone.utc)).total_seconds()) <= SNAPSHOT_FRESH_SECONDS:
+        snapshot = await get_snapshot(get_db())
+        if snapshot is not None:
+            return _response(_render(when, snapshot.features, snapshot.freshness, area_bounds))
+    # Every other `t` (the time scrubber) keeps the exact slow path, cached by minute + bbox for 60 s.
     key = (when.replace(second=0, microsecond=0), bbox)
     cached = _layers_cache.get(key)
     if cached and time.monotonic() - cached[0] < LAYERS_CACHE_SECONDS:
-        return Response(content=cached[1], media_type="application/json")
+        return Response(content=cached[1], media_type="application/json",
+                        headers={"Cache-Control": "public, max-age=60"})
     body = json.dumps(await build_layers(get_db(), when, area), separators=(",", ":"), default=str).encode()
     now = time.monotonic()
     for stale in [k for k, (at, _) in _layers_cache.items() if now - at >= LAYERS_CACHE_SECONDS]:
         del _layers_cache[stale]
     _layers_cache[key] = (now, body)
-    return Response(content=body, media_type="application/json")
+    return Response(content=body, media_type="application/json",
+                    headers={"Cache-Control": "public, max-age=60"})

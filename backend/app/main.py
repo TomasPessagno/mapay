@@ -24,6 +24,8 @@ from app.routers import (
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_indexes()
+    # Warm the /layers snapshot in the background (A26); readiness must not wait for it.
+    layers.warm_snapshot()
     # No in-process pollers: Cloud Scheduler calls POST /internal/ingest/{job} (routers/internal.py).
     yield
     close_client()

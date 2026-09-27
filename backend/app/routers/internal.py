@@ -31,6 +31,7 @@ from app.ingestion import (
     tides,
     traffic_samples,
 )
+from app.routers.layers import invalidate_snapshot
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/internal", tags=["internal"])
@@ -120,6 +121,9 @@ async def ingest(job: str, _: Annotated[dict, Depends(require_scheduler)]):
         # A 5xx makes Cloud Scheduler retry per the job's retry config.
         log.exception("Ingestion job %s failed", job)
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"{job} failed: {type(exc).__name__}") from exc
+    finally:
+        # /layers serves an in-process snapshot (A26): the next map load must rebuild it.
+        invalidate_snapshot()
     seconds = round((datetime.now(timezone.utc) - started).total_seconds(), 1)
     log.info("Ingestion job %s finished in %ss: %s", job, seconds, result)
     return {"job": job, "started_at": started.isoformat(), "seconds": seconds, "result": result}
