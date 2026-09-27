@@ -10,6 +10,7 @@ import hmac
 import json
 import logging
 import time
+from datetime import datetime, timezone
 from urllib.parse import quote
 
 from shapely.geometry import shape
@@ -26,6 +27,7 @@ from app.routing.google_routes import (
     encode_polyline,
 )
 from app.routing.scoring import merge_preferences, rank
+from app.scheduling.best_time import best_departure
 from app.scheduling.occurrences import Occurrence
 
 log = logging.getLogger(__name__)
@@ -95,11 +97,13 @@ async def route_leg(origin, destination, departure, preferences: dict, hazards) 
 
 
 async def build_items(db, occurrences: list[Occurrence], routines: dict[str, dict], user: dict | None,
-                      hazards: list[dict], compact: bool = False) -> list[dict]:
+                      hazards: list[dict], compact: bool = False, now: datetime | None = None) -> list[dict]:
+    now = now or datetime.now(timezone.utc)
     place_ids = {leg[k] for r in routines.values() for leg in r.get("legs", []) for k in ("from_place", "to_place")}
     places = {p["_id"]: p for p in await db.places.find({"_id": {"$in": sorted(place_ids)}}).to_list(length=None)}
     by_id = {h["hazard_id"]: h for h in hazards}
     legs_routed: dict[tuple[str, int], dict | None] = {}
+    leg_preferences: dict[tuple[str, int], dict] = {}
     items = []
     for occ in occurrences:
         routine = routines[occ.routine_id]
@@ -113,6 +117,7 @@ async def build_items(db, occurrences: list[Occurrence], routines: dict[str, dic
         key = (occ.routine_id, occ.leg)
         if key not in legs_routed:
             preferences = merge_preferences((user or {}).get("preferences"), routine.get("preferences"))
+            leg_preferences[key] = preferences
             try:
                 legs_routed[key] = await route_leg(origin, destination, occ.departure_at, preferences, hazards)
             except (NoRouteFound, RoutesApiError) as exc:
@@ -135,7 +140,8 @@ async def build_items(db, occurrences: list[Occurrence], routines: dict[str, dic
             "departure_at": _iso(occ.departure_at),
             "heads_up_at": _iso(occ.heads_up_at),
             "window": {"start": _iso(occ.window[0]), "end": _iso(occ.window[1])} if occ.window else None,
-            "best_departure_at": None,  # A19 (P1)
+            "best_departure_at": None,
+            "best_saving_s": None,
             "duration_s": route.get("duration_s", 0),
             "static_duration_s": route.get("static_duration_s", 0),
             "summary": route.get("summary", ""),
@@ -145,6 +151,11 @@ async def build_items(db, occurrences: list[Occurrence], routines: dict[str, dic
             "deep_links": {"start": f"mapay://start?{query}", "customize": f"mapay://customize?{query}",
                            "google_maps": google_maps(origin, destination, waypoints)},
         }
+        if occ.window and routed is not None and not occ.demo:
+            best = await best_departure(origin, destination, occ.window, leg_preferences[key], hazards, now)
+            if best:
+                item["best_departure_at"] = _iso(best["best_departure_at"].astimezone(occ.departure_at.tzinfo))
+                item["best_saving_s"] = best["saving_s"]
         if occ.demo:
             item["demo"] = True
         if routed is None:

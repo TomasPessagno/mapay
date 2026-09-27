@@ -89,7 +89,7 @@ async def upcoming_legs(user: Annotated[dict, Depends(current_user)],
     if limit:
         occurrences = occurrences[:limit]
     hazards = await current_hazards(db, now) if occurrences else []
-    items = await build_items(db, occurrences, routines, user, hazards, compact)
+    items = await build_items(db, occurrences, routines, user, hazards, compact, now)
     return {"generated_at": now.astimezone(timezone.utc).isoformat(), "items": items}
 
 

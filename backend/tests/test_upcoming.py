@@ -185,9 +185,11 @@ class UpcomingEndpointTests(unittest.TestCase):
 
     def test_each_leg_is_routed_once_and_cached(self):
         self.get("/routines/upcoming?days=7")
-        self.assertEqual(len(self.routes_calls), 2)  # 12 items, 2 legs
+        # 2 legs routed once each (12 items), plus best-time checks (9 departures, 17:00-19:00) for the
+        # two windows starting within 48 h (Mon and Tue); later windows aren't checked.
+        self.assertEqual(len(self.routes_calls), 2 + 9 + 9)
         self.get("/routines/upcoming?days=7")
-        self.assertEqual(len(self.routes_calls), 2)  # served from the 15 min cache
+        self.assertEqual(len(self.routes_calls), 20)  # everything served from the caches
 
     def test_compact_and_limit(self):
         body = self.get("/routines/upcoming?compact=1&limit=3", secret="c2VjcmV0").json()

@@ -18,6 +18,7 @@
       "heads_up_at": "2026-09-28T09:00:00-04:00",
       "window": null,
       "best_departure_at": null,
+      "best_saving_s": null,
       "duration_s": 2460,
       "static_duration_s": 1980,
       "summary": "via SR-826 and I-95",
@@ -64,6 +65,7 @@
         "end": "2026-09-28T19:00:00-04:00"
       },
       "best_departure_at": "2026-09-28T17:45:00-04:00",
+      "best_saving_s": 840,
       "duration_s": 1440,
       "static_duration_s": 1320,
       "summary": "via I-95 and SR-836",
@@ -100,6 +102,7 @@
       "heads_up_at": "2026-09-29T09:00:00-04:00",
       "window": null,
       "best_departure_at": null,
+      "best_saving_s": null,
       "duration_s": 2280,
       "static_duration_s": 1980,
       "summary": "via SR-826 and I-95",
