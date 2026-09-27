@@ -5,7 +5,7 @@ Example responses for every endpoint the app uses. They are the **API contract**
 | File | Endpoint |
 | --- | --- |
 | `layers.json` | `GET /layers?t=` |
-| `route.json` | `POST /route` |
+| `route.json` | `POST /route`. Request body: `{origin: [lat, lng], destination: [lat, lng], depart_at?, preferences?, routine_id?, leg?}` |
 | `places.json` | `GET /places` |
 | `preferences.json` | `GET /me/preferences` |
 | `routines.json` | `GET /routines` |
