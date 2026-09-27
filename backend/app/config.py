@@ -30,11 +30,7 @@ class Settings(BaseSettings):
     ticketmaster_api_key: str = ""
     eia_api_key: str = ""
     here_api_key: str = ""
-    # Satellite floods (#9). GFM (Copernicus Global Flood Monitoring) account; the Miami AOI is
-    # found or created on first use unless GFM_AOI_ID pins one.
-    gfm_email: str = ""
-    gfm_password: str = ""
-    gfm_aoi_id: str = ""
+    # Satellite floods (#9): GFM comes from EODC's open STAC catalog, no account needed.
     # Earth Engine fallback: a registered Cloud project (defaults to GOOGLE_CLOUD_PROJECT); on Cloud Run
     # the service account authenticates, locally `earthengine authenticate` or application-default login.
     earth_engine_project: str = ""

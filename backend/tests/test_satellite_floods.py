@@ -1,9 +1,9 @@
-import io
+import json
 import re
 import unittest
-import zipfile
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
+from typing import ClassVar
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import httpx
@@ -129,120 +129,105 @@ class ApplyTests(unittest.IsolatedAsyncioTestCase):
         self.assertAlmostEqual(old["prior_log_odds"], log_odds(0.05))
 
 
-def geotiff(zip_it=True) -> bytes:
-    """A 20 m flood mask in Web Mercator over Brickell: one flooded block + one speckle pixel."""
+def geotiff(path) -> str:
+    """A 20 m flood mask in Web Mercator over west Miami, written to `path`: one flooded block,
+    one speckle pixel, and 255 (no data) around them, like GFM's ensemble_flood_extent."""
     import rasterio
     from rasterio.transform import from_origin
-    x0, y0 = -8_933_200.0, 2_970_600.0  # ~(-80.249, 25.788)
-    data = np.zeros((50, 50), dtype="uint8")
+    data = np.full((50, 50), 255, dtype="uint8")
+    data[5:45, 5:45] = 0
     data[10:20, 10:25] = 1  # 200 m x 300 m
     data[40, 40] = 1  # one pixel: speckle
-    buffer = io.BytesIO()
-    with rasterio.MemoryFile() as memory:
-        with memory.open(driver="GTiff", width=50, height=50, count=1, dtype="uint8", crs="EPSG:3857",
-                         transform=from_origin(x0, y0, 20, 20)) as dataset:
-            dataset.write(data, 1)
-        tif = memory.read()
-    if not zip_it:
-        return tif
-    with zipfile.ZipFile(buffer, "w") as archive:
-        archive.writestr("ENSEMBLE_LIKELIHOOD_20261008T110200.tif", b"not this one")
-        archive.writestr("ENSEMBLE_FLOOD_20261008T110200.tif", tif)
-        archive.writestr("metadata.json", b"{}")
-    return buffer.getvalue()
+    with rasterio.open(path, "w", driver="GTiff", width=50, height=50, count=1, dtype="uint8", crs="EPSG:3857",
+                       transform=from_origin(-8_933_200.0, 2_970_600.0, 20, 20)) as dataset:
+        dataset.write(data, 1)
+    return str(path)
 
 
 class GeoTiffTests(unittest.TestCase):
-    def test_vectorises_reprojects_and_drops_speckle(self):
-        polygons = gfm.polygons_from_geotiff(gfm.flood_raster(geotiff()))
-        self.assertEqual(len(polygons), 1)
-        # The flooded block's corners (pixels 10..25 x 10..20 at 20 m), projected independently.
+    def test_reads_the_miami_window_vectorises_reprojects_and_drops_speckle(self):
+        import tempfile
+
         from rasterio.warp import transform
+        with tempfile.TemporaryDirectory() as tmp:
+            polygons, observed = gfm.polygons_from_cog(geotiff(f"{tmp}/flood.tif"))
+        self.assertEqual(len(polygons), 1)
+        self.assertGreater(observed, 0)
+        # The flooded block's corners (pixels 10..25 x 10..20 at 20 m), projected independently.
         xs, ys = transform("EPSG:3857", "EPSG:4326", [-8_933_200 + 200, -8_933_200 + 500],
                            [2_970_600 - 400, 2_970_600 - 200])
         for got, want in zip(polygons[0].bounds, (xs[0], ys[0], xs[1], ys[1]), strict=True):
             self.assertAlmostEqual(got, want, places=4)
 
-    def test_zip_without_flood_layer_is_an_error(self):
-        buffer = io.BytesIO()
-        with zipfile.ZipFile(buffer, "w") as archive:
-            archive.writestr("ENSEMBLE_LIKELIHOOD.tif", b"x")
-        with self.assertRaises(ValueError):
-            gfm.flood_raster(buffer.getvalue())
+
+def stac_item(item_id, when, href="https://data.eodc.eu/x.tif"):
+    return {"id": item_id, "properties": {"datetime": when},
+            "assets": {"ensemble_flood_extent": {"href": href}, "thumbnail": {"href": "t.png"}}}
 
 
-class GfmApi:
-    def __init__(self, products=None):
-        self.calls = []
-        self.products = products if products is not None else [
-            {"product_id": 11, "product_time": "2026-10-02T23:10:00"},
-            {"product_id": 12, "product_time": "2026-10-08T11:02:00"}]
-
-    def __call__(self, request):
-        self.calls.append(f"{request.method} {request.url.path}")
-        path = request.url.path
-        if path == "/v2/auth/login":
-            return httpx.Response(200, json={"access_token": "tok", "client_id": "user-1", "expires_in": 3600})
-        assert request.headers.get("Authorization") == "Bearer tok" or request.url.host == "files.example"
-        if path == "/v2/aoi/user/user-1":
-            return httpx.Response(200, json={"aois": [{"aoi_id": "other", "aoi_name": "someone else"}]})
-        if path == "/v2/aoi/create":
-            return httpx.Response(201, json={"aoi_id": "aoi-miami"})
-        if path == "/v2/aoi/aoi-miami/products":
-            return httpx.Response(200, json={"aoi_id": "aoi-miami", "products": self.products})
-        if path == "/v2/download/product/12/user-1":
-            return httpx.Response(200, json={"download_link": "https://files.example/p12.zip"})
-        if request.url.host == "files.example":
-            return httpx.Response(200, content=geotiff())
-        return httpx.Response(404)
+def stac_client(features, seen=None):
+    def handler(request):
+        if seen is not None:
+            seen.append(json.loads(request.content))
+        assert str(request.url) == gfm.STAC_SEARCH
+        return httpx.Response(200, json={"type": "FeatureCollection", "features": features})
+    return httpx.AsyncClient(transport=httpx.MockTransport(handler))
 
 
-def settings(**overrides):
-    base = {"gfm_email": "me@example.org", "gfm_password": "pw", "gfm_aoi_id": ""}
-    return patch("app.ingestion.gfm.get_settings", return_value=SimpleNamespace(**{**base, **overrides}))
+class StacTests(unittest.IsolatedAsyncioTestCase):
+    async def test_passes_newest_first_with_their_scenes_grouped(self):
+        seen = []
+        features = [stac_item("A_20261002", "2026-10-02T23:10:00Z", "https://d/old.tif"),
+                    stac_item("B_20261008a", "2026-10-08T11:02:00Z", "https://d/a.tif"),
+                    stac_item("B_20261008b", "2026-10-08T11:01:35Z", "https://d/b.tif"),
+                    {"id": "no_flood_layer", "properties": {"datetime": "2026-10-09T00:00:00Z"}, "assets": {}}]
+        passes = await gfm.recent_passes(stac_client(features, seen), NOW)
+        self.assertEqual([p["pass_time"] for p in passes], [PASS, datetime(2026, 10, 2, 23, 10, tzinfo=timezone.utc)])
+        self.assertEqual(passes[0]["urls"], ["https://d/a.tif", "https://d/b.tif"])
+        query = seen[0]
+        self.assertEqual((query["collections"], query["bbox"]), (["GFM"], list(gfm.MIAMI_BBOX)))
+        self.assertTrue(query["datetime"].startswith("2026-09-24T15:00:00Z/"))  # 14 days back
+
+    async def test_no_products(self):
+        self.assertEqual(await gfm.recent_passes(stac_client([]), NOW), [])
 
 
 class GfmRunTests(unittest.IsolatedAsyncioTestCase):
-    async def test_latest_pass_end_to_end_then_skipped(self):
+    FEATURES: ClassVar[list] = [stac_item("NEW", "2026-10-08T11:02:00Z", "https://d/new.tif"),
+                stac_item("OLD", "2026-10-05T23:19:00Z", "https://d/old.tif")]
+
+    async def test_skips_passes_that_missed_miami_and_applies_the_newest_that_saw_it(self):
         cache = FakeIntelCache()
         db = SimpleNamespace(intel_cache=cache)
-        api = GfmApi()
-        with settings():
-            client = httpx.AsyncClient(transport=httpx.MockTransport(api))
-            result = await gfm.run(db, NOW, client)
-            self.assertTrue(result["new_pass"])
-            self.assertEqual(result["pass_time"], "2026-10-08T11:02:00+00:00")  # the newer product
-            self.assertEqual(result["new_hazards"], 1)
-            self.assertIn("POST /v2/aoi/create", api.calls)  # no Miami AOI yet, so it was created
-            downloads = sum("download" in c for c in api.calls)
-            again = await gfm.run(db, NOW, client)
-        self.assertEqual(again, {"source": "gfm", "new_pass": False})
-        self.assertEqual(sum("download" in c for c in api.calls), downloads)  # not downloaded twice
+        reads = {"https://d/new.tif": ([], 0.0), "https://d/old.tif": ([FAR_FIELD], 0.66)}
+        with patch("app.ingestion.gfm.polygons_from_cog", side_effect=lambda url: reads[url]) as read:
+            first = await gfm.run(db, NOW, stac_client(self.FEATURES))
+            second = await gfm.run(db, NOW, stac_client(self.FEATURES))
+        self.assertEqual((first["new_pass"], first["pass_time"], first["observed"], first["skipped_without_coverage"]),
+                         (True, "2026-10-05T23:19:00+00:00", 0.66, 1))
+        self.assertEqual(first["new_hazards"], 1)
+        self.assertFalse(second["new_pass"])
+        self.assertEqual(read.call_count, 2)  # each pass read once, ever
+        self.assertEqual(cache.docs["satellite_pass:gfm:NEW"]["observed"], 0.0)
 
-    async def test_no_products_and_pinned_aoi(self):
-        api = GfmApi(products=[])
-        with settings(gfm_aoi_id="aoi-miami"):
-            result = await gfm.run(SimpleNamespace(intel_cache=FakeIntelCache()), NOW,
-                                   httpx.AsyncClient(transport=httpx.MockTransport(api)))
-        self.assertEqual(result, {"source": "gfm", "new_pass": False})
-        self.assertNotIn("POST /v2/aoi/create", api.calls)
+    async def test_nothing_observed_in_the_lookback(self):
+        with patch("app.ingestion.gfm.polygons_from_cog", return_value=([], 0.0)):
+            result = await gfm.run(SimpleNamespace(intel_cache=FakeIntelCache()), NOW, stac_client(self.FEATURES))
+        self.assertEqual(result, {"source": "gfm", "new_pass": False, "skipped_without_coverage": 2})
 
-    async def test_not_configured(self):
-        with settings(gfm_email=""), self.assertRaises(gfm.GfmNotConfigured):
-            await gfm.run(SimpleNamespace(intel_cache=FakeIntelCache()), NOW,
-                          httpx.AsyncClient(transport=httpx.MockTransport(GfmApi())))
+    async def test_empty_catalog(self):
+        result = await gfm.run(SimpleNamespace(intel_cache=FakeIntelCache()), NOW, stac_client([]))
+        self.assertEqual(result, {"source": "gfm", "new_pass": False, "skipped_without_coverage": 0})
 
 
 class JobTests(unittest.IsolatedAsyncioTestCase):
     async def test_gfm_job_falls_back_to_earth_engine(self):
-        with patch("app.ingestion.gfm.configured", return_value=True), \
-             patch("app.ingestion.gfm.run", AsyncMock(side_effect=httpx.ConnectError("down"))), \
+        with patch("app.ingestion.gfm.run", AsyncMock(side_effect=httpx.ConnectError("down"))), \
              patch("app.ingestion.earth_engine_s1.run", AsyncMock(return_value={"source": "s1"})) as ee_run:
             self.assertEqual(await internal.JOBS["gfm"]("db", NOW), {"source": "s1"})
         ee_run.assert_awaited_once()
-        with patch("app.ingestion.gfm.configured", return_value=False), \
-             patch("app.ingestion.earth_engine_s1.run", AsyncMock(return_value={"source": "s1"})):
-            self.assertEqual(await internal.JOBS["gfm"]("db", NOW), {"source": "s1"})
+        with patch("app.ingestion.gfm.run", AsyncMock(return_value={"source": "gfm"})):
+            self.assertEqual(await internal.JOBS["gfm"]("db", NOW), {"source": "gfm"})
 
 
 class EarthEngineTests(unittest.IsolatedAsyncioTestCase):

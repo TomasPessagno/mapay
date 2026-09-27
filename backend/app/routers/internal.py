@@ -44,13 +44,12 @@ async def _here(db, now):
 
 
 async def _satellite_floods(db, now):
-    """GFM when an account is configured; otherwise, or if GFM fails, our own Earth Engine run."""
-    if gfm.configured():
-        try:
-            return await gfm.run(db, now)
-        except Exception:
-            log.exception("GFM failed; falling back to Earth Engine")
-    return await earth_engine_s1.run(db, now)
+    """GFM from EODC's open catalog; if it fails, our own Earth Engine Sentinel-1 run."""
+    try:
+        return await gfm.run(db, now)
+    except Exception:
+        log.exception("GFM failed; falling back to Earth Engine")
+        return await earth_engine_s1.run(db, now)
 
 
 async def _satellite_construction(db, now):
