@@ -13,7 +13,7 @@ name: ipa
 
 on:
   push:
-    branches: [main]
+    branches: [main, o1-ipa-ci]
     paths: ["frontend/**", ".github/workflows/ipa.yml"]
   workflow_dispatch:
 
