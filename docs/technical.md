@@ -1,6 +1,17 @@
 # MAPAY: technical reference
 
-One place for how MAPAY is built and run, as it stands on `main`. For the plan and the rules, see [`AGENTS.md`](../AGENTS.md). For the product, see [`README.md`](../README.md). For the visual spec, see [`design.md`](design.md). Items marked **(to confirm)** couldn't be checked from the code.
+One place for how MAPAY is built and run, as it stands on `main`. For the plan and the rules, see [`AGENTS.md`](../AGENTS.md). For the product, see [`README.md`](../README.md). For the visual spec, see [`design.md`](design.md). Production status is as of Sept 27, 2026.
+
+## At the table: quick answers
+
+- **What does AI do?** Gemini (Vertex AI) reads local news into structured events, turns a Customize prompt into route constraints, and explains route changes. It never chooses the route: Google gives up to 3 alternatives, and our deterministic scoring picks one.
+- **How is a route "hazard-aware"?** Each alternative costs its predicted minutes plus a penalty per active hazard within ~30 m of it: weight (avoid 10, prefer-avoid 2) × severity × probability × 3 min. If the best one still crosses a severe hazard you avoid, we add a steering waypoint ~300 m past it and ask Google again.
+- **Why the extra stops in Google Maps?** They are those steering waypoints. Google can't be told to avoid an arbitrary street, so we bend the route with up to 3 waypoints.
+- **How sure are you that a street is flooded?** Every hazard is a Bayesian log-odds belief. It starts from a prior (FEMA zone + tide above the flood threshold), and news (+0.5), satellite (+1.0) and user reports (+1.5) move it. It counts for routing at p ≥ 0.73. The numbers are hand-tuned, not calibrated.
+- **Is the satellite live?** Near real time: Copernicus GFM flood maps per Sentinel-1 pass, hours to ~2 days late, passes days apart. GFM has produced detections over Miami. Sentinel-2 construction detection is built but not running (Earth Engine isn't registered).
+- **Laya?** Open-source decision model, fine-tuned on Miami news as a first-pass filter. It isn't used in production: news goes straight to Gemini.
+- **Stack:** React + Ionic + Capacitor app, SwiftUI widget + Live Activity; FastAPI on Cloud Run (`min-instances=1`); MongoDB Atlas; Cloud Scheduler jobs; Google Maps Platform; Gemini on Vertex AI.
+- **Why no push notifications?** A free Apple ID can't receive them, so the phone schedules its own reminders and the widget fetches its own data.
 
 ## At a glance
 
@@ -12,7 +23,7 @@ One place for how MAPAY is built and run, as it stands on `main`. For the plan a
 | Backend | FastAPI on Python 3.14, Docker image | Cloud Run service `mapay-api`, `us-east1`: https://mapay-api-lgfe7q5oja-ue.a.run.app |
 | Database | MongoDB Atlas (free M0) through `motor` | Atlas |
 | Jobs | Cloud Scheduler → `POST /internal/ingest/{job}` with an OIDC token | Google Cloud |
-| AI | Gemini on Vertex AI (`google-genai`, default model `gemini-3.8-flash`). Laya (open source) as an optional news first pass | Vertex AI; Laya on Jean's laptop behind a tunnel |
+| AI | Gemini on Vertex AI (`google-genai`, default model `gemini-3.8-flash`). Laya (open source, fine-tuned) as an optional news first pass, not used in production | Vertex AI |
 | Maps | Google Maps Platform: Maps JavaScript, Places (New), Routes, Geocoding, Maps Static | Google |
 
 ## Architecture
@@ -92,15 +103,15 @@ Every call must carry a Google-signed OIDC token with `INTERNAL_AUDIENCE` as the
 | Job | Cron (America/New_York) | Source → category |
 |---|---|---|
 | `news` | every 15 min | 5 RSS feeds (NBC6, WLRN, Local10, Miami Herald, CBS Miami) + 5 GDELT queries → Laya (optional) → Gemini → geocode → evidence or new `incident` / `closure` / `construction` hazards |
-| `weather` | every 5 min | NWS alerts for Miami-Dade → `weather` |
-| `here` | every 5 min | HERE Traffic v7 incidents + flow → `closure`, `construction`, `congestion` |
+| `weather` | every 5 min (**paused**, see Known limits) | NWS alerts for Miami-Dade → `weather` |
+| `here` | every 5 min (**paused**) | HERE Traffic v7 incidents + flow → `closure`, `construction`, `congestion` |
 | `tides` | hourly | NOAA Virginia Key (8723214) tides + FEMA zones + curated hotspots → `flood` |
 | `city_gis` | daily 06:00 | City of Miami Public Works projects + permits → `construction`, `closure` |
 | `sidewalks` | daily 03:00 | OSM Overpass `sidewalk=no/none` → `no_sidewalk` |
 | `potholes` | Mondays 04:00 | Miami-Dade 311 (2023 dataset, "chronic corridors") → `pothole` |
 | `gfm` | hourly at :15 | Copernicus GFM (EODC's open STAC catalog, no account) → `flood`; falls back to Earth Engine Sentinel-1 |
-| `s1` | not scheduled | Earth Engine Sentinel-1 run on its own |
-| `s2` | Mondays 05:00 | Earth Engine Sentinel-2 change detection + Gemini vision → `construction`; falls back to checking City permit sites |
+| `s1` | not scheduled | Earth Engine Sentinel-1 run on its own (needs Earth Engine, not registered) |
+| `s2` | Mondays 05:00 | Earth Engine Sentinel-2 change detection + Gemini vision → `construction`; falls back to checking City permit sites. **Both modes need Earth Engine, which isn't registered, so this job can't produce anything.** It has never run on schedule (first run: Monday 05:00) |
 | `briefings` | every 10 min | Precomputed heads-up briefings |
 | `traffic` | hourly at :05 | Routes API predicted durations per corridor and hour of week (typical congestion) |
 
@@ -110,7 +121,7 @@ News expiry: incident 3 h, flood 12 h, closure = stated end or 24 h, constructio
 
 - Open-source decision model ([Laya](https://github.com/NandhaKishorM/laya), Apache-2.0), `multilingual` checkpoint, served by `services/laya/serve.py` on `127.0.0.1:8001` behind a tunnel, bearer token `LAYA_API_KEY`.
 - Asks one yes/no question per article ("street problem in Miami-Dade?"). Articles below p 0.2 are dropped; any Laya failure keeps the article.
-- Without `LAYA_URL` the pipeline runs Gemini-only. The README says to keep it unset until the fine-tune (#47) passes: zero-shot kept only 2 of 10 real road stories.
+- Without `LAYA_URL` the pipeline runs Gemini-only. **That's production today:** Laya has been fine-tuned (#47), but `LAYA_URL` isn't set on Cloud Run. (Zero-shot Laya kept only 2 of 10 real road stories, which is why it stayed off until the fine-tune.)
 - Fine-tune scripts: `services/laya/finetune/` (Claude-labelled Miami news, Kaggle GPUs).
 
 ### Gemini (`backend/app/agents/`)
@@ -177,15 +188,12 @@ The Console only offers an API in a key's API list once that API is enabled in t
 - Confidence values are heuristics.
 - Anonymous device ids are not authentication.
 - `/route` isn't cached yet (see Routing).
+- **MongoDB Atlas M0 throttling (Sept 27):** single-document queries took ~7.7 s, so Live `/route` and `/layers` timed out. Cause in the code: after every ingest job, `hazards_fingerprint` (`routers/layers.py`) streams every belief and evidence document from Atlas to decide whether to rebuild the `/layers` snapshot, and `weather` + `here` run every 5 min. Atlas Metrics showed ~14 MB/s network spikes every ~5 min and a ~300 ops/s spike. `weather` and `here` are paused until the fix (#150) is deployed; resume them with `gcloud scheduler jobs resume mapay-ingest-weather --location us-east1` (and `…-here`). If the throttle lasts, the Atlas Flex tier removes the M0 limits, at a monthly cost.
 
-## To confirm
+## Production status (Sept 27)
 
-These couldn't be checked from the code; answers go here.
-
-- **(to confirm)** The GCP project that runs Cloud Run, Scheduler and Vertex AI: is it the same project as the Maps keys?
-- **(to confirm)** Is `LAYA_URL` set on Cloud Run now, and is the Laya fine-tune (#47) done?
-- **(to confirm)** Are the Cloud Scheduler jobs created (`backend/scripts/scheduler.sh` run), and which ones run successfully?
-- **(to confirm)** Is `EARTH_ENGINE_PROJECT` registered and working, and has GFM or Sentinel-2 produced any detection over Miami yet?
-- **(to confirm)** Which browser key is in the `VITE_GOOGLE_MAPS_API_KEY` GitHub secret, and has it been updated since the rotation?
-- **(to confirm)** Is `GOOGLE_MAPS_API_KEY` on Cloud Run updated to the new server key?
-- **(to confirm)** Cloud Run settings for judging: `min-instances=1`?
+- **Google Cloud:** one project runs Cloud Run, Cloud Scheduler, Vertex AI and both Maps keys. Two keys: the browser key (`frontend/.env` → `VITE_GOOGLE_MAPS_API_KEY`) and the server key (root `.env` → `GOOGLE_MAPS_API_KEY`). The GitHub secrets were updated after the server key's rotation.
+- **Jobs:** all 11 scheduled jobs exist in `us-east1` and run. `weather` and `here` are paused (Atlas throttling). `s2` can't work without Earth Engine.
+- **Satellite:** GFM has produced flood detections over Miami. Earth Engine isn't registered (its sign-up asks for an agreement), so the Sentinel-1 fallback and Sentinel-2 construction detection are off.
+- **Laya:** fine-tuned, not used in production (Gemini-only news).
+- **Cloud Run:** `min-instances=1` for judging.
