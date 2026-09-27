@@ -7,7 +7,7 @@ import MapView from '../map/MapView';
 import MapSheet from '../components/MapSheet';
 import { api } from '../lib/api';
 import type { RouteResponse, Place, Routine } from '../lib/types';
-import { PlaceData } from '../components/PlaceCard';
+import type { PlaceData } from '../components/PlaceCard';
 import RoutineEditor from '../routines/RoutineEditor';
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? "";
@@ -132,22 +132,27 @@ const MapPage: React.FC = () => {
       // Save place first
       const savedPlace = await api.savePlace({
         name: selectedPlace.name,
-        address: selectedPlace.address,
-        lat: selectedPlace.location.lat,
-        lng: selectedPlace.location.lng,
+        address: selectedPlace.address || '',
+        location: {
+          lat: selectedPlace.location.lat,
+          lng: selectedPlace.location.lng,
+        }
       });
 
       // Prepare new routine
       setNewRoutine({
-        id: '',
+        _id: '',
+        user_id: '',
         name: `To ${selectedPlace.name}`,
+        active: true,
         legs: [{
           from_place: '',
-          to_place: savedPlace.id || '',
+          to_place: savedPlace._id || '',
           when: { kind: 'at', time: '09:00' },
           anchor: 'depart',
           days: null
         }],
+        tz: Intl.DateTimeFormat().resolvedOptions().timeZone,
         repeat: { kind: 'daily', weekday: undefined, weekdays: undefined },
         heads_up_minutes: 30
       });

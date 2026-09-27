@@ -8,7 +8,7 @@ import { upsertGeoJsonLayer, toggleLayer, setOnHazardClick } from "./layers";
 import LegendSheet from "../components/LegendSheet";
 import HazardSheet, { type HazardProperties } from "../components/HazardSheet";
 import ReportFab from "../components/ReportFab";
-import { PlaceData } from "../components/PlaceCard";
+import type { PlaceData } from "../components/PlaceCard";
 
 const MIAMI = { lat: 25.7617, lng: -80.1918 };
 
