@@ -156,6 +156,15 @@ class LayersTests(unittest.TestCase):
             self.assertEqual(self.client.get("/layers", params={"bbox": "1,2,3"}).status_code, 422)
             self.assertEqual(self.client.get("/layers", params={"bbox": "3,2,1,4"}).status_code, 422)
 
+    def test_radar_overlay_is_an_xyz_tile_template(self):
+        body = self.get()
+        radar = body["radar"]
+        self.assertEqual(radar, layers.RADAR_OVERLAY)
+        self.assertEqual(radar["type"], "xyz")
+        self.assertIn("{z}/{x}/{y}", radar["url_template"])
+        self.assertIn("NOAA", radar["attribution"])
+        self.assertIn("NEXRAD", radar["attribution"])
+
     def test_freshness_per_source(self):
         freshness = self.get()["freshness"]
         self.assertEqual(freshness["here"], NOW.isoformat())
