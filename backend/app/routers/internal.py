@@ -19,6 +19,7 @@ from app.db.mongo import get_db
 from app.ingestion import (
     closures,
     earth_engine_s1,
+    earth_engine_s2,
     gfm,
     here_flow,
     here_incidents,
@@ -49,6 +50,15 @@ async def _satellite_floods(db, now):
     return await earth_engine_s1.run(db, now)
 
 
+async def _satellite_construction(db, now):
+    """Sentinel-2 change detection; if it fails, the fallback that checks the City's permit sites."""
+    try:
+        return await earth_engine_s2.run(db, now)
+    except Exception:
+        log.exception("Sentinel-2 change detection failed; checking permit sites instead")
+        return await earth_engine_s2.run(db, now, mode="permits")
+
+
 async def _sidewalks(db, now):
     return {"ways": len((await sidewalks.fetch(db=db, now=now))["features"])}
 
@@ -64,6 +74,7 @@ JOBS: dict[str, Job] = {
     "potholes": potholes.run,
     "gfm": _satellite_floods,
     "s1": earth_engine_s1.run,
+    "s2": _satellite_construction,
 }
 
 
