@@ -60,9 +60,20 @@ class FakeIntelCache:
         return FakeCursor([d for d in self.docs if self._matches(d, query)], projection)
 
 
+class FakeRuns:
+    def __init__(self, docs=()):
+        self.docs = list(docs)
+        self.finds = 0
+
+    def find(self, query):
+        self.finds += 1
+        return FakeCursor(self.docs)
+
+
 class FakeDb:
-    def __init__(self, docs):
+    def __init__(self, docs, runs=()):
         self.intel_cache = FakeIntelCache(docs)
+        self.ingest_runs = FakeRuns(runs)
 
     @property
     def evidence_queries(self):
@@ -201,6 +212,39 @@ class LayersTests(unittest.TestCase):
         self.assertIn("tides", freshness)
         self.assertIn("osm", freshness)
 
+    def test_news_created_hazards_expire_after_their_windows(self):
+        docs = [
+            belief("news:fresh-closure", "closure", point(-80.19, 25.76), 0.67,
+                   updated=NOW - timedelta(hours=2)),
+            belief("news:stale-closure", "closure", point(-80.19, 25.76), 0.67,
+                   updated=NOW - timedelta(hours=25)),
+            belief("news:stale-construction", "construction", point(-80.19, 25.76), 0.62,
+                   updated=NOW - timedelta(days=31)),
+        ]
+        body = self.get(docs)
+        self.assertEqual(list(self.features(body, "closure")), ["news:fresh-closure"])
+        self.assertEqual(self.features(body, "construction"), {})
+
+    def test_freshness_reports_the_last_ingest_run(self):
+        runs = [{"_id": "run:news", "job": "news", "last_run_at": NOW - timedelta(minutes=5),
+                 "items_seen": 42, "items_new": 6, "hazards_added": 2, "hazards_updated": 3}]
+        with patch("app.routers.layers.get_db", return_value=FakeDb(seeded(), runs)):
+            response = self.client.get("/layers", params={"t": NOW.isoformat()})
+        self.assertEqual(response.status_code, 200, response.text)
+        freshness = response.json()["freshness"]
+        self.assertEqual(freshness["news_run"], {
+            "job": "news", "last_run_at": (NOW - timedelta(minutes=5)).isoformat(),
+            "items_seen": 42, "items_new": 6, "hazards_added": 2, "hazards_updated": 3})
+        # The job timestamp is separate from the last hazard change.
+        self.assertEqual(freshness["news"], (NOW - timedelta(minutes=20)).isoformat())
+
+    def test_run_metadata_is_optional_and_partial(self):
+        runs = [{"_id": "run:weather", "job": "weather", "last_run_at": NOW}]
+        with patch("app.routers.layers.get_db", return_value=FakeDb(seeded(), runs)):
+            response = self.client.get("/layers", params={"t": NOW.isoformat()})
+        self.assertEqual(response.json()["freshness"]["weather_run"],
+                         {"job": "weather", "last_run_at": NOW.isoformat()})
+
     def test_empty_store(self):
         body = self.get([])
         self.assertEqual(body["freshness"], {})
@@ -273,6 +317,26 @@ class SnapshotTests(unittest.TestCase):
         self.assertIsNot(layers._snapshot, old)  # rebuilt inside the request
         self.assertIn("flood:new", self.ids(served, "flood"))
 
+    def test_run_freshness_moves_without_a_snapshot_rebuild(self):
+        docs = self.seeded_now()
+        before = {"_id": "run:news", "job": "news", "last_run_at": datetime.now(timezone.utc) - timedelta(minutes=15),
+                  "items_seen": 10, "items_new": 0, "hazards_added": 0, "hazards_updated": 0}
+        first = self.get(FakeDb(docs, [before])).json()
+        self.assertEqual(first["freshness"]["news_run"]["items_seen"], 10)
+        snapshot = layers._snapshot
+
+        # The next ingest changes no hazard (same docs) but records a new run.
+        after = {**before, "last_run_at": datetime.now(timezone.utc), "items_seen": 11}
+        db = FakeDb(docs, [after])
+        self.assertFalse(asyncio.run(layers.refresh_snapshot_if_changed(db)))  # snapshot kept
+        self.assertIs(snapshot, layers._snapshot)
+        asyncio.run(layers.refresh_runs(db))  # what /internal/ingest does after recording
+
+        second = self.get(db).json()
+        self.assertEqual(second["freshness"]["news_run"]["items_seen"], 11)
+        # Only the explicit refresh read `ingest_runs`; /layers served the cache.
+        self.assertEqual(db.ingest_runs.finds, 1)
+
     def test_snapshot_bbox_filter(self):
         db = FakeDb(self.seeded_now())
         full = self.get(db).json()
@@ -344,6 +408,16 @@ class RefreshTests(unittest.TestCase):
         bumped = FakeDb([dict(doc, last_updated=datetime.now(timezone.utc)) for doc in base])
         self.assertFalse(asyncio.run(layers.refresh_snapshot_if_changed(bumped)))
         self.assertIs(before, layers._snapshot)
+
+    def test_unchanged_hazards_leave_run_freshness_to_the_cache(self):
+        base = self.seeded_now()
+        self.build(FakeDb(base))
+        snapshot = layers._snapshot
+        run = {"_id": "run:news", "job": "news", "last_run_at": datetime.now(timezone.utc),
+               "items_seen": 3, "items_new": 0, "hazards_added": 0, "hazards_updated": 0}
+        self.assertFalse(asyncio.run(layers.refresh_snapshot_if_changed(FakeDb(base, [run]))))
+        self.assertIs(snapshot, layers._snapshot)  # no full rebuild
+        self.assertNotIn("news_run", snapshot.freshness)  # run metadata is not snapshot state
 
     def test_changed_belief_rebuilds_inside_the_call(self):
         base = self.seeded_now()

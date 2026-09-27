@@ -589,14 +589,79 @@ class ExpiryTests(unittest.TestCase):
         self.assertEqual(news.evidence_expiry("closure", None, NOW), NOW + timedelta(hours=24))
 
 
+class NewsHazardTests(unittest.IsolatedAsyncioTestCase):
+    """A28: unmatched closure / construction news becomes its own hazard."""
+
+    def test_priors_keep_one_report_visible_but_below_the_routing_threshold(self):
+        for category in ("closure", "construction"):
+            after = log_odds(C[f"news_{category}_probability"]) + C["evidence"]["news"]
+            self.assertGreater(after, 0.0, category)  # shows on the map
+            self.assertLess(after, C["threshold"], category)  # one report never reroutes by itself
+
+    def test_buffered_geometry_grows_points_and_keeps_polygons(self):
+        point = news.buffered_geometry({"type": "Point", "coordinates": [-80.221, 25.7655]})
+        self.assertEqual(point["type"], "Polygon")
+        self.assertLess(min(c[0] for c in point["coordinates"][0]), -80.221)
+        polygon = {"type": "Polygon", "coordinates": [[[0, 0], [1, 0], [1, 1], [0, 0]]]}
+        self.assertIs(news.buffered_geometry(polygon), polygon)
+
+    async def test_unmatched_closure_news_registers_a_hazard_with_its_source(self):
+        db = FakeDb()  # nothing registered within ~150 m
+        extraction = {news.item_id(CLOSURE_URL): EXTRACTIONS[news.item_id(CLOSURE_URL)]}
+        summary, _, _ = await run_pipeline(db, gemini=FakeGenaiClient(extraction))
+        self.assertEqual(summary["hazards_added"], 1)
+
+        closure_id = f"news:{news.item_id(CLOSURE_URL)}"
+        closure = await db.intel_cache.find_one({"_id": f"belief:{closure_id}"})
+        self.assertIsNotNone(closure)
+        self.assertEqual(closure["hazard_type"], "closure")
+        self.assertEqual(closure["geometry"]["type"], "Polygon")
+        self.assertEqual(closure["properties"]["title"],
+                         "SW 8th Street closed at SW 17th Avenue for event setup")
+        self.assertEqual(closure["properties"]["source_url"], CLOSURE_URL)
+        self.assertAlmostEqual(closure["log_odds"], log_odds(C["news_closure_probability"]) + 0.5)
+        self.assertLess(closure["log_odds"], C["threshold"])
+        self.assertTrue(closure["evidence"])
+
+        evidence = await db.intel_cache.find_one({"_id": f"evidence:news:{news.item_id(CLOSURE_URL)}"})
+        self.assertEqual(evidence["hazard_id"], closure_id)
+        self.assertEqual(evidence["expires_at"], datetime(2026, 9, 27, 2, 0, tzinfo=timezone.utc))
+
+    async def test_unmatched_construction_news_registers_a_hazard(self):
+        db = FakeDb()
+        extraction = {news.item_id(CONSTRUCTION_URL): EXTRACTIONS[news.item_id(CONSTRUCTION_URL)]}
+        summary, _, _ = await run_pipeline(db, gemini=FakeGenaiClient(extraction))
+        self.assertEqual(summary["hazards_added"], 1)
+
+        construction_id = f"news:{news.item_id(CONSTRUCTION_URL)}"
+        construction = await db.intel_cache.find_one({"_id": f"belief:{construction_id}"})
+        self.assertIsNotNone(construction)
+        self.assertEqual(construction["hazard_type"], "construction")
+        self.assertAlmostEqual(construction["log_odds"],
+                               log_odds(C["news_construction_probability"]) + 0.5)
+        evidence = await db.intel_cache.find_one(
+            {"_id": f"evidence:news:{news.item_id(CONSTRUCTION_URL)}"})
+        self.assertEqual(evidence["expires_at"], NOW + timedelta(days=30))
+
+    async def test_matched_news_still_adds_evidence_without_a_new_hazard(self):
+        db = seeded_db()
+        extraction = {news.item_id(FLOOD_URL): EXTRACTIONS[news.item_id(FLOOD_URL)]}
+        summary, _, _ = await run_pipeline(db, gemini=FakeGenaiClient(extraction))
+        self.assertEqual((summary["hazards_added"], summary["evidence"]), (0, 1))
+        self.assertIsNone(
+            await db.intel_cache.find_one({"_id": f"belief:news:{news.item_id(FLOOD_URL)}"}))
+        flood = await db.intel_cache.find_one({"_id": "belief:flood:brickell-bay-dr"})
+        self.assertAlmostEqual(flood["log_odds"], log_odds(0.81) + 0.5)
+
+
 class RunTests(unittest.IsolatedAsyncioTestCase):
     async def test_run_with_laya_end_to_end(self):
         db = seeded_db()
         summary, gemini, calls = await run_pipeline(db)
 
         self.assertEqual(summary, {"fetched": 8, "new": 8, "triaged": 6, "dropped": 2,
-                                   "extracted": 6, "evidence": 3, "incidents": 1, "skipped": 2,
-                                   "released": 0})
+                                   "extracted": 6, "evidence": 3, "incidents": 1, "hazards_added": 2,
+                                   "skipped": 1, "released": 0, "hazards_updated": 3})
         self.assertEqual(sum(1 for url in calls if "/v1/systemone" in url), 8)
         self.assertEqual(sum(1 for url in calls if "/health" in url), 1)
 
@@ -618,12 +683,23 @@ class RunTests(unittest.IsolatedAsyncioTestCase):
         self.assertAlmostEqual(new_incident["log_odds"],
                                log_odds(C["incident_probability"]) + 0.5)
 
+        closure_id = f"news:{news.item_id(CLOSURE_URL)}"
+        closure = await db.intel_cache.find_one({"_id": f"belief:{closure_id}"})
+        self.assertIsNotNone(closure)
+        self.assertEqual(closure["hazard_type"], "closure")
+        self.assertEqual(closure["geometry"]["type"], "Polygon")  # point buffered for the corridor
+        self.assertEqual(closure["properties"]["end_time"], "2026-09-26T22:00:00-04:00")
+        self.assertAlmostEqual(closure["log_odds"], log_odds(C["news_closure_probability"]) + 0.5)
+
         evidence = [doc for doc in db.intel_cache.docs
                     if str(doc["_id"]).startswith("evidence:news:")]
-        self.assertEqual(len(evidence), 4)
+        self.assertEqual(len(evidence), 5)
         flood_evidence = next(doc for doc in evidence if doc["source_url"] == FLOOD_URL)
         self.assertEqual(flood_evidence["hazard_id"], "flood:brickell-bay-dr")
         self.assertEqual(flood_evidence["expires_at"], NOW + timedelta(hours=12))
+        closure_evidence = next(doc for doc in evidence if doc["source_url"] == CLOSURE_URL)
+        self.assertEqual(closure_evidence["hazard_id"], closure_id)
+        self.assertEqual(closure_evidence["expires_at"], datetime(2026, 9, 27, 2, 0, tzinfo=timezone.utc))
 
     async def test_run_without_laya_sends_everything_to_gemini(self):
         db = seeded_db()
@@ -634,7 +710,7 @@ class RunTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(summary["extracted"], 6)
         self.assertEqual(summary["evidence"], 3)
         self.assertEqual(summary["incidents"], 1)
-        self.assertEqual(summary["skipped"], 2)
+        self.assertEqual(summary["skipped"], 1)
         # The GDELT-only water-main article has no extraction in the stub, so Gemini
         # "never answered" it and its claim goes back for the next run.
         self.assertEqual(summary["released"], 1)
