@@ -22,4 +22,6 @@ BELIEF_CONFIG = {
     # Fixed prior for a flood seen only by satellite (no hotspot there). Radar misses water between
     # buildings but rarely invents it; still below "certain" since each pass is hours to days old.
     "satellite_flood_probability": 0.75,
+    # Fixed prior for a Gemini-confirmed Sentinel-2 construction site with no City permit nearby.
+    "satellite_construction_probability": 0.7,
 }
