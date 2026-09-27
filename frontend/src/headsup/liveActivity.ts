@@ -26,6 +26,22 @@ function mockDeparture(now: number): number {
 }
 /** The demo leg's departure (Demo data): the banner's countdown, which the demo notification follows. */
 export const demoDeparture = (now = Date.now()) => mockDeparture(now);
+/** A new 30-min demo countdown ("Fire heads-up now"). */
+export function freshDemoDeparture(now = Date.now()) {
+  resetMockDeparture();
+  return mockDeparture(now);
+}
+
+// The leg "Fire heads-up now" picked in Demo mode, so the foreground sync keeps showing that one.
+const DEMO_LEG_KEY = 'mapay_demo_leg';
+export function setDemoLeg(leg: UpcomingLeg) {
+  try { localStorage.setItem(DEMO_LEG_KEY, `${leg.routine_id}:${leg.leg}`); } catch { /* private mode */ }
+}
+function demoLeg(items: UpcomingLeg[]) {
+  let key: string | null = null;
+  try { key = localStorage.getItem(DEMO_LEG_KEY); } catch { /* private mode */ }
+  return items.find(leg => `${leg.routine_id}:${leg.leg}` === key) ?? items[0];
+}
 function resetMockDeparture() {
   try { localStorage.removeItem(MOCK_KEY); } catch { /* private mode */ }
 }
@@ -74,7 +90,7 @@ export async function syncLiveActivity() {
   const now = Date.now();
   // Demo data (Preferences › Data): the mock's fixed times are days away, so use the debug departure.
   if (isDemo()) {
-    return items.length ? startLiveActivity(items[0], mockDeparture(now)) : endLiveActivity();
+    return items.length ? startLiveActivity(demoLeg(items), mockDeparture(now)) : endLiveActivity();
   }
   const next = items
     .filter(leg => !wasStarted(leg))
@@ -88,15 +104,6 @@ export async function syncLiveActivity() {
 export function markLegStarted(routineId?: string, leg?: number, localDate?: string) {
   if (isDemo()) resetMockDeparture();
   else markStarted(legKey(routineId, leg, localDate));
-}
-
-/** Demo / testing (mapay://demo/heads-up, #36's button): a fresh demo banner with a 30-min countdown. */
-export async function restartDemoLiveActivity() {
-  if (!isAvailable()) return;
-  resetMockDeparture();
-  await endLiveActivity();
-  const { items } = await api.upcomingRoutines(1);
-  if (items.length) await startLiveActivity(items[0], mockDeparture(Date.now()));
 }
 
 /** Keeps the Live Activity in sync on launch and every time the app comes to the foreground. */

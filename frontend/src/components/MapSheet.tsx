@@ -7,6 +7,7 @@ import type { PlaceData } from './PlaceCard';
 import type { RouteResponse, UpcomingLeg } from '../lib/types';
 import { api } from '../lib/api';
 import HeadsUpCard from '../headsup/HeadsUpCard';
+import { DEMO_HEADS_UP, lastFiredHeadsUp, type DemoHeadsUpDetail } from '../headsup/demo';
 
 interface MapSheetProps {
   isOpen: boolean;
@@ -43,8 +44,20 @@ const MapSheet: React.FC<MapSheetProps> = ({
     }).catch(console.error);
   }, []);
 
+  // "Fire heads-up now" (#36): show that leg's card right away, until its departure.
+  const [demoLeg, setDemoLeg] = useState<UpcomingLeg | null>(lastFiredHeadsUp);
+  useEffect(() => {
+    const onDemo = (e: Event) => {
+      setDemoLeg((e as CustomEvent<DemoHeadsUpDetail>).detail.leg);
+      setNowMs(Date.now());
+    };
+    window.addEventListener(DEMO_HEADS_UP, onDemo);
+    return () => window.removeEventListener(DEMO_HEADS_UP, onDemo);
+  }, []);
+
   const nowTime = nowMs + timeOffsetMs;
-  const activeLeg = upcomingLegs.find(leg => {
+  const demoActive = demoLeg && nowTime <= new Date(demoLeg.best_departure_at ?? demoLeg.departure_at).getTime();
+  const activeLeg = demoActive ? demoLeg : upcomingLegs.find(leg => {
     const headsUp = new Date(leg.heads_up_at).getTime();
     const end = leg.window ? new Date(leg.window.end).getTime() : new Date(leg.departure_at).getTime();
     return nowTime >= headsUp && nowTime <= end;

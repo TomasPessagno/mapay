@@ -85,6 +85,12 @@ export const api = {
     return saved;
   },
   upcomingRoutines: (days: number = 7) => request<UpcomingRoutinesResponse>(`/routines/upcoming?days=${days}`),
+  /** Live demo: makes that leg due in heads_up_minutes, so /routines/upcoming lists it in heads-up mode. */
+  demoHeadsUp: (routineId: string, leg: number) =>
+    request<{ departure_at: string; heads_up_at: string }>('/demo/heads-up', {
+      method: 'POST',
+      body: JSON.stringify({ routine_id: routineId, leg }),
+    }),
   places: () => request<Place[]>("/places"),
   // Stored shape follows public/mocks/places.json (GeoJSON Point). The mock is a GET list, so with
   // mocks on this returns the new place locally instead of POSTing.
