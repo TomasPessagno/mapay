@@ -11,6 +11,7 @@ import { endpointsFromRoute, setRouteContext } from '../lib/routeContext';
 import type { RouteResponse, Place, Routine } from '../lib/types';
 import type { PlaceData } from '../components/PlaceCard';
 import RoutineEditor from '../routines/RoutineEditor';
+import { shortPlaceLabel } from '../routines/placeLabels';
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? "";
 const LIGHT_MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID";
@@ -181,7 +182,7 @@ const MapPage: React.FC = () => {
       setNewRoutine({
         _id: '',
         user_id: '',
-        name: `To ${selectedPlace.name}`,
+        name: `To ${shortPlaceLabel(selectedPlace.name, selectedPlace.address)}`,
         active: true,
         legs: [{
           from_place: '',

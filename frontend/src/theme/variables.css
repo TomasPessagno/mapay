@@ -189,7 +189,7 @@ ion-tab-bar.glass {
   border: 1px solid var(--glass-border);
   border-radius: 24px;
   box-shadow: var(--glass-shadow);
-  margin: 0 12px max(8px, env(safe-area-inset-bottom));
+  margin: 0 12px max(8px, var(--ion-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
   width: calc(100% - 24px);
   /* The margin already clears the home indicator; Ionic's own safe-area padding would add it twice
      on the iPhone. Fixed height so the map sheet below can stop right above it. */
@@ -251,7 +251,7 @@ ion-card {
   position: sticky;
   top: -16px;
   z-index: 2;
-  padding: 8px 0 10px;
+  padding: 8px 16px 10px;
   margin: -16px -16px 16px;
   border-radius: 0 0 18px 18px;
   border-width: 0 0 1px;
@@ -279,7 +279,9 @@ ion-card {
   font-size: var(--text-title2-size);
   font-weight: 700;
   line-height: var(--text-title2-line);
-  overflow-wrap: anywhere;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .heads-up-actions {
@@ -345,13 +347,153 @@ ion-card {
 /* The map sheet stops above the tab bar, so the tabs stay visible and tappable. */
 ion-modal.map-sheet {
   /* Above the floating tab bar: its 56 px height plus its bottom margin. */
-  bottom: calc(56px + max(8px, var(--ion-safe-area-bottom, 0px)));
+  bottom: calc(56px + max(8px, var(--ion-safe-area-bottom, env(safe-area-inset-bottom, 0px))));
   overflow: hidden;
 }
 
 ion-modal.map-sheet::part(content) {
   border-radius: 26px 26px 0 0;
   box-shadow: 0 -4px 16px rgb(0 0 0 / 0.12);
+}
+
+ion-modal.map-sheet.map-sheet-compact {
+  --background: transparent;
+}
+
+ion-modal.map-sheet.map-sheet-compact::part(content) {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+}
+
+.map-sheet-content-compact {
+  --background: transparent;
+}
+
+.map-sheet-content-compact::part(scroll) {
+  display: flex;
+  align-items: flex-end;
+  overflow: visible;
+  padding: 0;
+}
+
+.map-search-pill {
+  display: flex;
+  align-items: center;
+  width: calc(100% - 24px);
+  min-height: 56px;
+  height: 56px;
+  margin: 0 12px 8px;
+  padding: 0 8px;
+  border: 1px solid var(--glass-border);
+  border-radius: 28px;
+  box-shadow: var(--glass-shadow);
+}
+
+.map-search-pill ion-searchbar {
+  --background: transparent;
+  --box-shadow: none;
+  --border-radius: 28px;
+  padding: 0;
+}
+
+.route-sheet-content {
+  --background: var(--system-background);
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --padding-start: 0;
+  --padding-end: 0;
+}
+
+.route-sheet-content::part(scroll) {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.route-options {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.route-options-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: 8px 16px 12px;
+}
+
+.route-options-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 0 16px 12px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.route-options-footer {
+  flex: 0 0 auto;
+  padding: 10px 16px 4px;
+  border-top: 1px solid var(--separator);
+  border-radius: 18px 18px 0 0;
+}
+
+.route-options-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.route-options-actions ion-button {
+  min-width: 0;
+  margin: 0;
+}
+
+.route-options-footer > ion-button {
+  margin: 2px 0 0;
+}
+
+.routine-leg-row {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.routine-leg-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--label);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.routine-leg-time {
+  flex: 0 0 auto;
+  color: var(--secondary-label);
+  white-space: nowrap;
+}
+
+.routine-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.routine-editor-footer {
+  --background: var(--glass-fill);
+  border-top: 1px solid var(--separator);
+  padding-top: 8px;
+  padding-bottom: max(8px, var(--ion-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
 }
 
 .map-control-label {

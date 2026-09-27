@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useCallback, useRef, useEffect, useState } from 'react';
 import { IonModal, IonContent } from '@ionic/react';
 import SearchField from './SearchField';
 import RouteOptions from './RouteOptions';
@@ -9,6 +9,10 @@ import { api } from '../lib/api';
 import HeadsUpCard from '../headsup/HeadsUpCard';
 import { DEMO_HEADS_UP, lastFiredHeadsUp, type DemoHeadsUpDetail } from '../headsup/demo';
 import { Haptics } from '@capacitor/haptics';
+import type { Place } from '../lib/types';
+import { shortPlaceLabel } from '../routines/placeLabels';
+
+const COLLAPSED_BREAKPOINT = 0.1;
 
 interface MapSheetProps {
   isOpen: boolean;
@@ -29,7 +33,14 @@ const MapSheet: React.FC<MapSheetProps> = ({
 }) => {
   const modal = useRef<HTMLIonModalElement>(null);
   const [upcomingLegs, setUpcomingLegs] = useState<UpcomingLeg[]>([]);
+  const [savedPlaces, setSavedPlaces] = useState<Place[]>([]);
   const [nowMs, setNowMs] = useState(() => Date.now());
+  const [sheetBreakpoint, setSheetBreakpoint] = useState(COLLAPSED_BREAKPOINT);
+
+  const moveToBreakpoint = useCallback((breakpoint: number) => {
+    setSheetBreakpoint(breakpoint);
+    void modal.current?.setCurrentBreakpoint(breakpoint);
+  }, []);
 
   useEffect(() => {
     const t = setInterval(() => setNowMs(Date.now()), 60000);
@@ -42,6 +53,7 @@ const MapSheet: React.FC<MapSheetProps> = ({
         setUpcomingLegs(res.items);
       }
     }).catch(console.error);
+    api.places().then(setSavedPlaces).catch(console.error);
   }, []);
 
   // "Fire heads-up now" (#36): show that leg's card right away, until its departure.
@@ -64,11 +76,25 @@ const MapSheet: React.FC<MapSheetProps> = ({
   });
   const showHeadsUp = Boolean(activeLeg && !routeResponse && !selectedPlace);
 
+  const getLegPlaceName = (placeId: string, fallback: string) => {
+    const savedPlace = savedPlaces.find((place) => place._id === placeId);
+    return shortPlaceLabel(savedPlace?.name || fallback, savedPlace?.address);
+  };
+  const displayLeg = activeLeg ? {
+    ...activeLeg,
+    from: { ...activeLeg.from, name: getLegPlaceName(activeLeg.from.place_id, activeLeg.from.name) },
+    to: { ...activeLeg.to, name: getLegPlaceName(activeLeg.to.place_id, activeLeg.to.name) },
+  } : null;
+  const isCollapsed = sheetBreakpoint <= COLLAPSED_BREAKPOINT + 0.01;
+
   useEffect(() => {
     const sheet = modal.current;
     if (!sheet) return;
     const handleBreakpointChange = () => {
       void Haptics.selectionChanged().catch(() => {});
+      void sheet.getCurrentBreakpoint().then((breakpoint) => {
+        if (breakpoint !== undefined) setSheetBreakpoint(breakpoint);
+      }).catch(() => {});
     };
     sheet.addEventListener('ionBreakpointDidChange', handleBreakpointChange);
     return () => sheet.removeEventListener('ionBreakpointDidChange', handleBreakpointChange);
@@ -77,11 +103,10 @@ const MapSheet: React.FC<MapSheetProps> = ({
   // Open one step further for heads-up so both actions remain visible at larger text sizes.
   useEffect(() => {
     if (!(routeResponse || activeLeg || selectedPlace) || !modal.current) return;
-    const sheet = modal.current;
     const breakpoint = activeLeg && !routeResponse && !selectedPlace ? 0.9 : 0.5;
-    const timeout = window.setTimeout(() => { void sheet.setCurrentBreakpoint(breakpoint); }, 750);
+    const timeout = window.setTimeout(() => moveToBreakpoint(breakpoint), 0);
     return () => window.clearTimeout(timeout);
-  }, [routeResponse, activeLeg, selectedPlace]);
+  }, [routeResponse, activeLeg, selectedPlace, moveToBreakpoint]);
 
   return (
     <IonModal
@@ -89,20 +114,23 @@ const MapSheet: React.FC<MapSheetProps> = ({
       isOpen={isOpen}
       keepContentsMounted={true}
       backdropBreakpoint={0.5}
-      initialBreakpoint={0.25}
-      breakpoints={[0.25, 0.5, 0.9]}
+      initialBreakpoint={COLLAPSED_BREAKPOINT}
+      breakpoints={[COLLAPSED_BREAKPOINT, 0.5, 0.9]}
       backdropDismiss={false}
       canDismiss={false}
-      className="map-sheet"
+      className={`map-sheet${isCollapsed ? ' map-sheet-compact' : ''}${routeResponse ? ' map-sheet-routes' : ''}`}
       onDidPresent={() => {
+        void modal.current?.getCurrentBreakpoint().then((breakpoint) => {
+          if (breakpoint !== undefined) setSheetBreakpoint(breakpoint);
+        }).catch(() => {});
         if (activeLeg && !routeResponse && !selectedPlace) {
-          void modal.current?.setCurrentBreakpoint(0.9);
+          moveToBreakpoint(0.9);
         }
       }}
     >
-      <IonContent className="ion-padding">
-        {showHeadsUp && activeLeg ? (
-          <HeadsUpCard leg={activeLeg} />
+      <IonContent className={routeResponse ? 'route-sheet-content' : isCollapsed ? 'map-sheet-content-compact' : 'ion-padding'} scrollY={!routeResponse && !isCollapsed}>
+        {showHeadsUp && displayLeg ? (
+          <HeadsUpCard leg={displayLeg} />
         ) : null}
 
         {selectedPlace && !routeResponse ? (
@@ -113,10 +141,12 @@ const MapSheet: React.FC<MapSheetProps> = ({
             onAddToRoutine={onAddToRoutine} 
           />
         ) : !routeResponse ? (
-          <SearchField 
-            onSearch={onSearch} 
-            onFocus={() => modal.current?.setCurrentBreakpoint(0.9)}
-          />
+          <div className={isCollapsed ? 'map-search-pill glass' : undefined}>
+            <SearchField
+              onSearch={onSearch}
+              onFocus={() => moveToBreakpoint(0.9)}
+            />
+          </div>
         ) : (
           <RouteOptions 
             response={routeResponse} 
