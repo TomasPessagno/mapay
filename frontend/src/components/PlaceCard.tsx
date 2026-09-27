@@ -2,6 +2,7 @@ import React from 'react';
 import { IonButton, IonIcon, IonText } from '@ionic/react';
 import { closeOutline, navigateOutline, addOutline } from 'ionicons/icons';
 import { openLink } from '../lib/deepLinks';
+import TimeScrubber from './TimeScrubber';
 
 export interface PlaceData {
   location: { lat: number; lng: number };
@@ -17,9 +18,11 @@ interface PlaceCardProps {
   onRoute: () => void;
   onAddToRoutine: () => void;
   onClose: () => void;
+  departureTime: Date | null;
+  onDepartureChange: (departure: Date | null) => void;
 }
 
-const PlaceCard: React.FC<PlaceCardProps> = ({ place, onRoute, onAddToRoutine, onClose }) => {
+const PlaceCard: React.FC<PlaceCardProps> = ({ place, onRoute, onAddToRoutine, onClose, departureTime, onDepartureChange }) => {
   const handleOpenGoogleMaps = () => {
     // using openLink
     const link = `https://www.google.com/maps/search/?api=1&query=${place.location.lat},${place.location.lng}${place.placeId ? `&query_place_id=${place.placeId}` : ''}`;
@@ -50,6 +53,10 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, onRoute, onAddToRoutine, o
           <p className="dynamic-subheadline" style={{ margin: '0 0 16px 0' }}>{place.address}</p>
         </IonText>
       )}
+
+      <div style={{ marginTop: '16px' }}>
+        <TimeScrubber value={departureTime} onChange={onDepartureChange} />
+      </div>
 
       <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
         <IonButton expand="block" shape="round" color="primary" onClick={onRoute} style={{ flex: 1, margin: 0 }}>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonModal } from '@ionic/react';
 import { useLocation } from 'react-router-dom';
 import { APIProvider } from "@vis.gl/react-google-maps";
@@ -12,6 +12,7 @@ import type { RouteResponse, Place, Routine } from '../lib/types';
 import type { PlaceData } from '../components/PlaceCard';
 import RoutineEditor from '../routines/RoutineEditor';
 import { shortPlaceLabel } from '../routines/placeLabels';
+import { localClockTime, toDeviceOffsetISOString } from '../lib/departureTime';
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? "";
 const LIGHT_MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID";
@@ -54,7 +55,9 @@ function getDistanceMiles(lat1: number, lon1: number, lat2: number, lon2: number
 
 const MapPage: React.FC = () => {
   const [isDark, setIsDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
-  const [departAt] = useState(new Date());
+  const [selectedDeparture, setSelectedDeparture] = useState<Date | null>(null);
+  const [nowDeparture, setNowDeparture] = useState(() => new Date());
+  const [routeDeparture, setRouteDeparture] = useState<Date | null>(null);
   const [routeResponse, setRouteResponse] = useState<RouteResponse | null>(null);
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
   const [selectedPlace, setSelectedPlace] = useState<PlaceData | null>(null);
@@ -64,8 +67,15 @@ const MapPage: React.FC = () => {
   const [isRoutineEditorOpen, setIsRoutineEditorOpen] = useState(false);
   const [newRoutine, setNewRoutine] = useState<Routine | null>(null);
   const [savedPlaces, setSavedPlaces] = useState<Place[]>([]);
+  const routeRequestTimer = useRef<number | null>(null);
+  const routeRequestSequence = useRef(0);
+  const departAt = selectedDeparture ?? nowDeparture;
 
   const showSheet = useLocation().pathname.startsWith('/map');
+
+  useEffect(() => () => {
+    if (routeRequestTimer.current !== null) window.clearTimeout(routeRequestTimer.current);
+  }, []);
 
   useEffect(() => {
     const media = window.matchMedia('(prefers-color-scheme: dark)');
@@ -134,13 +144,18 @@ const MapPage: React.FC = () => {
     window.dispatchEvent(event);
   };
 
-  const handleRequestRoute = async () => {
+  const requestRouteAt = async (departure: Date, keepAlternativeSummary?: string) => {
     if (!selectedPlace) return;
+    const requestId = ++routeRequestSequence.current;
+    setRouteDeparture(departure);
+    if (!selectedDeparture) setNowDeparture(departure);
     try {
       let origin = { lat: 25.7617, lng: -80.1918 }; // fallback center
       if (userLocation) {
         origin = userLocation;
       }
+      const departAt = toDeviceOffsetISOString(departure);
+      setRouteContext({ origin, destination: selectedPlace.location, departAt });
 
       let preferences;
       try {
@@ -149,19 +164,44 @@ const MapPage: React.FC = () => {
         // ignore
       }
 
-      const departAt = new Date().toISOString();
-      setRouteContext({ origin, destination: selectedPlace.location, departAt });
       const res = await api.route({ 
         origin, 
         destination: selectedPlace.location,
         depart_at: departAt,
         ...(preferences ? { preferences } : {})
       });
+      if (requestId !== routeRequestSequence.current) return;
       setRouteResponse(res);
-      setSelectedRouteIndex(0);
+      const routes = res.routes || (res as unknown as { alternatives?: RouteResponse['routes'] }).alternatives || [];
+      const preservedIndex = keepAlternativeSummary
+        ? routes.findIndex((route) => route.summary === keepAlternativeSummary)
+        : -1;
+      setSelectedRouteIndex(preservedIndex >= 0 ? preservedIndex : 0);
     } catch (e) {
-      console.error(e);
+      if (requestId === routeRequestSequence.current) console.error(e);
     }
+  };
+
+  const handleRequestRoute = () => {
+    void requestRouteAt(selectedDeparture ?? new Date());
+  };
+
+  const handleDepartureChange = (departure: Date | null) => {
+    setSelectedDeparture(departure);
+    const requestedDeparture = departure ?? new Date();
+    setRouteContext({ departAt: toDeviceOffsetISOString(requestedDeparture) });
+    if (!departure) setNowDeparture(requestedDeparture);
+    if (!routeResponse || !selectedPlace) return;
+
+    const routes = routeResponse.routes
+      || (routeResponse as unknown as { alternatives?: RouteResponse['routes'] }).alternatives
+      || [];
+    const selectedSummary = routes[selectedRouteIndex]?.summary;
+    if (routeRequestTimer.current !== null) window.clearTimeout(routeRequestTimer.current);
+    routeRequestTimer.current = window.setTimeout(() => {
+      routeRequestTimer.current = null;
+      void requestRouteAt(departure ?? new Date(), selectedSummary);
+    }, 350);
   };
 
   const handleAddToRoutine = async () => {
@@ -179,6 +219,7 @@ const MapPage: React.FC = () => {
       setSavedPlaces([...places.filter((p) => p._id !== savedPlace._id), savedPlace]);
 
       // Prepare new routine
+      const routineDeparture = selectedDeparture ?? (routeResponse ? routeDeparture : null) ?? new Date();
       setNewRoutine({
         _id: '',
         user_id: '',
@@ -187,7 +228,7 @@ const MapPage: React.FC = () => {
         legs: [{
           from_place: '',
           to_place: savedPlace._id,
-          when: { kind: 'at', time: '09:00' },
+          when: { kind: 'at', time: localClockTime(routineDeparture) },
           anchor: 'depart',
           days: null
         }],
@@ -209,12 +250,17 @@ const MapPage: React.FC = () => {
         setRouteResponse(next);
         setSelectedRouteIndex(0);
         // Keep Customize's fallback endpoints in sync with the route actually on the map.
-        setRouteContext({ ...endpointsFromRoute(next), departAt: next.depart_at ?? undefined });
+        const departure = next.depart_at ? new Date(next.depart_at) : routeDeparture ?? departAt;
+        if (!Number.isNaN(departure.getTime())) setRouteDeparture(departure);
+        setRouteContext({
+          ...endpointsFromRoute(next),
+          departAt: next.depart_at ?? toDeviceOffsetISOString(departAt),
+        });
       }
     };
     window.addEventListener('update-map-route', handleUpdateRoute);
     return () => window.removeEventListener('update-map-route', handleUpdateRoute);
-  }, []);
+  }, [departAt, routeDeparture]);
 
   const handleClearRoute = () => {
     setRouteResponse(null);
@@ -254,6 +300,8 @@ const MapPage: React.FC = () => {
         <APIProvider apiKey={API_KEY}>
           <MapView 
             departAt={departAt} 
+            isScheduledDeparture={selectedDeparture !== null}
+            onReturnToNow={() => handleDepartureChange(null)}
             routeResponse={routeResponse} 
             selectedRouteIndex={selectedRouteIndex} 
             mapId={isDark ? DARK_MAP_ID : LIGHT_MAP_ID}
@@ -272,6 +320,9 @@ const MapPage: React.FC = () => {
               onClearPlace={handleClearPlace}
               onRequestRoute={handleRequestRoute}
               onAddToRoutine={handleAddToRoutine}
+              departureTime={routeDeparture ?? departAt}
+              selectedDeparture={selectedDeparture}
+              onDepartureChange={handleDepartureChange}
             />
           )}
         </APIProvider>

@@ -416,6 +416,7 @@ ion-modal.map-sheet.map-sheet-compact::part(content) {
 .route-options {
   display: flex;
   flex-direction: column;
+  flex: 1 1 0;
   min-height: 0;
   overflow: hidden;
   width: 100%;
@@ -457,7 +458,14 @@ ion-modal.map-sheet.map-sheet-compact::part(content) {
   margin: 0;
 }
 
-.route-options-footer > ion-button {
+.route-options-secondary-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.route-options-secondary-actions ion-button {
+  min-width: 0;
   margin: 2px 0 0;
 }
 
@@ -499,6 +507,118 @@ ion-modal.map-sheet.map-sheet-compact::part(content) {
 
 .map-control-label {
   min-height: 44px;
+}
+
+.departure-time-control {
+  display: grid;
+  gap: 10px;
+  width: 100%;
+}
+
+.departure-time-control ion-segment {
+  min-height: 44px;
+  border-radius: 14px;
+  background: var(--secondary-system-background);
+}
+
+.departure-time-control ion-segment-button {
+  min-height: 44px;
+  --border-radius: 12px;
+  --indicator-color: var(--system-background);
+  --color: var(--secondary-label);
+  --color-checked: var(--label);
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.departure-picker {
+  overflow: hidden;
+  padding: 4px 10px 8px;
+  border: 1px solid var(--separator);
+  border-radius: 18px;
+  background: var(--secondary-system-background);
+}
+
+.departure-picker-heading {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  color: var(--secondary-label);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.departure-picker-heading ion-button {
+  margin: 0;
+  min-height: 44px;
+}
+
+.departure-datetime {
+  width: 100%;
+  --background: transparent;
+  --title-color: var(--label);
+  --wheel-highlight-background: var(--system-background);
+}
+
+@media (prefers-color-scheme: light) {
+  .departure-datetime {
+    --wheel-fade-background-rgb: 242, 242, 247;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .departure-datetime {
+    --wheel-fade-background-rgb: 28, 28, 30;
+  }
+}
+
+.route-departure-summary {
+  margin: 2px 0 0;
+  color: var(--secondary-label);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.route-time-control {
+  margin: 0 0 14px;
+}
+
+.departure-map-chip {
+  position: absolute;
+  top: calc(var(--ion-safe-area-top, 0px) + 112px);
+  left: 12px;
+  z-index: 20;
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  padding: 0 4px 0 14px;
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  box-shadow: var(--glass-shadow);
+  color: var(--label);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.departure-map-chip button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--secondary-system-background);
+  color: var(--secondary-label);
+  cursor: pointer;
+  font-size: 17px;
+}
+
+.departure-map-chip button:focus-visible {
+  outline: 3px solid var(--ion-color-primary);
 }
 
 button:focus-visible,
