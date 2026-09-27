@@ -22,7 +22,25 @@ import RoutinesPage from './pages/RoutinesPage';
 import PreferencesPage from './pages/PreferencesPage';
 import CustomizeSheet from './headsup/CustomizeSheet';
 import ErrorBoundary from './components/ErrorBoundary';
-import { isDemo } from './lib/dataSource';
+import { getDataSource, isDemo, setDataSource, type DataSource } from './lib/dataSource';
+
+const DesktopDataSourceSwitch: React.FC = () => {
+  const [source, setSource] = useState<DataSource>(() => getDataSource());
+
+  const selectSource = (next: DataSource) => {
+    if (next === source) return;
+    setDataSource(next);
+    setSource(next);
+    window.location.reload();
+  };
+
+  return (
+    <div className="desktop-source-switch glass" role="group" aria-label="Map data source">
+      <button type="button" aria-pressed={source === 'demo'} onClick={() => selectSource('demo')}>Demo</button>
+      <button type="button" aria-pressed={source === 'live'} onClick={() => selectSource('live')}>Live</button>
+    </div>
+  );
+};
 
 const App: React.FC = () => {
   const [demo] = useState(() => isDemo());
@@ -62,15 +80,15 @@ const App: React.FC = () => {
   return (
     <IonApp>
       <IonReactRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || undefined}>
-        <IonTabs>
-          <IonRouterOutlet>
+        <IonTabs className="app-tabs">
+          <IonRouterOutlet className="app-router-outlet">
             <Route path="/map" element={<ErrorBoundary><MapPage /></ErrorBoundary>} />
             <Route path="/routines" element={<RoutinesPage />} />
             <Route path="/preferences" element={<PreferencesPage />} />
             <Route path="/" element={<Navigate to="/map" replace />} />
           </IonRouterOutlet>
 
-          <IonTabBar slot="bottom" className="glass glass-tab-bar">
+          <IonTabBar slot="bottom" className="glass glass-tab-bar desktop-tab-bar">
             <IonTabButton tab="map" href="/map">
               <IonIcon aria-hidden="true" icon={mapOutline} />
               <IonLabel>Map</IonLabel>
@@ -86,9 +104,12 @@ const App: React.FC = () => {
           </IonTabBar>
         </IonTabs>
       </IonReactRouter>
-      
+
+      <DesktopDataSourceSwitch />
+
       {demo && (
         <IonBadge 
+          className="mock-data-badge"
           color="warning" 
           style={{ position: 'fixed', top: 'var(--ion-safe-area-top, 40px)', right: '16px', zIndex: 99999, pointerEvents: 'none' }}
         >

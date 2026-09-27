@@ -15,16 +15,26 @@ import type { PlaceData } from "../components/PlaceCard";
 const MIAMI = { lat: 25.7617, lng: -80.1918 };
 const MEDIUM_SHEET_BREAKPOINT = 0.5;
 
-function mapSheetOcclusion(map: google.maps.Map): { top: number; bottom: number } {
+function mapSheetOcclusion(map: google.maps.Map): { top: number; bottom: number; left: number } {
   const mapRect = map.getDiv().getBoundingClientRect();
   const modal = document.querySelector('ion-modal.map-sheet') as HTMLIonModalElement | null;
   const panel = modal?.shadowRoot?.querySelector<HTMLElement>('[part~="content"]');
   const panelTop = panel?.getBoundingClientRect().top;
 
+  if (window.matchMedia('(min-width: 1024px)').matches && panel) {
+    const panelRect = panel.getBoundingClientRect();
+    return {
+      top: 0,
+      bottom: 0,
+      left: Math.max(0, panelRect.right - mapRect.left + 16),
+    };
+  }
+
   if (panelTop !== undefined && panelTop > mapRect.top) {
     return {
       top: Math.max(0, panelTop - mapRect.top),
       bottom: Math.max(0, mapRect.bottom - panelTop),
+      left: 0,
     };
   }
 
@@ -33,6 +43,7 @@ function mapSheetOcclusion(map: google.maps.Map): { top: number; bottom: number 
   return {
     top: Math.max(0, sheetTop - mapRect.top),
     bottom: Math.max(0, mapRect.bottom - sheetTop),
+    left: 0,
   };
 }
 
@@ -112,7 +123,7 @@ export default function MapView(props: Props) {
       />
 
       {/* Floating buttons sit under the toolbar, 52 px apart: Layers, Locate Me, then Report (ReportFab). */}
-      <IonFab slot="fixed" vertical="top" horizontal="end" style={{ top: 'calc(var(--ion-safe-area-top, 0px) + 60px)', right: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <IonFab className="map-toolbar-actions" slot="fixed" vertical="top" horizontal="end" style={{ top: 'calc(var(--ion-safe-area-top, 0px) + 60px)', right: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <IonFabButton aria-label="Show map legend and hazard layers" className="glass map-control-label" onClick={() => setShowLegend(true)} style={{ width: '44px', height: '44px', borderRadius: '50%' }}>
           <IonIcon aria-hidden="true" icon={layersOutline} color="primary" />
         </IonFabButton>
@@ -215,9 +226,14 @@ function MapController({ userLocation }: { userLocation?: { lat: number; lng: nu
           recenterTimer.current = window.setTimeout(() => {
             map.setCenter(location);
             const mapRect = map.getDiv().getBoundingClientRect();
-            const { top: visibleBottom } = mapSheetOcclusion(map);
-            const targetY = Math.max(72, visibleBottom / 3);
-            map.panBy(0, Math.max(0, mapRect.height / 2 - targetY));
+            if (window.matchMedia('(min-width: 1024px)').matches) {
+              const { left } = mapSheetOcclusion(map);
+              map.panBy(-Math.max(0, (left - 16) / 2), 0);
+            } else {
+              const { top: visibleBottom } = mapSheetOcclusion(map);
+              const targetY = Math.max(72, visibleBottom / 3);
+              map.panBy(0, Math.max(0, mapRect.height / 2 - targetY));
+            }
           }, 850);
         } else {
           map.panTo(location);
@@ -407,8 +423,8 @@ function MapLayers({
            const coords = ((selectedRoute.route_geojson as unknown as GeoJSON.FeatureCollection).features[0].geometry as GeoJSON.LineString).coordinates as [number, number][];
            coords.forEach((c: [number, number]) => bounds.extend({ lat: c[1], lng: c[0] }));
            fitTimer = window.setTimeout(() => {
-             const { bottom } = mapSheetOcclusion(map);
-             map.fitBounds(bounds, { top: 100, bottom: Math.ceil(bottom + 16), left: 40, right: 40 });
+              const { bottom, left } = mapSheetOcclusion(map);
+              map.fitBounds(bounds, { top: 100, bottom: Math.ceil(bottom + 16), left: Math.ceil(left + 40), right: 40 });
            }, 850);
        } catch (e) {
            console.error("Failed to fit bounds", e);

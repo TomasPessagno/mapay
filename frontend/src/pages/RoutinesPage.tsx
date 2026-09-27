@@ -66,7 +66,7 @@ function useDemoMenu() {
 const RoutinesPage: React.FC = () => {
   const { pressProps, menu } = useDemoMenu();
   return (
-    <IonPage>
+    <IonPage className="routines-page">
       <IonHeader translucent={true} className="ion-no-border">
         <IonToolbar className="glass">
           <IonTitle {...pressProps}>Routines</IonTitle>
