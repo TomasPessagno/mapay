@@ -2,7 +2,8 @@ import React from 'react';
 import { IonCard, IonCardContent, IonButton, IonText, IonChip, IonIcon } from '@ionic/react';
 import type { RouteResponse, RouteOption } from '../lib/types';
 import { openLink } from '../lib/deepLinks';
-import { closeOutline, waterOutline, warningOutline, alertCircleOutline, constructOutline, carOutline, stopCircleOutline } from 'ionicons/icons';
+import HazardChips from './HazardChips';
+import { closeOutline } from 'ionicons/icons';
 
 interface RouteOptionsProps {
   response: RouteResponse;
@@ -10,17 +11,6 @@ interface RouteOptionsProps {
   onSelect: (index: number) => void;
   onClose: () => void;
 }
-
-const getHazardIcon = (type: string) => {
-  switch (type) {
-    case 'flood': return waterOutline;
-    case 'weather': return warningOutline;
-    case 'construction': return constructOutline;
-    case 'closure': return stopCircleOutline;
-    case 'congestion': return carOutline;
-    default: return alertCircleOutline;
-  }
-};
 
 const formatTime = (seconds: number) => {
   const mins = Math.round(seconds / 60);
@@ -79,13 +69,8 @@ const RouteOptions: React.FC<RouteOptionsProps> = ({ response, selectedIndex, on
             </div>
 
             {route.hazards_on_route && route.hazards_on_route.length > 0 && (
-              <div style={{ marginTop: '12px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                {route.hazards_on_route.map((h, j) => (
-                  <IonChip key={j} outline style={{ margin: 0 }}>
-                    <IonIcon icon={getHazardIcon(h.hazard_type)} />
-                    {h.title}
-                  </IonChip>
-                ))}
+              <div style={{ marginTop: '12px' }}>
+                <HazardChips hazards={route.hazards_on_route} />
               </div>
             )}
           </IonCardContent>

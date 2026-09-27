@@ -5,6 +5,9 @@ import {
 } from '@ionic/react';
 import { closeOutline, addOutline, warningOutline, timeOutline, navigateOutline } from 'ionicons/icons';
 import { api } from '../lib/api';
+import { isDemo } from '../lib/dataSource';
+import { getRouteContext, type LatLngContext } from '../lib/routeContext';
+import HazardChips from '../components/HazardChips';
 import type { CustomizeResponse, RouteOption, RouteResponse } from '../lib/types';
 import { openLink } from '../lib/deepLinks';
 
@@ -14,6 +17,31 @@ interface CustomizeSheetProps {
   routineId?: string;
   legIndex?: number;
   initialPrompt?: string;
+}
+
+const isNotFound = (err: unknown) => err instanceof Error && /^404\b/.test(err.message);
+
+// A routine that only lives in the app (Demo user, widget deep link) can't be found by the API.
+// Resolve its endpoints from the app's own routines + places so we can retry without it.
+async function routineEndpoints(
+  routineId: string,
+  legIndex?: number,
+): Promise<{ origin?: LatLngContext; destination?: LatLngContext }> {
+  try {
+    const [routines, places] = await Promise.all([api.routines(), api.places()]);
+    const leg = routines.find((routine) => routine._id === routineId)?.legs?.[legIndex ?? 0];
+    const from = places.find((place) => place._id === leg?.from_place);
+    const to = places.find((place) => place._id === leg?.to_place);
+    if (from && to) {
+      return {
+        origin: { lat: from.location.coordinates[1], lng: from.location.coordinates[0] },
+        destination: { lat: to.location.coordinates[1], lng: to.location.coordinates[0] },
+      };
+    }
+  } catch {
+    // fall through: no endpoints to retry with
+  }
+  return {};
 }
 
 const CustomizeSheet: React.FC<CustomizeSheetProps> = ({ isOpen, onClose, routineId, legIndex, initialPrompt = '' }) => {
@@ -30,13 +58,41 @@ const CustomizeSheet: React.FC<CustomizeSheetProps> = ({ isOpen, onClose, routin
     setLoading(false);
   };
 
+  // POST /customize takes either {prompt, routine_id, leg} or {prompt, origin, destination}
+  // (backend/app/routers/customize.py, public/mocks/README.md). A route picked from search has no
+  // routine, so it uses the endpoints of the route on the map.
+  const buildBody = (): Record<string, unknown> | null => {
+    const context = getRouteContext();
+    const departAt = context.departAt ? { depart_at: context.departAt } : {};
+    if (routineId) return { prompt, routine_id: routineId, leg: legIndex ?? 0, ...departAt };
+    if (!context.origin || !context.destination) return null;
+    return { prompt, origin: context.origin, destination: context.destination, ...departAt };
+  };
+
   const handleCustomize = async () => {
     if (!prompt.trim()) return;
     setLoading(true);
     setError(null);
     try {
-      // Request body documented in public/mocks/README.md (snake_case like the rest of the API).
-      const res = await api.customize({ prompt, routine_id: routineId, leg: legIndex }) as CustomizeResponse;
+      const body = buildBody();
+      if (!body && !isDemo()) {
+        setError('Pick a destination on the map first, then try Customize again.');
+        return;
+      }
+      let res: CustomizeResponse;
+      try {
+        res = await api.customize(body ?? { prompt }) as CustomizeResponse;
+      } catch (err) {
+        if (!routineId || !isNotFound(err)) throw err;
+        // The routine only exists in the app: retry once from the endpoints we do know.
+        const context = getRouteContext();
+        const fallback = await routineEndpoints(routineId, legIndex);
+        const origin = context.origin ?? fallback.origin;
+        const destination = context.destination ?? fallback.destination;
+        if (!origin || !destination) throw err;
+        const departAt = context.departAt ? { depart_at: context.departAt } : {};
+        res = await api.customize({ prompt, origin, destination, ...departAt }) as CustomizeResponse;
+      }
       setResult(res);
       
       const syntheticRouteResponse: RouteResponse = {
@@ -75,6 +131,11 @@ const CustomizeSheet: React.FC<CustomizeSheetProps> = ({ isOpen, onClose, routin
         <p style={{ margin: 0, fontSize: '15px', color: 'var(--ion-color-medium)' }}>
           {formatTime(route.duration_s)} · {Math.round((route.distance_m || 0) / 1609.34)} mi
         </p>
+        {route.hazards_on_route && route.hazards_on_route.length > 0 && (
+          <div style={{ marginTop: '8px' }}>
+            <HazardChips hazards={route.hazards_on_route} />
+          </div>
+        )}
       </IonCardContent>
     </IonCard>
   );

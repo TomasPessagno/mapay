@@ -11,6 +11,11 @@ const layerMarkers = new Map<string, google.maps.marker.AdvancedMarkerElement[]>
 const MAX_MARKERS_PER_LAYER = 150;
 const DENSE_LAYERS = new Set(['construction', 'no_sidewalk', 'pothole']);
 const DENSE_MIN_ZOOM = 12;
+// City of Miami Public Works permits ("city:permit:…") cover every street around downtown and
+// load slowly; like no_sidewalk they only appear once the map is at street level. HERE and other
+// construction keep the normal dense-layer behaviour.
+const CITY_PERMIT_PREFIX = 'city:permit:';
+const CITY_PERMIT_MIN_ZOOM = 15;
 // Hazards below p 0.5 are hidden by default: planned City of Miami roadway projects (p 0.2) cover
 // every street but never affect routing. The legend sheet's switch brings them back, faded.
 const UNCONFIRMED_THRESHOLD = 0.5;
@@ -93,6 +98,8 @@ function setupMapListeners(map: google.maps.Map) {
   if (zoomListener) {
     zoomListener.remove();
   }
+
+  let permitsVisible = (map.getZoom() ?? 0) >= CITY_PERMIT_MIN_ZOOM;
   
   zoomListener = map.addListener('zoom_changed', () => {
     const zoom = map.getZoom() ?? 0;
@@ -107,6 +114,15 @@ function setupMapListeners(map: google.maps.Map) {
     const nsMarkers = layerMarkers.get('no_sidewalk');
     if (nsMarkers) {
       nsMarkers.forEach(m => { m.map = isVisible ? map : null; });
+    }
+
+    // Permits are filtered out of the Data layer below street level, so crossing the threshold
+    // means redrawing construction from the last fetched data.
+    const nowVisible = zoom >= CITY_PERMIT_MIN_ZOOM;
+    if (nowVisible !== permitsVisible) {
+      permitsVisible = nowVisible;
+      const data = layerDataCache.get('construction');
+      if (data) void upsertGeoJsonLayer(map, 'construction', data).catch(console.error);
     }
   });
 }
@@ -128,6 +144,15 @@ function getCentroid(feature: google.maps.Data.Feature): google.maps.LatLngLiter
   if (bounds.isEmpty()) return null;
   const center = bounds.getCenter();
   return { lat: center.lat(), lng: center.lng() };
+}
+
+function isCityPermitFeature(feature: google.maps.Data.Feature): boolean {
+  return String(feature.getProperty('hazard_id') ?? '').startsWith(CITY_PERMIT_PREFIX);
+}
+
+function isCityPermitGeoJson(feature: GeoJSON.Feature): boolean {
+  const properties = feature.properties as Record<string, unknown> | null | undefined;
+  return String(properties?.hazard_id ?? '').startsWith(CITY_PERMIT_PREFIX);
 }
 
 function createMarkerContent(token: LegendToken, isDark: boolean, opacity: number): HTMLElement {
@@ -210,10 +235,14 @@ export async function upsertGeoJsonLayer(
   layerMarkers.set(id, markers);
   
   const zoom = map.getZoom() ?? 0;
+  const permitZoomedOut = id === 'construction' && zoom < CITY_PERMIT_MIN_ZOOM;
+  const features = permitZoomedOut
+    ? (data.features ?? []).filter((feature) => !isCityPermitGeoJson(feature))
+    : data.features ?? [];
   if (!(DENSE_LAYERS.has(id) && zoom < DENSE_MIN_ZOOM)) {
-    layer.addGeoJson(data);
+    layer.addGeoJson({ ...data, features });
   }
-  const showMarkers = (data.features?.length ?? 0) <= MAX_MARKERS_PER_LAYER;
+  const showMarkers = features.length <= MAX_MARKERS_PER_LAYER;
 
   let isVisible = layerVisibility.get(id) !== false;
   if (id === 'no_sidewalk' && zoom < 15) {
@@ -228,6 +257,7 @@ export async function upsertGeoJsonLayer(
     
     // Skip markers for congestion and no_sidewalk lines, and for crowded layers (shapes only)
     if (!showMarkers || hazardType === 'congestion' || hazardType === 'no_sidewalk') return;
+    if (permitZoomedOut && isCityPermitFeature(feature)) return;
     if (probability < UNCONFIRMED_THRESHOLD && !showUnconfirmed) return;
     
     const centroid = getCentroid(feature);
@@ -271,6 +301,9 @@ export async function upsertGeoJsonLayer(
     const visible = layerVisibility.get(id) ?? true;
     if (!visible) return { visible: false };
     if (id === 'no_sidewalk' && (map.getZoom() ?? 0) < 15) return { visible: false };
+    if (id === 'construction' && (map.getZoom() ?? 0) < CITY_PERMIT_MIN_ZOOM && isCityPermitFeature(feature)) {
+      return { visible: false };
+    }
 
     const hazardType = feature.getProperty('hazard_type') as HazardType;
     const probability = feature.getProperty('probability') as number ?? 1.0;

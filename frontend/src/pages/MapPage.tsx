@@ -7,6 +7,7 @@ import { App as CapacitorApp } from '@capacitor/app';
 import MapView from '../map/MapView';
 import MapSheet from '../components/MapSheet';
 import { api } from '../lib/api';
+import { endpointsFromRoute, setRouteContext } from '../lib/routeContext';
 import type { RouteResponse, Place, Routine } from '../lib/types';
 import type { PlaceData } from '../components/PlaceCard';
 import RoutineEditor from '../routines/RoutineEditor';
@@ -77,6 +78,7 @@ const MapPage: React.FC = () => {
         if (!initial || !isActive) return;
         // MapView centres on the first known position once the map is ready (no event to miss).
         setUserLocation(initial);
+        setRouteContext({ origin: initial });
 
         watchId = await Geolocation.watchPosition({}, (position, err) => {
           if (err) {
@@ -84,7 +86,9 @@ const MapPage: React.FC = () => {
             return;
           }
           if (position && isActive) {
-            setUserLocation({ lat: position.coords.latitude, lng: position.coords.longitude });
+            const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
+            setUserLocation(loc);
+            setRouteContext({ origin: loc });
           }
         });
       } catch (e) {
@@ -114,6 +118,7 @@ const MapPage: React.FC = () => {
     }
     const placeData: PlaceData = { location: destination, name, address, type, placeId, distanceMiles };
     setSelectedPlace(placeData);
+    setRouteContext({ destination });
     
     // Dispatch event to map view
     const event = new CustomEvent('recenter-map', { detail: { location: destination, zoom: 15, place: placeData } });
@@ -135,10 +140,12 @@ const MapPage: React.FC = () => {
         // ignore
       }
 
+      const departAt = new Date().toISOString();
+      setRouteContext({ origin, destination: selectedPlace.location, departAt });
       const res = await api.route({ 
         origin, 
         destination: selectedPlace.location,
-        depart_at: new Date().toISOString(),
+        depart_at: departAt,
         ...(preferences ? { preferences } : {})
       });
       setRouteResponse(res);
@@ -189,8 +196,11 @@ const MapPage: React.FC = () => {
     const handleUpdateRoute = (e: Event) => {
       const customEvent = e as CustomEvent;
       if (customEvent.detail?.routeResponse) {
-        setRouteResponse(customEvent.detail.routeResponse);
+        const next = customEvent.detail.routeResponse as RouteResponse & { depart_at?: string | null };
+        setRouteResponse(next);
         setSelectedRouteIndex(0);
+        // Keep Customize's fallback endpoints in sync with the route actually on the map.
+        setRouteContext({ ...endpointsFromRoute(next), departAt: next.depart_at ?? undefined });
       }
     };
     window.addEventListener('update-map-route', handleUpdateRoute);
@@ -204,6 +214,7 @@ const MapPage: React.FC = () => {
 
   const handleClearPlace = () => {
     setSelectedPlace(null);
+    setRouteContext({ destination: undefined, departAt: undefined });
     const event = new CustomEvent('recenter-map', { detail: { place: null } });
     window.dispatchEvent(event);
   };

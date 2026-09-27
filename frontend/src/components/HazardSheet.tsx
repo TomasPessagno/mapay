@@ -23,16 +23,18 @@ export interface HazardSource {
 export interface HazardProperties {
   hazard_id: string;
   hazard_type: string;
-  title: string;
-  place: string;
-  probability: number;
-  status: string;
-  severity: number;
-  sources: HazardSource[];
-  last_updated: string;
-  expires_at: string | null;
-  lat: number;
-  lng: number;
+  // Live features are looser than the mock: NWS weather alerts have no place, and some layers
+  // omit title/sources. The sheet must render whatever the layer actually sent.
+  title?: string | null;
+  place?: string | null;
+  probability?: number | null;
+  status?: string | null;
+  severity?: number | null;
+  sources?: HazardSource[] | null;
+  last_updated?: string | null;
+  expires_at?: string | null;
+  lat?: number;
+  lng?: number;
 }
 
 interface HazardSheetProps {
@@ -44,8 +46,8 @@ interface HazardSheetProps {
 const DIRECTIONS = new Set(['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']);
 
 // "NW 24TH ST" → "NW 24th St"; already mixed-case names are left alone.
-function titleCaseStreetName(value: string): string {
-  if (!value || /[a-z]/.test(value)) return value;
+function titleCaseStreetName(value: string | null | undefined): string {
+  if (!value || /[a-z]/.test(value)) return value ?? '';
   return value.toLowerCase().replace(/\S+/g, (word) => {
     if (/^\d+(st|nd|rd|th)$/.test(word)) return word;
     if (DIRECTIONS.has(word)) return word.toUpperCase();
@@ -68,24 +70,29 @@ export default function HazardSheet({ isOpen, hazard, onDidDismiss }: HazardShee
   const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   const color = isDark ? token.colorDark : token.colorLight;
 
-  const title = titleCaseStreetName(hazard.title);
+  // "Weather alert" is a fine title when the layer has none (NWS features are title-only).
+  const title = titleCaseStreetName(hazard.title) || token.name;
   const place = titleCaseStreetName(hazard.place);
   // City GIS repeats the street as title and place; don't show the same line twice.
-  const showPlace = place.trim().toLowerCase() !== title.trim().toLowerCase();
+  const showPlace = place.length > 0 && place.trim().toLowerCase() !== title.trim().toLowerCase();
+  const sources = hazard.sources ?? [];
+  const probability = typeof hazard.probability === 'number' ? hazard.probability : 1;
 
   let confidence = 'High';
-  if (hazard.probability < 0.73) confidence = 'Unconfirmed';
-  else if (hazard.probability < 0.9) confidence = 'Medium';
+  if (probability < 0.73) confidence = 'Unconfirmed';
+  else if (probability < 0.9) confidence = 'Medium';
 
   const isPredicted = hazard.status === 'predicted';
+  const canReport = typeof hazard.lat === 'number' && typeof hazard.lng === 'number';
 
   const handleReport = async (cleared: boolean) => {
+    if (!canReport) return;
     setReporting(true);
     try {
       await api.report({
         type: hazard.hazard_type,
-        lat: hazard.lat,
-        lng: hazard.lng,
+        lat: hazard.lat as number,
+        lng: hazard.lng as number,
         hazard_id: hazard.hazard_id,
         cleared
       });
@@ -175,13 +182,13 @@ export default function HazardSheet({ isOpen, hazard, onDidDismiss }: HazardShee
           )}
         </IonList>
 
-        {hazard.sources.length > 0 && (
+        {sources.length > 0 && (
           <>
             <h3 style={{ marginLeft: '16px', marginTop: '24px', fontSize: '15px', textTransform: 'uppercase', color: 'var(--ion-color-step-600)' }}>
               Sources
             </h3>
             <IonList inset>
-              {hazard.sources.map((src, idx) => (
+              {sources.map((src, idx) => (
                 <IonItem key={idx} href={src.url || undefined} target={src.url ? '_blank' : undefined}>
                   <IonLabel className="ion-text-wrap">
                     <h2>{src.label}</h2>
@@ -204,7 +211,7 @@ export default function HazardSheet({ isOpen, hazard, onDidDismiss }: HazardShee
             expand="block"
             fill="outline"
             style={{ flex: 1 }}
-            disabled={reporting}
+            disabled={reporting || !canReport}
             onClick={() => handleReport(true)}
             aria-label="Report Cleared"
           >
@@ -213,7 +220,7 @@ export default function HazardSheet({ isOpen, hazard, onDidDismiss }: HazardShee
           <IonButton
             expand="block"
             style={{ flex: 1 }}
-            disabled={reporting}
+            disabled={reporting || !canReport}
             onClick={() => handleReport(false)}
             aria-label="Report Still there"
           >

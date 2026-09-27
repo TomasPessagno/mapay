@@ -1,20 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { IonCard, IonCardContent, IonButton, IonText, IonIcon, IonChip } from '@ionic/react';
+import { IonCard, IonCardContent, IonButton, IonText } from '@ionic/react';
 import { Haptics, NotificationType } from '@capacitor/haptics';
 import type { UpcomingLeg } from '../lib/types';
 import { openLink } from '../lib/deepLinks';
-import { waterOutline, warningOutline, constructOutline, stopCircleOutline, carOutline, alertCircleOutline } from 'ionicons/icons';
-
-const getHazardIcon = (type: string) => {
-  switch (type) {
-    case 'flood': return waterOutline;
-    case 'weather': return warningOutline;
-    case 'construction': return constructOutline;
-    case 'closure': return stopCircleOutline;
-    case 'congestion': return carOutline;
-    default: return alertCircleOutline;
-  }
-};
+import HazardChips from '../components/HazardChips';
 
 const formatTime = (seconds: number) => {
   const mins = Math.round(seconds / 60);
@@ -87,13 +76,8 @@ const HeadsUpCard: React.FC<HeadsUpCardProps> = ({ leg, timeOffsetMs = 0, onCust
 
         {/* Hazards */}
         {leg.top_hazards && leg.top_hazards.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '16px' }}>
-            {leg.top_hazards.map((h, i) => (
-              <IonChip key={i} outline style={{ margin: 0 }}>
-                <IonIcon icon={getHazardIcon(h.hazard_type)} />
-                {h.title}
-              </IonChip>
-            ))}
+          <div style={{ marginBottom: '16px' }}>
+            <HazardChips hazards={leg.top_hazards} />
           </div>
         )}
 
