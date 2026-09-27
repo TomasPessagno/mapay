@@ -4,6 +4,7 @@ Read-only: probabilities for time `t` are computed from each belief's evidence w
 decay back (refresh_belief persists decay only for "now"). Shape: frontend/public/mocks/layers.json.
 """
 import logging
+import time
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
@@ -12,6 +13,7 @@ from shapely.geometry import box, mapping, shape
 
 from app.db.mongo import get_db
 from app.routing.beliefs import belief_at, probability, utc
+from app.routing.pre_route import belief_docs
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/layers", tags=["layers"])
@@ -148,7 +150,7 @@ def feature_for(doc: dict, evidence_docs: list[dict], t: datetime) -> dict | Non
 
 
 async def build_layers(db, t: datetime, area=None) -> dict:
-    beliefs = await db.intel_cache.find({"type": "hazard_belief"}).to_list(length=None)
+    beliefs = await belief_docs(db)
     evidence_docs = await db.intel_cache.find({"_id": {"$regex": "^evidence:"}}).to_list(length=None)
     by_hazard: dict[str, list[dict]] = {}
     for item in evidence_docs:
@@ -181,8 +183,23 @@ async def build_layers(db, t: datetime, area=None) -> dict:
             "radar": RADAR_OVERLAY, **layers}
 
 
+LAYERS_CACHE_SECONDS = 60
+_layers_cache: dict[tuple, tuple[float, dict]] = {}
+
+
 @router.get("")
 async def get_layers(t: Annotated[datetime | None, Query(description="Departure time; defaults to now")] = None,
                      bbox: Annotated[str | None, Query(description="west,south,east,north")] = None):
     when = utc(t) if t and t.tzinfo else (t.replace(tzinfo=timezone.utc) if t else datetime.now(timezone.utc))
-    return await build_layers(get_db(), when, parse_bbox(bbox))
+    area = parse_bbox(bbox)
+    # Every map load asks for "now": answers for the same minute and bbox are shared for 60 s.
+    key = (when.replace(second=0, microsecond=0), bbox)
+    cached = _layers_cache.get(key)
+    if cached and time.monotonic() - cached[0] < LAYERS_CACHE_SECONDS:
+        return cached[1]
+    body = await build_layers(get_db(), when, area)
+    now = time.monotonic()
+    for stale in [k for k, (at, _) in _layers_cache.items() if now - at >= LAYERS_CACHE_SECONDS]:
+        del _layers_cache[stale]
+    _layers_cache[key] = (now, body)
+    return body
