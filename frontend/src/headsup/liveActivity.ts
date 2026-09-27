@@ -1,34 +1,13 @@
 import { useEffect } from 'react';
-import { registerPlugin, Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { api } from '../lib/api';
 import { isDemo } from '../lib/dataSource';
 import { openLink } from '../lib/deepLinks';
+import { MapayNative, isNativeIOS } from '../lib/native';
 import type { UpcomingLeg } from '../lib/types';
 
 // The heads-up Live Activity (#37). ActivityKit only starts one while the app is in the foreground
 // (no push with a free Apple ID), so it's (re)started whenever the app opens within 8 h of a leg.
-
-interface StartOptions {
-  routineId: string;
-  leg: number;
-  fromName: string;
-  toName: string;
-  departureMs: number;
-  durationMin: number;
-  summary: string;
-  hazardCount: number;
-  topHazardType?: string;
-  topHazardTitle?: string;
-}
-
-interface MapayNativePlugin {
-  startLiveActivity(options: StartOptions): Promise<{ id: string; updated: boolean }>;
-  endLiveActivity(options?: { routineId?: string; leg?: number }): Promise<void>;
-  areActivitiesEnabled(): Promise<{ enabled: boolean }>;
-}
-
-const MapayNative = registerPlugin<MapayNativePlugin>('MapayNative');
 
 const WINDOW_MS = 8 * 60 * 60 * 1000; // ActivityKit keeps one up for at most 8 h
 const LINGER_MS = 10 * 60 * 1000; // it stays up until departure + 10 min
@@ -50,8 +29,7 @@ function resetMockDeparture() {
   try { localStorage.removeItem(MOCK_KEY); } catch { /* private mode */ }
 }
 
-// Registered from MapayViewController, so it isn't in Capacitor's plugin headers; iOS is enough.
-const isAvailable = () => Capacitor.getPlatform() === 'ios';
+const isAvailable = isNativeIOS;
 
 const departureOf = (leg: UpcomingLeg) => new Date(leg.best_departure_at ?? leg.departure_at).getTime();
 

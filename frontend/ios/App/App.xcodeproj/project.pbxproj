@@ -21,6 +21,7 @@
 		70F47D511E79223D55855D5E /* MapayActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8D0EA6BF6F4F5775EBA43F4 /* MapayActivityAttributes.swift */; };
 		74D0418A8284473672F12021 /* MapayViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1DE3D4F3F51F75F8FEA64C6 /* MapayViewController.swift */; };
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
+		A7523B759B7015A75A581CAC /* routines-upcoming.json in Resources */ = {isa = PBXBuildFile; fileRef = D6E7EF986168FF7CA4F01177 /* routines-upcoming.json */; };
 		E230DE38A50CCCC5ACAD5C38 /* WidgetKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = EABE6D6FDBAF87F1955EB522 /* WidgetKit.framework */; };
 		E4C1FAA386B463CC2ACC46B7 /* MapayWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 748641C0F79D62B23370ACCB /* MapayWidget.swift */; };
 		E866B90A4A87A64BF0CC6B54 /* MapayWidgetBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EFEF4609BD667D4FD7F522A /* MapayWidgetBundle.swift */; };
@@ -72,6 +73,7 @@
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
 		9DA00290F38C25145371E4A5 /* SwiftUI.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SwiftUI.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/SwiftUI.framework; sourceTree = DEVELOPER_DIR; };
 		B1DE3D4F3F51F75F8FEA64C6 /* MapayViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MapayViewController.swift; sourceTree = "<group>"; };
+		D6E7EF986168FF7CA4F01177 /* routines-upcoming.json */ = {isa = PBXFileReference; includeInIndex = 1; name = "routines-upcoming.json"; path = "../../../public/mocks/routines-upcoming.json"; sourceTree = "<group>"; };
 		EABE6D6FDBAF87F1955EB522 /* WidgetKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WidgetKit.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS26.0.sdk/System/Library/Frameworks/WidgetKit.framework; sourceTree = DEVELOPER_DIR; };
 		F7C5F98D3BCFD7F44FAE3466 /* Info.plist */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		F8D0EA6BF6F4F5775EBA43F4 /* MapayActivityAttributes.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MapayActivityAttributes.swift; sourceTree = "<group>"; };
@@ -165,6 +167,7 @@
 				0EFEF4609BD667D4FD7F522A /* MapayWidgetBundle.swift */,
 				F7C5F98D3BCFD7F44FAE3466 /* Info.plist */,
 				1ECC6D2BFC45324BB42D9113 /* MapayLiveActivity.swift */,
+				D6E7EF986168FF7CA4F01177 /* routines-upcoming.json */,
 			);
 			name = MapayWidget;
 			path = MapayWidget;
@@ -263,6 +266,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A7523B759B7015A75A581CAC /* routines-upcoming.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -351,6 +355,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
+				MAPAY_API_BASE_URL = "";
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.tomaspessagno.mapay.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -530,6 +535,7 @@
 					"@executable_path/Frameworks",
 					"@executable_path/../../Frameworks",
 				);
+				MAPAY_API_BASE_URL = "http://localhost:5173/mocks";
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.tomaspessagno.mapay.widget;
 				PRODUCT_NAME = "$(TARGET_NAME)";

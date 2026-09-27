@@ -1,4 +1,5 @@
 import { Device } from '@capacitor/device';
+import { reloadWidgets } from './native';
 import type { RouteResponse, Routine, UpcomingRoutinesResponse, Neighborhood, Preferences, LayersResponse, Place } from "./types";
 import { apiBaseUrl, isDemo } from "./dataSource";
 
@@ -77,7 +78,11 @@ export const api = {
   report: (data: { type: string; lat: number; lng: number; hazard_id?: string; cleared?: boolean }) =>
     request("/report", { method: "POST", body: JSON.stringify(data) }),
   routines: () => request<Routine[]>(`/routines`),
-  saveRoutine: (r: Routine) => request<Routine>("/routines", { method: "POST", body: JSON.stringify(r) }),
+  saveRoutine: async (r: Routine) => {
+    const saved = await request<Routine>("/routines", { method: "POST", body: JSON.stringify(r) });
+    reloadWidgets(); // the home-screen widget shows the next leg
+    return saved;
+  },
   upcomingRoutines: (days: number = 7) => request<UpcomingRoutinesResponse>(`/routines/upcoming?days=${days}`),
   places: () => request<Place[]>("/places"),
   // Stored shape follows public/mocks/places.json (GeoJSON Point). The mock is a GET list, so with
