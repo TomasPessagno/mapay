@@ -14,7 +14,7 @@ Assets:
 | 1 | Cold open: the banner wall | 0:00–0:15 | Visual hook: all 10 banners |
 | 2 | The problem | 0:15–0:30 | The Miami commuter |
 | 3 | The map | 0:30–1:00 | 9 hazard types, sources, Demo/Live, desktop |
-| 4 | Routing | 1:00–1:30 | Leave now/at, scored routes, route preview |
+| 4 | Routing | 1:00–1:30 | Leave now/at, scored routes, the "why" |
 | 5 | Routines + heads-up | 1:30–1:55 | Live Activity, notification, widget |
 | 6 | Customize | 1:55–2:20 | Prompt → new route; "Google drives, MAPAY steers" |
 | 7 | Under the hood | 2:20–2:50 | Every data source, shown in the app |
@@ -42,9 +42,9 @@ Assets:
 
 ### 4. Routing (1:00–1:30)
 
-**Show:** search "FIU Biscayne Bay" → place card → **Leave at… 5:30 PM** → Route Options (grouped hazard chips, "Recommended", the explanation) → tap **Preview**: the car drives the route, turn cards, a hazard pop-up.
+**Show:** search "FIU Biscayne Bay" → place card → **Leave at… 5:30 PM** → Route Options (grouped hazard chips, "Recommended", the explanation) → tap each route to compare its hazards → **Open in Google Maps** shows the stops.
 
-**Say:** "Pick where you're going and when you're leaving. MAPAY asks Google for alternative routes, then scores every one against the hazards on it at that time, using Google's traffic predictions and our flood forecast. Then preview the whole drive, turn by turn, with every hazard called out before you reach it."
+**Say:** "Pick where you're going and when you're leaving. MAPAY asks Google for alternative routes, then scores every one against the hazards on it at that time, using Google's traffic predictions and our flood forecast. And it tells you why it picked that one."
 
 ### 5. Routines + heads-up (1:30–1:55)
 
