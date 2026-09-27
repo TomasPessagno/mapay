@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import {
   IonList, IonItem, IonLabel, IonToggle,
-  IonButton, IonIcon, IonModal, IonSpinner
+  IonButton, IonIcon, IonModal, IonSpinner, IonToast
 } from '@ionic/react';
 import { add } from 'ionicons/icons';
 import { api } from '../lib/api';
 import type { Routine, Place } from '../lib/types';
+import { refreshHeadsUps } from '../headsup/refresh';
+import { headsUpToast } from '../headsup/schedule';
 import RoutineEditor from './RoutineEditor';
 
 export default function RoutinesTab() {
@@ -14,6 +16,7 @@ export default function RoutinesTab() {
   const [loading, setLoading] = useState(true);
   const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
 
   const loadData = async () => {
     try {
@@ -42,11 +45,20 @@ export default function RoutinesTab() {
     return p ? p.name : id;
   };
 
+  // After a save, re-run the whole heads-up sync and say when the next heads-up lands (#126).
+  const refreshHeadsUp = async (routineId: string) => {
+    const { next } = await refreshHeadsUps({ routineId });
+    if (!next) return;
+    const message = headsUpToast(next.leg, next.plan);
+    if (message) setToast(message);
+  };
+
   const toggleRoutine = async (routine: Routine, active: boolean) => {
     const updated = { ...routine, active };
     setRoutines(prev => prev.map(r => r._id === routine._id ? updated : r));
     try {
-      await api.saveRoutine(updated);
+      const saved = await api.saveRoutine(updated);
+      await refreshHeadsUp(saved._id);
     } catch (err) {
       console.error(err);
       // revert on fail
@@ -82,7 +94,8 @@ export default function RoutinesTab() {
     }
     
     try {
-      await api.saveRoutine(routine);
+      const saved = await api.saveRoutine(routine);
+      await refreshHeadsUp(saved._id);
     } catch (err) {
       console.error(err);
       loadData();
@@ -188,6 +201,14 @@ export default function RoutinesTab() {
           />
         )}
       </IonModal>
+
+      <IonToast
+        isOpen={toast !== null}
+        message={toast ?? ''}
+        duration={3000}
+        position="top"
+        onDidDismiss={() => setToast(null)}
+      />
     </div>
   );
 }
