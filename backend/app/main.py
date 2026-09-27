@@ -9,7 +9,9 @@ from app.routers import (
     alerts,
     internal,
     layers,
+    me,
     neighborhoods,
+    places,
     reports,
     routes,
     routines,
@@ -41,6 +43,8 @@ app.include_router(reports.router)
 app.include_router(routines.router)
 app.include_router(neighborhoods.router)
 app.include_router(internal.router)
+app.include_router(places.router)
+app.include_router(me.router)
 
 
 @app.get("/health")

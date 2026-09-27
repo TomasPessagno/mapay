@@ -18,20 +18,32 @@ class PreRouteTests(unittest.IsolatedAsyncioTestCase):
                        'log_odds': 1.5, 'prior_log_odds': 0, 'evidence': {
                            'a': {'source': 'crowd', 'applied': 1.5}}}
         prior = {**self.hazard, 'log_odds': 0, 'evidence': {}}
-        self.routine = {'_id': 'r', 'days': ['sat'], 'time_window': ['16:00', '18:00'],
-                        'origin': [25, -80], 'destination': [26, -80],
-                        'route_state': {'departure': self.departure, 'route_geojson': self.route,
-                                        'beliefs': {'flood-1': snapshot(prior)}}}
-        self.db = SimpleNamespace(routines=SimpleNamespace(update_one=AsyncMock(return_value=SimpleNamespace(matched_count=1))))
+        self.routine = {'_id': 'r', 'user_id': 'dev', 'tz': 'America/New_York',
+                        'repeat': {'kind': 'custom', 'weekdays': ['sat']},
+                        'legs': [{'from_place': 'p1', 'to_place': 'p2',
+                                  'when': {'kind': 'window', 'start': '16:00', 'end': '18:00'},
+                                  'route_state': {'departure': self.departure, 'route_geojson': self.route,
+                                                  'beliefs': {'flood-1': snapshot(prior)}}}]}
+        places = {'p1': {'_id': 'p1', 'location': {'type': 'Point', 'coordinates': [-80, 25]}},
+                  'p2': {'_id': 'p2', 'location': {'type': 'Point', 'coordinates': [-80, 26]}}}
+        self.db = SimpleNamespace(
+            routines=SimpleNamespace(update_one=AsyncMock(return_value=SimpleNamespace(matched_count=1))),
+            places=SimpleNamespace(find_one=AsyncMock(side_effect=lambda q: places.get(q['_id']))),
+            users=SimpleNamespace(find_one=AsyncMock(return_value={'preferences': {'avoid_tolls': True}})))
 
     async def test_crossing_computes_then_explains(self):
         with patch('app.routing.pre_route.current_hazards', AsyncMock(return_value=[self.hazard])), \
              patch('app.routing.pre_route.weighted_route', AsyncMock(return_value=self.route)) as compute, \
              patch('app.routing.pre_route.explain_recalculation', AsyncMock(return_value='Explanation')) as explain:
-            result = await check_routine(self.db, self.routine, self.departure, self.now)
+            result = await check_routine(self.db, self.routine, 0, self.departure, self.now)
         self.assertTrue(result['recalculated'])
         compute.assert_awaited_once()
         self.assertEqual(compute.await_args.kwargs['depart_at'], self.departure)
+        self.assertEqual(compute.await_args.args[:2], ((25, -80), (26, -80)))  # the leg's places, (lat, lng)
+        self.assertTrue(compute.await_args.kwargs['avoid_tolls'])  # the user's default preferences
+        query, update = self.db.routines.update_one.await_args.args
+        self.assertIn('legs.0.route_state', query)
+        self.assertEqual(list(update['$set']), ['legs.0.route_state'])
         explain.assert_awaited_once()
         self.assertEqual(result['changes'][0]['sources'], ['crowd'])
 
@@ -40,14 +52,14 @@ class PreRouteTests(unittest.IsolatedAsyncioTestCase):
         with patch('app.routing.pre_route.current_hazards', AsyncMock(return_value=[self.hazard])), \
              patch('app.routing.pre_route.weighted_route', AsyncMock()) as compute, \
              patch('app.routing.pre_route.explain_recalculation', AsyncMock()) as explain:
-            result = await check_routine(self.db, self.routine, self.departure, self.now)
+            result = await check_routine(self.db, self.routine, 0, self.departure, self.now)
         self.assertFalse(result['recalculated'])
         compute.assert_not_awaited()
         explain.assert_not_awaited()
 
     async def test_outside_window_does_not_read_beliefs(self):
         with patch('app.routing.pre_route.current_hazards', AsyncMock()) as fetch:
-            result = await check_routine(self.db, self.routine, self.departure, self.now - timedelta(hours=2))
+            result = await check_routine(self.db, self.routine, 0, self.departure, self.now - timedelta(hours=2))
         self.assertEqual(result['reason'], 'outside_pre_route_window')
         fetch.assert_not_awaited()
 

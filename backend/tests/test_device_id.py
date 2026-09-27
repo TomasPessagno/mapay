@@ -88,11 +88,10 @@ def api_app(db, user_id=DEVICE_A, override_user=True):
 
 
 ROUTINE_BODY = {
-    "user_id": DEVICE_B,
-    "origin": [25.0, -80.0],
-    "destination": [26.0, -80.0],
-    "days": ["mon"],
-    "time_window": ["09:00", "10:00"],
+    "user_id": DEVICE_B,  # ignored: the server sets the caller's id
+    "name": "FIU campuses",
+    "repeat": {"kind": "custom", "weekdays": ["mon"]},
+    "legs": [{"from_place": "pl-mmc", "to_place": "pl-bbc", "when": {"kind": "window", "start": "09:00", "end": "10:00"}}],
 }
 
 

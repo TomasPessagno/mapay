@@ -8,10 +8,15 @@ from app.routing.deeplinks import deep_links
 from app.routing.detour import briefing, plan_detour
 from app.routing.engine import route_alternatives
 from app.routing.google_routes import NoRouteFound, RoutesApiError, compute_routes
-from app.routing.pre_route import current_hazards, on_route
+from app.routing.pre_route import current_hazards, leg_endpoints, on_route
 from app.routing.scoring import merge_preferences, rank
 
 router = APIRouter(prefix="/route", tags=["route"])
+
+
+def _close(a, b, tolerance=1e-4) -> bool:
+    """Same point within ~10 m (the app may round place coordinates)."""
+    return abs(a[0] - b[0]) <= tolerance and abs(a[1] - b[1]) <= tolerance
 
 
 def request_overrides(req: RouteRequest) -> dict:
@@ -26,19 +31,26 @@ def request_overrides(req: RouteRequest) -> dict:
 @router.post("", response_model=RouteResponse)
 async def compute_route(req: RouteRequest, x_device_id: str | None = Header(default=None)) -> RouteResponse:
     db = get_db()
+    device_id = (x_device_id or "").strip()
     routine = None
     if req.routine_id:
-        routine = await db.routines.find_one({"_id": req.routine_id})
+        # Saving a route on a routine leg writes to that routine, so it must be the caller's.
+        if not device_id:
+            raise HTTPException(401, "X-Device-Id is required with routine_id")
+        routine = await db.routines.find_one({"_id": req.routine_id, "user_id": device_id})
         if not routine:
             raise HTTPException(404, "Routine not found")
-        if list(req.origin) != list(routine['origin']) or list(req.destination) != list(routine['destination']):
-            raise HTTPException(422, "Route endpoints must match the routine")
+        if req.leg is None or not 0 <= req.leg < len(routine.get("legs", [])):
+            raise HTTPException(422, "routine_id needs the index of one of its legs")
+        try:
+            origin, destination = await leg_endpoints(db, routine, routine["legs"][req.leg])
+        except ValueError as exc:
+            raise HTTPException(422, str(exc)) from exc
+        if not (_close(req.origin, origin) and _close(req.destination, destination)):
+            raise HTTPException(422, "Route endpoints must match the routine leg")
         if req.depart_at is None or req.depart_at.tzinfo is None:
             raise HTTPException(422, "Routine route requires a timezone-aware depart_at")
-        if req.avoid_tolls != routine.get('preferences', {}).get('avoid_tolls', False):
-            raise HTTPException(422, "Route preferences must match the routine")
-    # The device id is optional here: without it the AGENTS.md defaults apply.
-    device_id = (x_device_id or "").strip()
+    # The device id is optional otherwise: without it the AGENTS.md defaults apply.
     user = await db.users.find_one({"_id": device_id}) if device_id else None
     preferences = merge_preferences((user or {}).get("preferences"), (routine or {}).get("preferences"),
                                     request_overrides(req))
@@ -66,9 +78,9 @@ async def compute_route(req: RouteRequest, x_device_id: str | None = Header(defa
         ranked = [{**chosen, "recommended": True}] + [{**alt, "recommended": False} for alt in ranked]
     route = chosen["route_geojson"]
     if req.routine_id:
-        await db.routines.update_one({'_id': req.routine_id}, {'$set': {'route_state': {
-            'departure': req.depart_at, 'computed_at': now, 'route_geojson': route,
-            'beliefs': on_route(route, hazards)}}})
+        await db.routines.update_one({'_id': req.routine_id, 'user_id': device_id}, {'$set': {
+            f'legs.{req.leg}.route_state': {'departure': req.depart_at, 'computed_at': now,
+                                            'route_geojson': route, 'beliefs': on_route(route, hazards)}}})
     return RouteResponse(
         depart_at=req.depart_at,
         route_geojson=route,
