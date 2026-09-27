@@ -1,0 +1,1 @@
+{"displayFieldName":"FLD_AR_ID","fieldAliases":{"FLD_ZONE":"FLD_ZONE","ZONE_SUBTY":"ZONE_SUBTY"},"fields":[{"name":"FLD_ZONE","type":"esriFieldTypeString","alias":"FLD_ZONE","length":17},{"name":"ZONE_SUBTY","type":"esriFieldTypeString","alias":"ZONE_SUBTY","length":76}],"features":[{"attributes":{"FLD_ZONE":"AE","ZONE_SUBTY":null}}]}

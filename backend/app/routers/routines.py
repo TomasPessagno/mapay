@@ -2,13 +2,13 @@ from datetime import datetime, timezone
 from typing import Annotated
 from uuid import uuid4
 
-import networkx as nx
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
 from app.db.models import Routine
 from app.db.mongo import get_db
 from app.deps import current_user
+from app.routing.google_routes import NoRouteFound, RoutesApiError
 from app.routing.pre_route import check_routine
 
 router = APIRouter(prefix="/routines", tags=["routines"])
@@ -33,21 +33,20 @@ async def create_routine(routine: Routine, user: Annotated[dict, Depends(current
 
 
 @router.post("/{routine_id}/pre-route-check")
-async def pre_route_check(routine_id: str, check: PreRouteCheck, request: Request,
+async def pre_route_check(routine_id: str, check: PreRouteCheck,
                           user: Annotated[dict, Depends(current_user)]):
     db = get_db()
     routine = await db.routines.find_one({"_id": routine_id, "user_id": user["_id"]})
     if routine is None:
         raise HTTPException(404, "Routine not found")
     try:
-        return await check_routine(db, routine, check.departure, datetime.now(timezone.utc),
-                                   getattr(request.app.state, "graph", None))
+        return await check_routine(db, routine, check.departure, datetime.now(timezone.utc))
+    except NoRouteFound as exc:
+        raise HTTPException(422, "No route found") from exc
     except ValueError as exc:
         raise HTTPException(422, str(exc)) from exc
-    except nx.NetworkXNoPath as exc:
-        raise HTTPException(422, "No route found") from exc
-    except RuntimeError as exc:
-        raise HTTPException(503, str(exc)) from exc
+    except RoutesApiError as exc:
+        raise HTTPException(502, str(exc)) from exc
 
 
 @router.delete("/{routine_id}")

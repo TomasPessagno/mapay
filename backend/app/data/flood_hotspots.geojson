@@ -1,1 +1,370 @@
-{ "type": "FeatureCollection", "features": [] }
+{
+  "type": "FeatureCollection",
+  "attribution": "Locations \u00a9 OpenStreetMap contributors (ODbL); flood zones from FEMA NFHL",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.17844,
+          25.85199
+        ]
+      },
+      "properties": {
+        "id": "shorecrest",
+        "name": "Shorecrest",
+        "municipality": "City of Miami",
+        "severity": 3,
+        "fema_zone": "AE",
+        "sources": [
+          {
+            "url": "https://wsvn.com/news/local/miami-dade/the-king-tides-are-coming-heres-when-theyll-be-worst/",
+            "description": "WSVN 7News (Oct 25, 2020): City of Miami temporary pumps for the king tides"
+          }
+        ],
+        "location_source": "Point inside the Shorecrest polygon in data/neighborhoods.geojson; the source names the neighbourhood, not a street"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.18004,
+          25.82455
+        ]
+      },
+      "properties": {
+        "id": "morningside-park",
+        "name": "Morningside Park",
+        "municipality": "City of Miami",
+        "severity": 3,
+        "fema_zone": "AE",
+        "sources": [
+          {
+            "url": "https://wsvn.com/news/local/miami-dade/the-king-tides-are-coming-heres-when-theyll-be-worst/",
+            "description": "WSVN 7News (Oct 25, 2020): City of Miami temporary pumps for the king tides"
+          }
+        ],
+        "location_source": "OSM: Morningside Park"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.18974,
+          25.76185
+        ]
+      },
+      "properties": {
+        "id": "brickell-bay-dr-se-12th-st",
+        "name": "Brickell Bay Dr & SE 12th St",
+        "municipality": "City of Miami",
+        "severity": 3,
+        "fema_zone": "AE",
+        "sources": [
+          {
+            "url": "https://wsvn.com/news/local/miami-dade/the-king-tides-are-coming-heres-when-theyll-be-worst/",
+            "description": "WSVN 7News (Oct 25, 2020): City of Miami temporary pumps for the king tides"
+          },
+          {
+            "url": "https://courses.ems.psu.edu/earth103/node/1185",
+            "description": "Penn State EARTH 103: photo of Oct 17, 2016 king-tide flooding at Brickell Bay Dr and 12th St"
+          }
+        ],
+        "location_source": "OSM intersection"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.2207,
+          25.73963
+        ]
+      },
+      "properties": {
+        "id": "fairview-st",
+        "name": "Fairview St",
+        "municipality": "City of Miami",
+        "severity": 3,
+        "fema_zone": "AE",
+        "sources": [
+          {
+            "url": "https://wsvn.com/news/local/miami-dade/the-king-tides-are-coming-heres-when-theyll-be-worst/",
+            "description": "WSVN 7News (Oct 25, 2020): City of Miami temporary pumps for the king tides"
+          }
+        ],
+        "location_source": "OSM: East Fairview Street"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.25005,
+          25.71337
+        ]
+      },
+      "properties": {
+        "id": "north-bayhomes-dr",
+        "name": "North Bayhomes Dr",
+        "municipality": "City of Miami",
+        "severity": 3,
+        "fema_zone": "AE",
+        "sources": [
+          {
+            "url": "https://wsvn.com/news/local/miami-dade/the-king-tides-are-coming-heres-when-theyll-be-worst/",
+            "description": "WSVN 7News (Oct 25, 2020): City of Miami temporary pumps for the king tides"
+          }
+        ],
+        "location_source": "OSM: North Bayhomes Drive"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.13694,
+          25.76907
+        ]
+      },
+      "properties": {
+        "id": "commerce-st-alton-rd",
+        "name": "Commerce St & Alton Rd",
+        "municipality": "Miami Beach",
+        "severity": 3,
+        "fema_zone": "AE",
+        "sources": [
+          {
+            "url": "https://wsvn.com/news/local/miami-dade/the-king-tides-are-coming-heres-when-theyll-be-worst/",
+            "description": "WSVN 7News (Oct 25, 2020): City of Miami Beach temporary pumps for the king tides"
+          }
+        ],
+        "location_source": "OSM: west end of Commerce Street"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.14205,
+          25.77814
+        ]
+      },
+      "properties": {
+        "id": "8th-st-west-ave",
+        "name": "8th St & West Ave",
+        "municipality": "Miami Beach",
+        "severity": 3,
+        "fema_zone": "AE",
+        "sources": [
+          {
+            "url": "https://wsvn.com/news/local/miami-dade/the-king-tides-are-coming-heres-when-theyll-be-worst/",
+            "description": "WSVN 7News (Oct 25, 2020): City of Miami Beach temporary pumps for the king tides"
+          }
+        ],
+        "location_source": "OSM intersection"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.13778,
+          25.79484
+        ]
+      },
+      "properties": {
+        "id": "19th-st-jefferson-ave",
+        "name": "19th St & Jefferson Ave",
+        "municipality": "Miami Beach",
+        "severity": 3,
+        "fema_zone": "AE",
+        "sources": [
+          {
+            "url": "https://wsvn.com/news/local/miami-dade/the-king-tides-are-coming-heres-when-theyll-be-worst/",
+            "description": "WSVN 7News (Oct 25, 2020): City of Miami Beach temporary pumps for the king tides"
+          }
+        ],
+        "location_source": "OSM intersection"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.13075,
+          25.81738
+        ]
+      },
+      "properties": {
+        "id": "muss-park",
+        "name": "Muss Park",
+        "municipality": "Miami Beach",
+        "severity": 3,
+        "fema_zone": "AE",
+        "sources": [
+          {
+            "url": "https://wsvn.com/news/local/miami-dade/the-king-tides-are-coming-heres-when-theyll-be-worst/",
+            "description": "WSVN 7News (Oct 25, 2020): City of Miami Beach temporary pumps for the king tides (spelled 'Muse Park' in the article)"
+          }
+        ],
+        "location_source": "OSM: Muss Park"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.13032,
+          25.83469
+        ]
+      },
+      "properties": {
+        "id": "w-56th-st-north-bay-rd",
+        "name": "W 56th St & North Bay Rd",
+        "municipality": "Miami Beach",
+        "severity": 3,
+        "fema_zone": "AE",
+        "sources": [
+          {
+            "url": "https://wsvn.com/news/local/miami-dade/the-king-tides-are-coming-heres-when-theyll-be-worst/",
+            "description": "WSVN 7News (Oct 25, 2020): City of Miami Beach temporary pumps for the king tides"
+          }
+        ],
+        "location_source": "OSM intersection"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.13194,
+          25.84033
+        ]
+      },
+      "properties": {
+        "id": "w-59th-st-north-bay-rd",
+        "name": "W 59th St & North Bay Rd",
+        "municipality": "Miami Beach",
+        "severity": 3,
+        "fema_zone": "AE",
+        "sources": [
+          {
+            "url": "https://wsvn.com/news/local/miami-dade/the-king-tides-are-coming-heres-when-theyll-be-worst/",
+            "description": "WSVN 7News (Oct 25, 2020): City of Miami Beach temporary pumps for the king tides"
+          }
+        ],
+        "location_source": "OSM intersection"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.13325,
+          25.85594
+        ]
+      },
+      "properties": {
+        "id": "rue-notre-dame-marseille-dr",
+        "name": "Rue Notre Dame & Marseille Dr",
+        "municipality": "Miami Beach",
+        "severity": 3,
+        "fema_zone": "AE",
+        "sources": [
+          {
+            "url": "https://wsvn.com/news/local/miami-dade/the-king-tides-are-coming-heres-when-theyll-be-worst/",
+            "description": "WSVN 7News (Oct 25, 2020): City of Miami Beach temporary pumps for the king tides"
+          }
+        ],
+        "location_source": "OSM intersection"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.12634,
+          25.80544
+        ]
+      },
+      "properties": {
+        "id": "29th-st-indian-creek-dr",
+        "name": "29th St & Indian Creek Dr",
+        "municipality": "Miami Beach",
+        "severity": 3,
+        "fema_zone": "AE",
+        "sources": [
+          {
+            "url": "https://wsvn.com/news/local/miami-dade/the-king-tides-are-coming-heres-when-theyll-be-worst/",
+            "description": "WSVN 7News (Oct 25, 2020): City of Miami Beach temporary pumps for the king tides"
+          }
+        ],
+        "location_source": "OSM intersection"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.12398,
+          25.81328
+        ]
+      },
+      "properties": {
+        "id": "indian-creek-dr-41st-st",
+        "name": "Indian Creek Dr & 41st St",
+        "municipality": "Miami Beach",
+        "severity": 4,
+        "fema_zone": "AE",
+        "sources": [
+          {
+            "url": "https://www.cbsnews.com/miami/news/high-tides-flood-low-lying-miami-beach-road/",
+            "description": "CBS News Miami (Oct 9, 2015): southbound Indian Creek at 41st Street closed after the high tide made it impassable"
+          }
+        ],
+        "location_source": "OSM intersection"
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          -80.15279,
+          25.70807
+        ]
+      },
+      "properties": {
+        "id": "crandon-beach",
+        "name": "Crandon Park beach road",
+        "municipality": "Key Biscayne",
+        "severity": 2,
+        "fema_zone": "AE",
+        "sources": [
+          {
+            "url": "https://www.cbsnews.com/miami/news/king-tides-causing-flood-of-trouble/",
+            "description": "CBS News Miami (Oct 17, 2016): at Crandon Beach water inundated the beach area and lapped against the road"
+          }
+        ],
+        "location_source": "OSM: Crandon Beach"
+      }
+    }
+  ]
+}

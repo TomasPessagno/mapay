@@ -3,10 +3,8 @@ from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
-import networkx as nx
-
 from app.routing.beliefs import snapshot
-from app.routing.engine import weighted_route
+from app.routing.engine import pick_route
 from app.routing.pre_route import check_routine
 
 
@@ -28,37 +26,38 @@ class PreRouteTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_crossing_computes_then_explains(self):
         with patch('app.routing.pre_route.current_hazards', AsyncMock(return_value=[self.hazard])), \
-             patch('app.routing.pre_route.weighted_route', return_value=self.route) as compute, \
+             patch('app.routing.pre_route.weighted_route', AsyncMock(return_value=self.route)) as compute, \
              patch('app.routing.pre_route.explain_recalculation', AsyncMock(return_value='Explanation')) as explain:
-            result = await check_routine(self.db, self.routine, self.departure, self.now, object())
+            result = await check_routine(self.db, self.routine, self.departure, self.now)
         self.assertTrue(result['recalculated'])
-        compute.assert_called_once()
+        compute.assert_awaited_once()
+        self.assertEqual(compute.await_args.kwargs['depart_at'], self.departure)
         explain.assert_awaited_once()
         self.assertEqual(result['changes'][0]['sources'], ['crowd'])
 
     async def test_no_crossing_does_not_compute_or_call_llm(self):
         self.hazard['log_odds'] = 0.9
         with patch('app.routing.pre_route.current_hazards', AsyncMock(return_value=[self.hazard])), \
-             patch('app.routing.pre_route.weighted_route') as compute, \
+             patch('app.routing.pre_route.weighted_route', AsyncMock()) as compute, \
              patch('app.routing.pre_route.explain_recalculation', AsyncMock()) as explain:
-            result = await check_routine(self.db, self.routine, self.departure, self.now, None)
+            result = await check_routine(self.db, self.routine, self.departure, self.now)
         self.assertFalse(result['recalculated'])
-        compute.assert_not_called()
+        compute.assert_not_awaited()
         explain.assert_not_awaited()
 
     async def test_outside_window_does_not_read_beliefs(self):
         with patch('app.routing.pre_route.current_hazards', AsyncMock()) as fetch:
-            result = await check_routine(self.db, self.routine, self.departure, self.now - timedelta(hours=2), None)
+            result = await check_routine(self.db, self.routine, self.departure, self.now - timedelta(hours=2))
         self.assertEqual(result['reason'], 'outside_pre_route_window')
         fetch.assert_not_awaited()
 
-    def test_hazard_changes_selected_path(self):
-        graph = nx.MultiDiGraph()
-        for n, x, y in [('a', 0, 0), ('b', 1, 0), ('c', 1, 1), ('d', 2, 0)]:
-            graph.add_node(n, x=x, y=y)
-        for u, v, cost in [('a', 'b', 1), ('b', 'd', 1), ('a', 'c', 2), ('c', 'd', 2)]:
-            graph.add_edge(u, v, travel_time=cost)
+    def test_hazard_changes_selected_route(self):
+        def alt(coords, duration):
+            return {'duration_s': duration, 'route_geojson': {'type': 'FeatureCollection', 'features': [
+                {'type': 'Feature', 'geometry': {'type': 'LineString', 'coordinates': coords}, 'properties': {}}]}}
+        fast = alt([[0, 0], [1, 0], [2, 0]], 100)
+        slow = alt([[0, 0], [1, 1], [2, 0]], 200)
         hazard = {'geometry': {'type': 'Point', 'coordinates': [1, 0]}, 'log_odds': 1.5}
-        baseline = weighted_route(graph, (0, 0), (0, 2))
-        detour = weighted_route(graph, (0, 0), (0, 2), [hazard])
-        self.assertNotEqual(baseline, detour)
+        self.assertIs(pick_route([fast, slow]), fast)
+        self.assertIs(pick_route([fast, slow], [hazard]), slow)
+        self.assertIs(pick_route([fast, slow], [{**hazard, 'log_odds': 0.9}]), fast)
