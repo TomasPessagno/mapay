@@ -120,7 +120,7 @@ const NotificationsRow: React.FC = () => {
 
 const PreferencesPage: React.FC = () => {
   return (
-    <IonPage>
+    <IonPage className="preferences-page">
       <IonHeader translucent={true} className="ion-no-border">
         <IonToolbar className="glass">
           <IonTitle>Preferences</IonTitle>

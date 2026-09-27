@@ -142,6 +142,7 @@ const CustomizeSheet: React.FC<CustomizeSheetProps> = ({ isOpen, onClose, routin
 
   return (
     <IonModal
+      className="desktop-sidebar-sheet customize-route-sheet"
       ref={modal}
       isOpen={isOpen}
       onWillPresent={handleOpen}

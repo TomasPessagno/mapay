@@ -131,6 +131,7 @@ export default function HazardSheet({ isOpen, hazard, onDidDismiss }: HazardShee
 
   return (
     <IonModal
+      className="desktop-sidebar-sheet hazard-detail-sheet"
       isOpen={isOpen}
       onDidDismiss={onDidDismiss}
       initialBreakpoint={0.5}
