@@ -18,11 +18,26 @@ MOCK = Path(__file__).resolve().parents[2] / "frontend" / "public" / "mocks" / "
 
 
 class FakeCursor:
-    def __init__(self, docs):
+    """Motor cursor stand-in: supports to_list and async iteration, and honours projections."""
+
+    def __init__(self, docs, projection=None):
         self.docs = docs
+        self.projection = projection or {}
+
+    def _project(self, doc):
+        if not self.projection:
+            return doc
+        return {key: value for key, value in doc.items() if self.projection.get(key, 1)}
 
     async def to_list(self, length=None):
-        return list(self.docs)
+        return [self._project(doc) for doc in self.docs]
+
+    async def _iterate(self):
+        for doc in self.docs:
+            yield self._project(doc)
+
+    def __aiter__(self):
+        return self._iterate()
 
 
 class FakeIntelCache:
@@ -40,9 +55,9 @@ class FakeIntelCache:
                 return False
         return True
 
-    def find(self, query):
+    def find(self, query, projection=None):
         self.queries.append(query)
-        return FakeCursor([d for d in self.docs if self._matches(d, query)])
+        return FakeCursor([d for d in self.docs if self._matches(d, query)], projection)
 
 
 class FakeDb:
@@ -193,7 +208,7 @@ class LayersTests(unittest.TestCase):
 
 
 class SnapshotTests(unittest.TestCase):
-    """A26: near-now requests are served from one in-process snapshot, without touching Mongo."""
+    """A27: near-now requests are served from one snapshot of pre-encoded feature bytes."""
 
     def setUp(self):
         app = FastAPI()
@@ -221,6 +236,16 @@ class SnapshotTests(unittest.TestCase):
     def ids(body, key):
         return [f["properties"]["hazard_id"] for f in body[key]["features"]]
 
+    def snapshot_ids(self, key):
+        body = json.loads(layers._render(datetime.now(timezone.utc), layers._snapshot.features,
+                                         layers._snapshot.freshness))
+        return self.ids(body, key)
+
+    def test_first_request_builds_inline(self):
+        self.assertIsNone(layers._snapshot)
+        self.get(FakeDb(self.seeded_now()))
+        self.assertIsNotNone(layers._snapshot)
+
     def test_snapshot_is_reused_across_requests(self):
         db = FakeDb(self.seeded_now())
         first = self.get(db)
@@ -228,6 +253,25 @@ class SnapshotTests(unittest.TestCase):
         second = self.get(db)
         self.assertEqual(db.evidence_queries, 1)  # second request never reached Mongo
         self.assertEqual(self.ids(first.json(), "flood"), self.ids(second.json(), "flood"))
+
+    def test_snapshot_stores_encoded_bytes_with_bounds(self):
+        self.get(FakeDb(self.seeded_now()))
+        encoded, bounds = layers._snapshot.features["flood"][0]
+        self.assertIsInstance(encoded, bytes)
+        self.assertEqual(bounds, (-80.19, 25.76, -80.19, 25.76))
+        feature = json.loads(encoded)
+        self.assertEqual(feature["type"], "Feature")
+        self.assertEqual(set(feature), {"type", "geometry", "properties"})
+
+    def test_ttl_rebuilds_inline_without_an_ingest(self):
+        db = FakeDb(self.seeded_now())
+        self.get(db)
+        old = layers._snapshot
+        old.built_monotonic -= layers.SNAPSHOT_TTL_SECONDS + 1
+        added = belief("flood:new", "flood", point(-80.18, 25.76), 0.9, updated=datetime.now(timezone.utc))
+        served = self.get(FakeDb(self.seeded_now() + [added])).json()
+        self.assertIsNot(layers._snapshot, old)  # rebuilt inside the request
+        self.assertIn("flood:new", self.ids(served, "flood"))
 
     def test_snapshot_bbox_filter(self):
         db = FakeDb(self.seeded_now())
@@ -239,33 +283,6 @@ class SnapshotTests(unittest.TestCase):
         self.assertEqual(self.ids(boxed, "closure"), ["here:closure"])
         self.assertEqual(self.ids(boxed, "weather"), [])
         self.assertNotIn("flood:far", self.ids(boxed, "flood"))
-
-    def wait_for_rebuild(self, previous, timeout=5.0):
-        deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline:
-            current = layers._snapshot
-            if current is not None and current is not previous:
-                return
-            time.sleep(0.01)
-        self.fail("the background rebuild never replaced the snapshot")
-
-    def test_invalidation_keeps_serving_until_the_rebuild_lands(self):
-        old_db = FakeDb(self.seeded_now())
-        self.get(old_db)
-        old_snapshot = layers._snapshot
-        self.assertIsNotNone(old_snapshot)
-
-        # Ingest writes a new hazard; invalidation marks the snapshot stale but leaves it serving.
-        added = belief("flood:new", "flood", point(-80.18, 25.76), 0.9, updated=datetime.now(timezone.utc))
-        new_db = FakeDb(self.seeded_now() + [added])
-        layers.invalidate_snapshot(new_db)
-
-        served = self.get(new_db).json()
-        self.assertNotIn("flood:new", self.ids(served, "flood"))  # old snapshot, no rebuild wait
-
-        self.wait_for_rebuild(old_snapshot)
-        updated = self.get(new_db).json()
-        self.assertIn("flood:new", self.ids(updated, "flood"))
 
     def test_far_t_keeps_the_slow_path(self):
         db = FakeDb(self.seeded_now())
@@ -281,34 +298,103 @@ class SnapshotTests(unittest.TestCase):
         self.assertEqual(response.headers["cache-control"], "public, max-age=60")
 
 
-class RebuildRetryTests(unittest.TestCase):
-    """A build discarded by an ingest mid-flight must start over instead of vanishing."""
+class RefreshTests(unittest.TestCase):
+    """A27: ingest refreshes the snapshot inline, and only when a belief changed."""
 
-    def test_discarded_rebuild_starts_another(self):
-        async def scenario():
-            layers.clear_snapshot()
-            generation = layers._generation
-            started, release = asyncio.Event(), asyncio.Event()
-            databases = []
+    def setUp(self):
+        layers.clear_snapshot()
 
-            async def fake_collect(db, t):
-                databases.append(db)
-                if len(databases) == 1:
-                    started.set()
-                    await release.wait()
-                return {"flood": []}, {}
+    def seeded_now(self):
+        moment = datetime.now(timezone.utc)
+        return [
+            belief("flood:near", "flood", point(-80.19, 25.76), 0.8, updated=moment),
+            belief("here:closure", "closure", point(-80.20, 25.77), 0.9, updated=moment),
+        ]
 
-            with patch.object(layers, "collect_features", fake_collect):
-                task = asyncio.get_running_loop().create_task(layers._rebuild("db", generation))
-                await started.wait()
-                layers.invalidate_snapshot()  # ingest lands while the first build is running
-                release.set()
-                await task
-                self.assertEqual(databases, ["db", "db"])  # discarded build started a retry
-                await layers._rebuild_task
-            self.assertIsNotNone(layers._snapshot)
+    def build(self, db):
+        return asyncio.run(layers.get_snapshot(db))
 
-        asyncio.run(scenario())
+    def test_no_snapshot_is_built_inline(self):
+        db = FakeDb(self.seeded_now())
+        self.assertTrue(asyncio.run(layers.refresh_snapshot_if_changed(db)))
+        self.assertIsNotNone(layers._snapshot)
+
+    def test_unchanged_hazards_keep_the_snapshot(self):
+        db = FakeDb(self.seeded_now())
+        self.build(db)
+        before = layers._snapshot
+        self.assertFalse(asyncio.run(layers.refresh_snapshot_if_changed(db)))
+        self.assertIs(before, layers._snapshot)  # not replaced by a new snapshot
+
+    def test_unchanged_ingest_resets_the_snapshot_age(self):
+        db = FakeDb(self.seeded_now())
+        self.build(db)
+        snapshot = layers._snapshot
+        snapshot.built_monotonic = time.monotonic() - layers.SNAPSHOT_TTL_SECONDS + 1  # about to expire
+        self.assertFalse(asyncio.run(layers.refresh_snapshot_if_changed(db)))
+        self.assertIs(snapshot, layers._snapshot)
+        # The ingest request verified the content: the next /layers request must not rebuild.
+        self.assertLess(time.monotonic() - snapshot.built_monotonic, 1.0)
+        self.assertIs(asyncio.run(layers.get_snapshot(db)), snapshot)
+
+    def test_re_registered_last_updated_alone_keeps_the_snapshot(self):
+        base = self.seeded_now()
+        self.build(FakeDb(base))
+        before = layers._snapshot
+        bumped = FakeDb([dict(doc, last_updated=datetime.now(timezone.utc)) for doc in base])
+        self.assertFalse(asyncio.run(layers.refresh_snapshot_if_changed(bumped)))
+        self.assertIs(before, layers._snapshot)
+
+    def test_changed_belief_rebuilds_inside_the_call(self):
+        base = self.seeded_now()
+        self.build(FakeDb(base))
+        before = layers._snapshot
+        added = belief("flood:new", "flood", point(-80.18, 25.76), 0.9, updated=datetime.now(timezone.utc))
+        changed = FakeDb(base + [added])
+        self.assertTrue(asyncio.run(layers.refresh_snapshot_if_changed(changed)))
+        self.assertIsNot(before, layers._snapshot)  # already rebuilt when the call returned
+        self.assertEqual(layers._snapshot.count, 3)
+
+    def test_changed_evidence_rebuilds(self):
+        base = self.seeded_now()
+        self.build(FakeDb(base))
+        before = layers._snapshot
+        evidence = {"_id": "evidence:news:x", "type": "news", "hazard_id": "flood:near",
+                    "title": "NBC6: street flooding", "created_at": datetime.now(timezone.utc),
+                    "expires_at": datetime.now(timezone.utc) + timedelta(hours=3)}
+        self.assertTrue(asyncio.run(layers.refresh_snapshot_if_changed(FakeDb(base + [evidence]))))
+        self.assertIsNot(before, layers._snapshot)
+
+
+class FingerprintTests(unittest.TestCase):
+    """The fingerprint ignores write timestamps but notices any content change or removal."""
+
+    @staticmethod
+    def fingerprint(docs):
+        return asyncio.run(layers.hazards_fingerprint(FakeDb(docs)))
+
+    def test_last_updated_alone_does_not_change_it(self):
+        docs = seeded()
+        bumped = [{**doc, "last_updated": doc["last_updated"] + timedelta(hours=1)}
+                  if "last_updated" in doc else dict(doc) for doc in docs]
+        self.assertEqual(self.fingerprint(docs), self.fingerprint(bumped))
+
+    def test_content_change_does_change_it(self):
+        docs = seeded()
+        base = self.fingerprint(docs)
+        changed_belief = [dict(doc) for doc in docs]
+        changed_belief[0]["log_odds"] += 0.5
+        changed_properties = [dict(doc) for doc in docs]
+        changed_properties[2]["properties"] = {**changed_properties[2]["properties"],
+                                              "end_time": "2026-09-29T00:00:00Z"}
+        removed = [doc for doc in docs if doc["_id"] != "belief:here:1"]
+        changed_evidence = [*docs[:-1], {**docs[-1], "title": "NBC6: crash on I-95 (updated)"}]
+        for changed in (changed_belief, changed_properties, removed, changed_evidence):
+            self.assertNotEqual(base, self.fingerprint(changed))
+
+    def test_document_order_does_not_change_it(self):
+        docs = seeded()
+        self.assertEqual(self.fingerprint(docs), self.fingerprint(list(reversed(docs))))
 
 
 class PayloadTests(unittest.TestCase):
@@ -321,6 +407,18 @@ class PayloadTests(unittest.TestCase):
         self.assertTrue(all(len(str(c).split(".")[-1]) <= 5 for pt in slim["coordinates"] for c in pt))
         point = layers.slim_geometry({"type": "Point", "coordinates": [-80.1897374, 25.7618462]})
         self.assertEqual(point, {"type": "Point", "coordinates": [-80.18974, 25.76185]})
+
+    def test_render_is_bytes_and_parses_like_the_old_payload(self):
+        features = {"flood": [((b'{"type":"Feature","geometry":{"type":"Point","coordinates":[-80.19,25.76]},'
+                               b'"properties":{"hazard_id":"flood:x"}}'), (-80.19, 25.76, -80.19, 25.76))]}
+        body = layers._render(NOW, features, {"tides": NOW})
+        self.assertIsInstance(body, bytes)
+        parsed = json.loads(body)
+        self.assertEqual(parsed["t"], NOW.isoformat())
+        self.assertEqual(parsed["freshness"], {"tides": NOW.isoformat()})
+        self.assertEqual(parsed["radar"], layers.RADAR_OVERLAY)
+        self.assertEqual(parsed["flood"]["features"][0]["properties"]["hazard_id"], "flood:x")
+        self.assertEqual(parsed["weather"], {"type": "FeatureCollection", "features": []})
 
     def test_responses_are_gzipped(self):
         import importlib
