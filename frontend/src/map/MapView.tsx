@@ -121,17 +121,48 @@ function MapLayers({ departAt, routeResponse, selectedRouteIndex, layersToggled 
   const map = useMap();
   const routeLayersRef = useRef<google.maps.Data[]>([]);
 
+  // Fetch only the visible area (padded) whenever the map settles, and skip the request while the
+  // view stays inside the last area fetched. Rounded so nearby views share the backend's 60 s cache.
   useEffect(() => {
     if (!map) return;
-    
-    // Fetch layers and draw them
-    api.layers(departAt).then((layersResponse) => {
-      Object.entries(layersResponse).forEach(([id, data]) => {
-        if (id !== 't' && id !== 'freshness' && id !== 'radar') {
-          upsertGeoJsonLayer(map, id, data as unknown as GeoJSON.FeatureCollection);
-        }
-      });
-    }).catch(err => console.error("Failed to load layers", err));
+    let fetched: [number, number, number, number] | null = null;
+    let fetchedZoom = 0;
+    let request = 0;
+
+    const load = () => {
+      const bounds = map.getBounds();
+      if (!bounds) return;
+      const ne = bounds.getNorthEast();
+      const sw = bounds.getSouthWest();
+      const view: [number, number, number, number] = [sw.lng(), sw.lat(), ne.lng(), ne.lat()];
+      const zoom = map.getZoom() ?? 0;
+      const inside = fetched && view[0] >= fetched[0] && view[1] >= fetched[1] && view[2] <= fetched[2] && view[3] <= fetched[3];
+      // Zooming in 2+ levels refetches a smaller area, so crowded layers can get their icons back.
+      if (inside && zoom - fetchedZoom < 2) return;
+
+      const padX = (view[2] - view[0]) * 0.25;
+      const padY = (view[3] - view[1]) * 0.25;
+      const round = (v: number, up: boolean) => (up ? Math.ceil(v * 100) : Math.floor(v * 100)) / 100;
+      const bbox: [number, number, number, number] = [
+        round(view[0] - padX, false), round(view[1] - padY, false),
+        round(view[2] + padX, true), round(view[3] + padY, true),
+      ];
+      const id = ++request;
+      api.layers(departAt, bbox).then((layersResponse) => {
+        if (id !== request) return; // a newer view won
+        fetched = bbox;
+        fetchedZoom = zoom;
+        Object.entries(layersResponse).forEach(([layerId, data]) => {
+          if (layerId !== 't' && layerId !== 'freshness' && layerId !== 'radar') {
+            upsertGeoJsonLayer(map, layerId, data as unknown as GeoJSON.FeatureCollection);
+          }
+        });
+      }).catch(err => console.error("Failed to load layers", err));
+    };
+
+    const listener = map.addListener('idle', load);
+    load();
+    return () => listener.remove();
   }, [map, departAt]);
 
   useEffect(() => {
