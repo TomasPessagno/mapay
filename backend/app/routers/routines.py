@@ -4,14 +4,17 @@ from datetime import datetime, timezone
 from typing import Annotated
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
+from app.briefings.builder import build_items
 from app.db.models import Routine
 from app.db.mongo import get_db
 from app.deps import current_user
+from app.routing.beliefs import utc
 from app.routing.google_routes import NoRouteFound, RoutesApiError
-from app.routing.pre_route import check_routine
+from app.routing.pre_route import check_routine, current_hazards
+from app.scheduling.occurrences import upcoming
 
 router = APIRouter(prefix="/routines", tags=["routines"])
 
@@ -69,6 +72,27 @@ async def save_routine(routine: Routine, user: Annotated[dict, Depends(current_u
     return await _save(routine, user)
 
 
+@router.get("/upcoming")
+async def upcoming_legs(user: Annotated[dict, Depends(current_user)],
+                        days: Annotated[int, Query(ge=0, le=14, description="0 = today only")] = 7,
+                        compact: Annotated[bool, Query(description="Widget mode: fewer hazards, no image")] = False,
+                        limit: Annotated[int | None, Query(ge=1, le=100)] = None):
+    """Next leg occurrences, soonest first (routines-upcoming.json). The app schedules its
+    notifications from this; the widget calls it with ?compact=1&limit=3."""
+    db = get_db()
+    now = datetime.now(timezone.utc)
+    docs = await db.routines.find({"user_id": user["_id"]}).to_list(length=100)
+    routines = {doc["_id"]: doc for doc in docs}
+    overrides = await db.demo_overrides.find({"user_id": user["_id"]}).to_list(length=20)
+    overrides = [o for o in overrides if utc(o["expires_at"]) > now]
+    occurrences = upcoming(docs, overrides, now, days)
+    if limit:
+        occurrences = occurrences[:limit]
+    hazards = await current_hazards(db, now) if occurrences else []
+    items = await build_items(db, occurrences, routines, user, hazards, compact)
+    return {"generated_at": now.astimezone(timezone.utc).isoformat(), "items": items}
+
+
 @router.get("/{routine_id}")
 async def get_routine(routine_id: str, user: Annotated[dict, Depends(current_user)]):
     doc = await get_db().routines.find_one({"_id": routine_id, "user_id": user["_id"]})
@@ -91,8 +115,12 @@ async def pre_route_check(routine_id: str, check: PreRouteCheck,
     routine = await db.routines.find_one({"_id": routine_id, "user_id": user["_id"]})
     if routine is None:
         raise HTTPException(404, "Routine not found")
+    # A "fire heads-up now" departure isn't on the leg's schedule; accept it while the override lives.
+    demo = await db.demo_overrides.find_one({"routine_id": routine_id, "leg": check.leg, "user_id": user["_id"]})
+    is_demo = bool(demo and check.departure.tzinfo and utc(demo["departure_at"]) == utc(check.departure))
     try:
-        return await check_routine(db, routine, check.leg, check.departure, datetime.now(timezone.utc))
+        return await check_routine(db, routine, check.leg, check.departure, datetime.now(timezone.utc),
+                                   demo=is_demo)
     except NoRouteFound as exc:
         raise HTTPException(422, "No route found") from exc
     except ValueError as exc:

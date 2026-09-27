@@ -22,6 +22,8 @@ class Settings(BaseSettings):
     # Local dev only. On Cloud Run leave unset: the attached service account authenticates.
     google_application_credentials: str = ""
     google_maps_api_key: str = ""
+    # Static Maps URL-signing secret (Maps Platform console). Unset = no heads-up images.
+    google_maps_signing_secret: str = ""
     # Laya first pass (issue A24/A16). Off by default; without a URL every article goes to Gemini.
     laya_url: str = ""
     laya_api_key: str = ""
