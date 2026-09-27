@@ -1,5 +1,5 @@
 import React from 'react';
-import { IonCard, IonCardContent, IonButton, IonText, IonChip } from '@ionic/react';
+import { IonCard, IonCardContent, IonButton, IonText, IonChip, IonIcon } from '@ionic/react';
 import type { RouteResponse, RouteOption } from '../lib/types';
 import { openLink } from '../lib/deepLinks';
 import HazardChips from './HazardChips';
