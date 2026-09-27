@@ -43,7 +43,7 @@ export default function ReportFab() {
 
   return (
     <>
-      <IonFab slot="fixed" vertical="top" horizontal="end" style={{ top: '112px', right: '16px' }}>
+      <IonFab slot="fixed" vertical="top" horizontal="end" style={{ top: 'calc(var(--ion-safe-area-top, 0px) + 164px)', right: '16px' }}>
         <IonFabButton 
           aria-label="Report a problem" 
           className="glass" 

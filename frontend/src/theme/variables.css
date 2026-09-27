@@ -108,6 +108,8 @@
 /* The map sheet stops above the tab bar, so the tabs stay visible and tappable. */
 ion-modal.map-sheet {
   bottom: calc(50px + var(--ion-safe-area-bottom, 0px));
+  /* Ionic's sheet wrapper reaches a safe area below the modal; clip it so it can't swallow taps on the tabs. */
+  overflow: hidden;
 }
 
 ion-modal.map-sheet::part(content) {
