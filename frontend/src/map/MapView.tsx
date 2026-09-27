@@ -59,7 +59,7 @@ function MapLayers({ departAt, routeResponse, selectedRouteIndex, layersToggled 
     // Fetch layers and draw them
     api.layers(departAt).then((layersResponse) => {
       Object.entries(layersResponse).forEach(([id, data]) => {
-        if (id !== 't' && id !== 'freshness') {
+        if (id !== 't' && id !== 'freshness' && id !== 'radar') {
           upsertGeoJsonLayer(map, id, data as unknown as GeoJSON.FeatureCollection);
         }
       });

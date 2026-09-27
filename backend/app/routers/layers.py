@@ -18,6 +18,17 @@ router = APIRouter(prefix="/layers", tags=["layers"])
 
 CATEGORIES = ("flood", "weather", "construction", "closure", "congestion", "no_sidewalk", "pothole",
               "incident", "event")
+# NOAA/NWS NEXRAD base-reflectivity composite as an XYZ tile template the map overlays.
+# The Iowa Environmental Mesonet serves it; attribution is required and no API key is needed.
+RADAR_OVERLAY = {
+    "type": "xyz",
+    "url_template": "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png",
+    "attribution": "NOAA/NWS NEXRAD composite via Iowa Environmental Mesonet",
+    "min_zoom": 0,
+    "max_zoom": 12,
+    "tile_size": 256,
+    "opacity": 0.6,
+}
 # Stable id prefix → source key used in `sources[].kind` and `freshness` (longest prefix wins).
 SOURCE_PREFIXES = {
     "incident:news-": "news", "flood:": "tides", "here-flow:": "here", "here:": "here", "nws:": "nws",
@@ -153,7 +164,8 @@ async def build_layers(db, t: datetime, area=None) -> dict:
         kind = "news" if item.get("type") == "news" else item.get("type")
         if created and kind:
             freshness[kind] = max(freshness.get(kind, created), created)
-    return {"t": t.isoformat(), "freshness": {k: v.isoformat() for k, v in sorted(freshness.items())}, **layers}
+    return {"t": t.isoformat(), "freshness": {k: v.isoformat() for k, v in sorted(freshness.items())},
+            "radar": RADAR_OVERLAY, **layers}
 
 
 @router.get("")

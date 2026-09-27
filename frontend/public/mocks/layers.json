@@ -10,6 +10,15 @@
     "city_gis": "2026-09-28T06:00:00-04:00",
     "osm": "2026-09-28T03:00:00-04:00"
   },
+  "radar": {
+    "type": "xyz",
+    "url_template": "https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-900913/{z}/{x}/{y}.png",
+    "attribution": "NOAA/NWS NEXRAD composite via Iowa Environmental Mesonet",
+    "min_zoom": 0,
+    "max_zoom": 12,
+    "tile_size": 256,
+    "opacity": 0.6
+  },
   "flood": {
     "type": "FeatureCollection",
     "features": [

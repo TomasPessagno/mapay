@@ -1,0 +1,19 @@
+{
+  "objectIdFieldName": "ObjectId",
+  "features": [
+    {"attributes": {"ticket_id": "23-10000031", "issue_type": "POTHOLE", "street_address": "13296 SW 8TH ST", "city": "Miami_Dade_County", "latitude": 25.7608, "longitude": -80.371}},
+    {"attributes": {"ticket_id": "23-10000032", "issue_type": "POTHOLE", "street_address": "13310 SW 8TH ST", "city": "Miami_Dade_County", "latitude": 25.761, "longitude": -80.3705}},
+    {"attributes": {"ticket_id": "23-10000033", "issue_type": "POTHOLE", "street_address": "13324 SW 8TH ST", "city": "Miami_Dade_County", "latitude": 25.7612, "longitude": -80.37}},
+    {"attributes": {"ticket_id": "23-10000041", "issue_type": "POTHOLE", "street_address": "700 BISCAYNE BLVD", "city": "Miami_Dade_County", "latitude": 25.79, "longitude": -80.19}},
+    {"attributes": {"ticket_id": "23-10000042", "issue_type": "POTHOLE", "street_address": "720 BISCAYNE BLVD", "city": "Miami_Dade_County", "latitude": 25.7902, "longitude": -80.1901}},
+    {"attributes": {"ticket_id": "23-10000043", "issue_type": "POTHOLE", "street_address": "740 BISCAYNE BLVD", "city": "Miami_Dade_County", "latitude": 25.7904, "longitude": -80.1899}},
+    {"attributes": {"ticket_id": "23-10000044", "issue_type": "POTHOLE", "street_address": "3300 BISCAYNE BLVD", "city": "Miami_Dade_County", "latitude": 25.82, "longitude": -80.19}},
+    {"attributes": {"ticket_id": "23-10000045", "issue_type": "POTHOLE", "street_address": "3320 BISCAYNE BLVD", "city": "Miami_Dade_County", "latitude": 25.8202, "longitude": -80.1901}},
+    {"attributes": {"ticket_id": "23-10000046", "issue_type": "POTHOLE", "street_address": "3340 BISCAYNE BLVD", "city": "Miami_Dade_County", "latitude": 25.8204, "longitude": -80.1899}},
+    {"attributes": {"ticket_id": "23-10000051", "issue_type": "POTHOLE", "street_address": "12257 NW 12TH ST", "city": "Miami_Dade_County", "latitude": 25.782607, "longitude": -80.394996}},
+    {"attributes": {"ticket_id": "23-10000052", "issue_type": "POTHOLE", "street_address": "12263 NW 12TH ST", "city": "Miami_Dade_County", "latitude": 25.7827, "longitude": -80.3948}},
+    {"attributes": {"ticket_id": "23-10000061", "issue_type": "GARBAGE", "street_address": "900 SW 8TH ST", "city": "Miami_Dade_County", "latitude": 25.76, "longitude": -80.372}},
+    {"attributes": {"ticket_id": "23-10000071", "issue_type": "POTHOLE", "street_address": "1 SW 1ST AVE", "city": "Miami_Dade_County", "latitude": null, "longitude": null}},
+    {"attributes": {"ticket_id": "23-10000081", "issue_type": "POTHOLE", "street_address": "31964 SW 192ND AVE", "city": "City_of_Homestead", "latitude": 24.5517, "longitude": -81.8}}
+  ]
+}

@@ -127,8 +127,21 @@ export interface CustomizeResponse {
   route_response: RouteResponse;
 }
 
+export interface RadarOverlay {
+  type: string;
+  url_template: string;
+  attribution: string;
+  min_zoom?: number;
+  max_zoom?: number;
+  tile_size?: number;
+  opacity?: number;
+}
+
 export interface LayersResponse {
-  [layerName: string]: Record<string, unknown>; // GeoJSON FeatureCollections
+  t?: string;
+  freshness?: Record<string, string>;
+  radar?: RadarOverlay;
+  [layerName: string]: unknown; // GeoJSON FeatureCollections keyed by legend category
 }
 
 export type LatLng = [number, number];
