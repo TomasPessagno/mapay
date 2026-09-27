@@ -1,5 +1,7 @@
+import asyncio
 import json
 import re
+import time
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -26,6 +28,7 @@ class FakeCursor:
 class FakeIntelCache:
     def __init__(self, docs):
         self.docs = docs
+        self.queries = []
 
     @staticmethod
     def _matches(doc, query):
@@ -38,12 +41,18 @@ class FakeIntelCache:
         return True
 
     def find(self, query):
+        self.queries.append(query)
         return FakeCursor([d for d in self.docs if self._matches(d, query)])
 
 
 class FakeDb:
     def __init__(self, docs):
         self.intel_cache = FakeIntelCache(docs)
+
+    @property
+    def evidence_queries(self):
+        """How many times the evidence collection was read: the snapshot build does it once."""
+        return sum(1 for q in self.intel_cache.queries if "_id" in q)
 
 
 def point(lng, lat):
@@ -90,6 +99,11 @@ class LayersTests(unittest.TestCase):
         app = FastAPI()
         app.include_router(layers.router)
         self.client = TestClient(app)
+        # These tests pass a fixed far-off `t` and assert exact slow-path numbers; make sure the
+        # wall clock can never put them inside the snapshot window (SnapshotTests covers that path).
+        patcher = patch.object(layers, "SNAPSHOT_FRESH_SECONDS", 0)
+        patcher.start()
+        self.addCleanup(patcher.stop)
 
     def get(self, docs=None, **params):
         params.setdefault("t", NOW.isoformat())
@@ -176,6 +190,125 @@ class LayersTests(unittest.TestCase):
         body = self.get([])
         self.assertEqual(body["freshness"], {})
         self.assertTrue(all(body[k]["features"] == [] for k in layers.CATEGORIES))
+
+
+class SnapshotTests(unittest.TestCase):
+    """A26: near-now requests are served from one in-process snapshot, without touching Mongo."""
+
+    def setUp(self):
+        app = FastAPI()
+        app.include_router(layers.router)
+        self.client = TestClient(app)
+        layers.clear_snapshot()
+
+    @staticmethod
+    def seeded_now():
+        moment = datetime.now(timezone.utc)
+        return [
+            belief("flood:near", "flood", point(-80.19, 25.76), 0.8, updated=moment),
+            belief("flood:far", "flood", point(-81.8, 24.55), 0.8, updated=moment),
+            belief("here:closure", "closure", point(-80.20, 25.77), 0.9, updated=moment),
+        ]
+
+    def get(self, db, **params):
+        params.setdefault("t", datetime.now(timezone.utc).isoformat())
+        with patch("app.routers.layers.get_db", return_value=db):
+            response = self.client.get("/layers", params=params)
+        self.assertEqual(response.status_code, 200, response.text)
+        return response
+
+    @staticmethod
+    def ids(body, key):
+        return [f["properties"]["hazard_id"] for f in body[key]["features"]]
+
+    def test_snapshot_is_reused_across_requests(self):
+        db = FakeDb(self.seeded_now())
+        first = self.get(db)
+        self.assertEqual(db.evidence_queries, 1)  # built once (beliefs + evidence read)
+        second = self.get(db)
+        self.assertEqual(db.evidence_queries, 1)  # second request never reached Mongo
+        self.assertEqual(self.ids(first.json(), "flood"), self.ids(second.json(), "flood"))
+
+    def test_snapshot_bbox_filter(self):
+        db = FakeDb(self.seeded_now())
+        full = self.get(db).json()
+        boxed = self.get(db, bbox="-80.25,25.70,-80.10,25.80").json()
+        self.assertEqual(db.evidence_queries, 1)  # filtering happened in-process
+        self.assertIn("flood:far", self.ids(full, "flood"))
+        self.assertEqual(self.ids(boxed, "flood"), ["flood:near"])
+        self.assertEqual(self.ids(boxed, "closure"), ["here:closure"])
+        self.assertEqual(self.ids(boxed, "weather"), [])
+        self.assertNotIn("flood:far", self.ids(boxed, "flood"))
+
+    def wait_for_rebuild(self, previous, timeout=5.0):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            current = layers._snapshot
+            if current is not None and current is not previous:
+                return
+            time.sleep(0.01)
+        self.fail("the background rebuild never replaced the snapshot")
+
+    def test_invalidation_keeps_serving_until_the_rebuild_lands(self):
+        old_db = FakeDb(self.seeded_now())
+        self.get(old_db)
+        old_snapshot = layers._snapshot
+        self.assertIsNotNone(old_snapshot)
+
+        # Ingest writes a new hazard; invalidation marks the snapshot stale but leaves it serving.
+        added = belief("flood:new", "flood", point(-80.18, 25.76), 0.9, updated=datetime.now(timezone.utc))
+        new_db = FakeDb(self.seeded_now() + [added])
+        layers.invalidate_snapshot(new_db)
+
+        served = self.get(new_db).json()
+        self.assertNotIn("flood:new", self.ids(served, "flood"))  # old snapshot, no rebuild wait
+
+        self.wait_for_rebuild(old_snapshot)
+        updated = self.get(new_db).json()
+        self.assertIn("flood:new", self.ids(updated, "flood"))
+
+    def test_far_t_keeps_the_slow_path(self):
+        db = FakeDb(self.seeded_now())
+        far = datetime.now(timezone.utc) + timedelta(days=1)
+        self.get(db, t=far.isoformat())
+        self.assertIsNone(layers._snapshot)  # never built
+        self.get(db, t=(far + timedelta(days=1)).isoformat())
+        self.assertIsNone(layers._snapshot)
+        self.assertEqual(db.evidence_queries, 2)
+
+    def test_cache_control_header(self):
+        response = self.get(FakeDb(self.seeded_now()))
+        self.assertEqual(response.headers["cache-control"], "public, max-age=60")
+
+
+class RebuildRetryTests(unittest.TestCase):
+    """A build discarded by an ingest mid-flight must start over instead of vanishing."""
+
+    def test_discarded_rebuild_starts_another(self):
+        async def scenario():
+            layers.clear_snapshot()
+            generation = layers._generation
+            started, release = asyncio.Event(), asyncio.Event()
+            databases = []
+
+            async def fake_collect(db, t):
+                databases.append(db)
+                if len(databases) == 1:
+                    started.set()
+                    await release.wait()
+                return {"flood": []}, {}
+
+            with patch.object(layers, "collect_features", fake_collect):
+                task = asyncio.get_running_loop().create_task(layers._rebuild("db", generation))
+                await started.wait()
+                layers.invalidate_snapshot()  # ingest lands while the first build is running
+                release.set()
+                await task
+                self.assertEqual(databases, ["db", "db"])  # discarded build started a retry
+                await layers._rebuild_task
+            self.assertIsNotNone(layers._snapshot)
+
+        asyncio.run(scenario())
 
 
 class PayloadTests(unittest.TestCase):
