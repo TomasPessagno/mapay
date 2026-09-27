@@ -154,6 +154,8 @@ export default function PreferenceControls({ preferences, onChange, showNavApp =
               placeholder="Search neighbourhoods..."
               value={searchQuery}
               onIonInput={e => onSearchChange(e.detail.value!)}
+              // The keyboard overlays the app, so rise to full height to keep the results above it.
+              onIonFocus={() => modalRef.current?.setCurrentBreakpoint(1)}
               debounce={0} // We handle debounce manually to avoid delay in typing feel
             />
             <IonButtons slot="end">

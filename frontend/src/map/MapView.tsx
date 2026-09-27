@@ -59,7 +59,8 @@ export default function MapView(props: Props) {
       </Map>
       <MapLayers {...props} layersToggled={layersToggled} />
       
-      <IonFab slot="fixed" vertical="top" horizontal="end" style={{ top: '60px', right: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      {/* Floating buttons sit under the toolbar, 52 px apart: Layers, Locate Me, then Report (ReportFab). */}
+      <IonFab slot="fixed" vertical="top" horizontal="end" style={{ top: 'calc(var(--ion-safe-area-top, 0px) + 60px)', right: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <IonFabButton aria-label="Legend and Layers" className="glass" onClick={() => setShowLegend(true)} style={{ width: '44px', height: '44px', borderRadius: '50%' }}>
           <IonIcon icon={layersOutline} color="primary" />
         </IonFabButton>
