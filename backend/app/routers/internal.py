@@ -29,6 +29,7 @@ from app.ingestion import (
     potholes,
     sidewalks,
     tides,
+    traffic_samples,
 )
 
 log = logging.getLogger(__name__)
@@ -77,6 +78,7 @@ JOBS: dict[str, Job] = {
     "s1": earth_engine_s1.run,
     "s2": _satellite_construction,
     "briefings": precompute.run,
+    "traffic": traffic_samples.run,
 }
 
 

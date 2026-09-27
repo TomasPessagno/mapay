@@ -36,15 +36,16 @@ RADAR_OVERLAY = {
 SOURCE_PREFIXES = {
     "incident:news-": "news", "flood:": "tides", "here-flow:": "here", "here:": "here", "nws:": "nws",
     "city:": "city_gis", "osm:": "osm", "gfm:": "gfm", "s1:": "gfm", "s2:": "s2", "311:": "311",
-    "pothole:": "311", "event:": "ticketmaster",
+    "pothole:": "311", "event:": "ticketmaster", "typical:": "google_typical",
 }
 SOURCE_LABELS = {
     "tides": "NOAA tide prediction + FEMA flood zone", "here": "HERE live traffic", "nws": "NWS Miami alert",
     "city_gis": "City of Miami Public Works", "osm": "OpenStreetMap", "gfm": "Copernicus GFM (Sentinel-1)",
     "s2": "Sentinel-2", "311": "Miami-Dade 311", "news": "Local news", "ticketmaster": "Ticketmaster",
+    "google_typical": "Google typical traffic",
 }
 # Modelled rather than measured: with no evidence on top, these hazards are "predicted".
-PREDICTIVE_SOURCES = {"tides", "311"}
+PREDICTIVE_SOURCES = {"tides", "311", "google_typical"}
 EVIDENCE_LABELS = {"crowd": "User report", "cleared": "Reported cleared"}
 TITLES = {"flood": "Flooded street", "weather": "Weather alert", "construction": "Construction",
           "closure": "Road closed", "congestion": "Heavy traffic", "no_sidewalk": "No sidewalk",
