@@ -10,12 +10,11 @@ import math
 from collections.abc import Awaitable, Callable
 
 from shapely.geometry import Point, shape
-from shapely.ops import transform
 
-from app.routers.neighborhoods import get_polygon, search
+from app.routers.neighborhoods import search
 from app.routing.belief_config import BELIEF_CONFIG as C
 from app.routing.google_routes import NoRouteFound, RoutesApiError
-from app.routing.scoring import TITLES, HazardIndex, corridor_for, rank
+from app.routing.scoring import TITLES, HazardIndex, LocalPlane, corridor_for, rank
 
 MAX_ROUNDS = 2
 MAX_WAYPOINTS = 3
@@ -24,20 +23,6 @@ BLOCKING_SEVERITY = 4
 STEP_M = 50
 MAX_REACH_M = 6000  # give up on hazards wider than this (e.g. a whole city)
 HAZARD_BUFFER_M = 30
-M_PER_DEG = 111_320
-
-
-class LocalPlane:
-    """Equirectangular metres around a reference latitude: fine at city scale."""
-
-    def __init__(self, lat: float):
-        self.kx = M_PER_DEG * math.cos(math.radians(lat))
-
-    def to_m(self, geom):
-        return transform(lambda x, y, z=None: (x * self.kx, y * M_PER_DEG), geom)
-
-    def to_deg(self, geom):
-        return transform(lambda x, y, z=None: (x / self.kx, y / M_PER_DEG), geom)
 
 
 def blockers(alternative: dict, index: HazardIndex, preferences: dict) -> list[dict]:
@@ -49,10 +34,9 @@ def blockers(alternative: dict, index: HazardIndex, preferences: dict) -> list[d
                 and hazard.get("severity", 1) >= BLOCKING_SEVERITY):
             title = (hazard.get("properties") or {}).get("title") or TITLES.get(hazard["hazard_type"], "hazard")
             found.append({"label": title, "severity": hazard["severity"], "geometry": shape(hazard["geometry"])})
-    for neighborhood_id in alternative.get("neighborhoods_crossed", []):
-        polygon = get_polygon(neighborhood_id)
-        if polygon is not None:
-            found.append({"label": neighborhood_name(neighborhood_id), "severity": 5, "geometry": polygon})
+    for area in alternative.get("avoid_hits", []):
+        label = neighborhood_name(area["id"]) if area["kind"] == "neighborhood" else area["label"]
+        found.append({"label": label, "severity": 5, "geometry": area["geometry"]})
     found.sort(key=lambda b: b["severity"], reverse=True)
     return found
 
@@ -98,7 +82,8 @@ def via_point(route_geojson: dict, hazard_geometry, index: HazardIndex) -> tuple
 Compute = Callable[[list[tuple[float, float]]], Awaitable[list[dict]]]
 
 
-async def plan_detour(best: dict, hazards, preferences: dict, compute: Compute) -> dict:
+async def plan_detour(best: dict, hazards, preferences: dict, compute: Compute,
+                      avoid_areas: list[dict] | None = None) -> dict:
     """Returns {route, waypoints, unavoidable}: the best route found (the input if no detour
     helps), its via waypoints, and labels of avoid-hazards it still crosses."""
     index = HazardIndex(hazards)
@@ -111,7 +96,7 @@ async def plan_detour(best: dict, hazards, preferences: dict, compute: Compute) 
         if via is None:
             break
         try:
-            candidate = rank(await compute([*waypoints, via]), hazards, preferences)[0]
+            candidate = rank(await compute([*waypoints, via]), hazards, preferences, avoid_areas)[0]
         except (NoRouteFound, RoutesApiError):  # keep the route we have
             break
         if candidate["score"] >= best["score"]:

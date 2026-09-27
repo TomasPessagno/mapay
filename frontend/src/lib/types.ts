@@ -135,6 +135,10 @@ export interface CustomizeResponse {
     apple_maps?: string;
     waze?: string;
   };
+  waypoints?: [number, number][]; // [lat, lng] stops + detour points, in route order
+  depart_at?: string | null; // when the prompt set a departure ("leave at 6:15")
+  unmet?: string[]; // parts of the prompt that couldn't be applied, e.g. "no Starbucks near the route"
+  constraints_source?: 'gemini' | 'keywords'; // keywords = Gemini unavailable, simple parser used
 }
 
 export interface RadarOverlay {

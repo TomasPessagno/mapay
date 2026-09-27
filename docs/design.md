@@ -87,7 +87,7 @@ Satellite items also show before/after images.
 
 ## The heads-up (the Duolingo moment)
 
-The same content everywhere: route, leave time + countdown, trip time, top hazards, **Start** and **Customize**.
+The same content everywhere: route, leave time + countdown, trip time, top hazards, **Start** and **Customize**. The star is the **Live Activity** on the Lock Screen, styled like Duolingo's streak banner: loud, colourful and impossible to miss.
 
 | Surface | Look |
 | --- | --- |
@@ -95,7 +95,7 @@ The same content everywhere: route, leave time + countdown, trip time, top hazar
 | Local notification | Title "MMC → BBC · leave in 30 min", body with the top 2 hazards, route image attached. Long-press shows **Start** / **Customize**. |
 | Home-screen widget | **Large** (4 × 4) is the Duolingo-style one. Idle: next leg and time. Heads-up: tinted background, big countdown (`Text(date, style: .timer)`), top 3 hazards, Start / Customize. **Medium:** route, countdown, top hazard, both buttons. **Small:** leave time + hazard count. |
 | Lock Screen widgets (P1) | Rectangular: "Leave 9:30 AM · 2 hazards". Inline: "MMC → BBC 9:30 AM". Circular: countdown ring. |
-| Live Activity (P1) | Lock Screen banner + Dynamic Island. Compact: car symbol + countdown. Expanded: route, countdown, top hazard, Start / Customize. |
+| Live Activity (P0, the main one) | Lock Screen banner like Duolingo's: a gradient background tinted by the top hazard's colour (system blue with no hazards), white text, a big SF Pro Rounded countdown ("0:28:12 left to leave for BBC"), the route and trip time, the hazard count with the top hazard's symbol, and a large SF Symbols illustration on the right (car + hazard glyph) instead of a mascot. Dynamic Island: compact = car symbol + countdown; expanded = route, countdown, top hazard, Start / Customize. It starts whenever the app is opened within 8 h of a leg (no server push with a free Apple ID), from the T−30 notification, and from the demo button. |
 
 Widget rules:
 - Support the tinted and clear Home Screen styles: mark the key elements `widgetAccentable()`. Hazard colours get flattened there, so icons and shapes must carry the meaning.

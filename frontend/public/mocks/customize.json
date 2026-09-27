@@ -138,5 +138,14 @@
     "google_maps": "https://www.google.com/maps/dir/?api=1&origin=25.7574,-80.3733&destination=25.9104,-80.1392&travelmode=driving&waypoints=25.891,-80.172",
     "apple_maps": "https://maps.apple.com/?saddr=25.7574,-80.3733&daddr=25.9104,-80.1392",
     "waze": "https://waze.com/ul?ll=25.9104,-80.1392&navigate=yes"
-  }
+  },
+  "waypoints": [
+    [
+      25.891,
+      -80.172
+    ]
+  ],
+  "depart_at": null,
+  "unmet": [],
+  "constraints_source": "gemini"
 }
