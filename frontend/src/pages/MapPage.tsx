@@ -49,6 +49,18 @@ const MapPage: React.FC = () => {
     }
   };
 
+  React.useEffect(() => {
+    const handleUpdateRoute = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.routeResponse) {
+        setRouteResponse(customEvent.detail.routeResponse);
+        setSelectedRouteIndex(0);
+      }
+    };
+    window.addEventListener('update-map-route', handleUpdateRoute);
+    return () => window.removeEventListener('update-map-route', handleUpdateRoute);
+  }, []);
+
   const handleClearRoute = () => {
     setRouteResponse(null);
     setSelectedRouteIndex(0);

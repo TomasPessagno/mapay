@@ -124,12 +124,10 @@ const HeadsUpCard: React.FC<HeadsUpCardProps> = ({ leg, timeOffsetMs = 0, onCust
             }}
             onClick={() => {
               if (onCustomize) onCustomize();
-              else if (leg.deep_links.customize) {
-                // If it's a deep link, maybe openLink? The spec says "opens the Customize sheet (placeholder until B10)".
-                // We'll just alert for now as requested.
-                alert('Customize sheet (placeholder until B10)');
-              } else {
-                alert('Customize sheet (placeholder until B10)');
+              else {
+                window.dispatchEvent(new CustomEvent('open-customize', { 
+                  detail: { routineId: leg.routine_id, legIndex: leg.leg } 
+                }));
               }
             }}
           >
