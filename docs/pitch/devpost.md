@@ -1,49 +1,67 @@
-# MAPAY — a heads-up for the Miami commute
+# MAPAY: a heads-up for the Miami commute
 
 **Tagline:** Miami streets change fast. Leave with a heads-up.
 
 ## Inspiration
 
-At FIU, the commute is part of the school day. A drive between MMC and BBC can mean the Palmetto at rush hour, a closure you didn’t know about, or a flooded street near home after a high tide. We wanted one place to see the street problems that matter before getting in the car—and a reminder that already knows the trips you make every week.
+We're FIU students, and FIU is a commuter school. Most of us drive in every day: the Palmetto at 5 pm, I-95, the Dolphin, US-1. In the fall, king tides flood NE 151st Street by the Biscayne Bay campus and streets in Brickell and Miami Beach. There's a new closure or construction zone every week, and an afternoon storm can flood a street in twenty minutes.
+
+Google Maps knows traffic. It doesn't know that your street floods at high tide, that the City just closed a lane for a utility permit, or that a crash on the local news is on your way home. We wanted one place that knows all of that, and that tells you *before* you leave, not when you're already stuck.
 
 ## What it does
 
-MAPAY is an iPhone-first map and routine-trip assistant for Miami. Its map separates floods, construction, closures, traffic, weather, incidents, sidewalk gaps and other street issues by colour, icon and line style. Tap a feature to see where its information came from and when it was observed or updated.
+MAPAY is an iPhone app (with a web version) for people who make the same trips every day.
 
-Save routine trips such as MMC → BBC in the morning and BBC → MMC in an evening time window. MAPAY can suggest a time inside a window, then puts the upcoming trip on a local notification, home-screen widget and in-app heads-up card. The in-app route preview (#135) shows the route and why it changed before you go. Start hands off to Google Maps. Customize accepts a prompt such as “stop at a Starbucks and stay off the Palmetto”: the coffee becomes a real stop, while a steering waypoint bends the route around a hazard Google doesn’t know about. Those stops are visible and removable, and Google Maps gets them in one link.
+- **One colour-coded map of what's wrong with Miami's streets.** Nine hazard types, each with its own colour, icon and line style: flooded streets, heavy rain and weather alerts, construction, road closures, congestion, missing sidewalks, potholes, incidents from the news, and events. Tap anything to see what it is, where the information came from, when it was last checked, and how confident we are. Lower-confidence items are marked "unconfirmed" or "predicted".
+- **Hazard-aware routes.** Pick a destination and **leave now or at a set time**. MAPAY gets alternative routes from Google, scores each one against the hazards on it at that time (using Google's traffic predictions and our flood forecast) and your preferences (avoid, prefer to avoid, or don't care, per hazard type, plus neighbourhoods you'd rather skip), and explains why it recommends one.
+- **Routines and a heads-up before every trip.** Save your routine once, for example FIU MMC → BBC at 9:30 and back between 5 and 7 pm on weekdays. Thirty minutes before each trip, MAPAY puts a Duolingo-style **Live Activity** on your Lock Screen and in the Dynamic Island: a countdown, the route, and the biggest hazard on it, coloured by hazard type. You also get a notification and a Home Screen widget. **Start** opens the route in Google Maps; **Customize** lets you change it.
+- **Change the route in plain English.** Type "stop at a Starbucks and stay off the Palmetto". Gemini turns the sentence into constraints, and our deterministic router builds the new route and explains the difference.
+- **Google Maps drives, MAPAY steers.** When Google's route would cross a flood or closure Google doesn't know about, MAPAY adds a visible steering stop so the Google Maps route bends around it. You keep Google's live traffic, voice, lane guidance and CarPlay.
+- **Demo and Live modes.** Live mode uses real Miami data; Demo mode is a complete offline scenario across Miami-Dade for trying the app anywhere.
 
 ## How we built it
 
-The app uses React, Ionic and Capacitor, with native SwiftUI widgets and a Live Activity. FastAPI and MongoDB power the backend. Google Maps supplies the map, traffic, places and route alternatives; MAPAY deterministically scores those alternatives against hazards and driver preferences, then adds a steering waypoint when a route crosses a serious hazard. Google Maps handles the drive—live traffic, voice, lane guidance, CarPlay and rerouting—while MAPAY previews the route and explains its choices. Google Maps links preserve the steering stops; Apple Maps and Waze links currently pass only the origin and destination.
+- **iPhone app:** React + TypeScript + Ionic (iOS mode), wrapped with Capacitor 8. Native Swift for the parts a web view can't do: a WidgetKit extension (Home Screen widget) and an ActivityKit **Live Activity** (Lock Screen banner + Dynamic Island), plus a small native plugin that connects them to the app. Installed on a real iPhone with AltStore and a free Apple ID.
+- **Map:** Google Maps JavaScript API with a cloud-styled Map ID that follows light and dark mode, Places API (New) for search, and our own layer renderer for the nine hazard categories.
+- **Backend:** FastAPI (Python) on Google Cloud Run, MongoDB Atlas, Shapely for geometry, Cloud Scheduler for ingestion jobs, GitHub Actions for CI/CD (including building the iPhone `.ipa` on GitHub's macOS runners).
+- **Routing:** Google Routes API alternatives + our own scoring. Each hazard on a route adds a penalty of `weight(preference) × severity × probability`, counting hazards that intersect a ~30 m corridor around the route; for severe hazards we add "via" waypoints and ask again. Routing is deterministic: AI never picks the road.
+- **How sure we are:** every hazard is a **Bayesian belief** in log-odds. Each source registers a hazard with a prior (a FEMA flood zone during a king tide, a City permit, a HERE incident), and news, user reports and other sources add or remove evidence over time. The router only avoids hazards above ~73% probability; the map shows the rest faded or as "unconfirmed".
+- **Data sources:** NOAA tide predictions (Virginia Key) + FEMA flood zones + curated hotspots for flood prediction; National Weather Service alerts; HERE Traffic (incidents, closures, roadworks, flow); City of Miami Public Works permits and roadway projects; Miami-Dade 311 (potholes); OpenStreetMap (streets tagged without sidewalks); Google Routes predictions for typical congestion; Copernicus Sentinel-1 flood maps for satellite evidence [check]; local news (NBC6, WLRN, Local10, Miami Herald, CBS News Miami, GDELT).
+- **AI:** Gemini on Vertex AI reads news articles into structured events (what, where, when, how serious), turns Customize prompts into route constraints, and writes the one-line route explanations. **Laya**, an open-source decision model we fine-tuned on Miami news [check: used in production?], does a fast first pass that sets aside stories that aren't about the streets.
 
-Data comes from sources including NOAA tides and FEMA flood zones, NWS weather, City of Miami projects and permits, HERE road incidents, OpenStreetMap sidewalk tags, local-news feeds, user reports and Copernicus satellite products. A hazard gets a plain-language confidence level that can change as evidence arrives. Gemini extracts useful details from news, translates a Customize prompt into explicit route constraints, and explains route changes. The route ranking itself is deterministic.
+## Challenges we ran into
 
-## Challenges
+- **Google's terms shaped the product.** We wanted an in-app turn-by-turn "route player" like Google Maps, but live turn-by-turn on the Routes API isn't allowed (it needs Google's separate Navigation SDK). We built an in-app animated route preview instead; on the iPhone it broke the Route button just before judging, so we cut it and hand off to Google Maps for the drive.
+- **Street View and imagery.** We wanted to show and analyse Street View and satellite imagery inside the app to confirm floods and construction. Google Maps Platform terms don't allow analysing or creating content from Google imagery, so image analysis moved to free Copernicus Sentinel satellite data. Those passes come every few days, radar misses water between buildings, and clouds block optical images, so satellite evidence confirms hazards rather than detecting every one.
+- **Other map apps.** Only Google Maps keeps multiple waypoints from a link. Apple Maps and Waze only take start and end, so our steering stops only survive in Google Maps. Waze has no public data API. And Google's terms don't allow showing Google routes and places on a non-Google map, so no MapKit or MapLibre.
+- **Rate limits and free tiers, everywhere.** Our Gemini API key ran out of prepaid credit, so we moved to Vertex AI. The free MongoDB Atlas tier throttled us (one-document queries took 7+ seconds) after our map snapshot re-read 30,000 hazards on every ingestion job; we rewrote it to check a tiny change marker instead. Cloud Run killed the server at 512 MiB until we raised memory and made rebuilds lighter. Vercel's free plan hit its deployment limit, so the web preview moved to GitHub Pages. The public OpenStreetMap server was slow enough that generating the demo data took an hour.
+- **Messy data sources.** There's no public API for Florida's FL511, so closures come from HERE. City permit data included 14,000+ planned roadway projects that would have painted every street orange, so we lean on the belief model and zoom rules to show what matters. OpenStreetMap usually doesn't tag sidewalks at all, and missing isn't the same as "no sidewalk". The 311 pothole dataset is historic. News stories have to be placed on the map from text like "near the Palmetto at Bird Road".
+- **An iPhone without a paid developer account.** A free Apple ID can't receive push notifications, so the phone schedules its own heads-ups; it can't use App Groups, so the widget can't read the app's settings; AltStore allows only one app extension, so the widget and the Live Activity share it; and on a fresh install, one dismissed iOS prompt silently turned off Live Activities.
 
-Google’s routing service can’t be asked to avoid an arbitrary flooded street or neighborhood. We request route alternatives, compare them with hazards and preferences, and add a visible, removable waypoint when a route still crosses something the driver wants to avoid. Turning that extra stop into a strength meant making its purpose clear: it’s MAPAY steering Google around a local problem, not an unexplained detour. The in-app route preview (#135) makes that choice clear before the handoff. Customize can combine a real stop, like coffee, with a steering point in one Google Maps link; other navigation links currently keep only the origin and destination.
+The data is **relatively accurate rather than perfect**, and the app says so: every hazard shows its source, when it was checked and how confident we are.
 
-Miami data is uneven: a missing sidewalk tag doesn’t prove a sidewalk is absent, and satellite images don’t arrive street by street in real time. We show sources, timestamps and whether a hazard is predicted or observed, instead of presenting every mark as ground truth. The flood-confidence settings are hand-tuned heuristics, not calibrated forecasts.
+## Accomplishments that we're proud of
 
-The free Apple ID used for the demo also shapes the experience: the phone schedules its own notifications, the app must be refreshed through AltStore every seven days, and the Live Activity starts when the app opens—not from a server push while it is closed.
-
-## Accomplishments
-
-- Built an iPhone app with a colour-coded Miami map, hazard details, route alternatives and driver preferences.
-- Connected recurring trips and time windows to a heads-up flow with local notifications, a home-screen widget, an in-app card and Start / Customize actions.
-- Added the prompt-to-route flow, including a stop, a road to avoid, old/new route comparison and Google Maps handoff.
-- Implemented a route-aware confidence model and ingestion paths for local news, weather, traffic, city data and satellite detections.
-- Made the interface usable as an iOS-style app and as a web preview.
+- A real iPhone app with a working Lock Screen Live Activity, Dynamic Island, Home Screen widget and actionable notifications, installed on a phone, not just a simulator.
+- ~30,000 real hazards across Miami-Dade from more than ten public sources, fused with a probabilistic model instead of a pile of pins.
+- Plain-English route changes that still go through a deterministic, explainable router.
+- A web version with a desktop layout, a full offline demo mode, and an automatic iPhone build on every merge.
 
 ## What we learned
 
-“No data” is not the same as “no hazard.” A useful map has to say what is predicted, what was observed, who reported it and how fresh it is. We also learned to give AI a bounded job: interpret messy language and evidence, while a repeatable routing algorithm makes the route decision.
+- Terms of service are product requirements: they decided our map provider, our navigation hand-off and our imagery source.
+- Free tiers fail in surprising ways (throttling, memory, deploy limits), so design for them from the start: cache, read less, measure.
+- Being honest about confidence ("predicted", "unconfirmed", "last checked") makes the map more trustworthy, not less.
+- Let AI interpret and explain; keep the decision (the route) deterministic.
 
-## What’s next
+## What's next
 
-Finish rehearsing the seeded demo with verified source timestamps; validate satellite detections when Miami is covered; improve how heavy rain changes flood risk; and check sidewalk coverage around both campuses. A paid Apple Developer account would unlock server push and TestFlight. Longer term, we want stronger ground truth, routines that get smarter as conditions change, and in-app turn-by-turn navigation. For now, MAPAY previews and steers the route, then hands the drive to Google Maps; Google's Navigation SDK is the route to live turn-by-turn inside our own app.
-
-Satellite is not minute-by-minute street surveillance: Sentinel passes are typically days apart, products can arrive hours to a couple of days later, and clouds or buildings limit what each sensor sees. At the latest check, GFM had no recent pass that observed Miami, and Earth Engine registration was still needed to run the Sentinel-2 construction pipeline. The ingestion code is implemented; a current satellite detection still depends on a pass and a successful run.
+- In-app turn-by-turn navigation with Google's Navigation SDK.
+- A paid Apple Developer account: push notifications, fresher heads-ups without opening the app, App Groups for the widget, TestFlight.
+- "Arrive by" routines and the best time to leave inside a window.
+- Crowd reports from users, a walking mode, CarPlay, and more South Florida cities.
+- Our own domain for the web version.
 
 ## Built with
 
-React, TypeScript, Ionic, Capacitor, SwiftUI, WidgetKit, ActivityKit, FastAPI, Python, MongoDB, Google Maps Platform, Gemini on Vertex AI, NOAA, NWS, FEMA, HERE, OpenStreetMap, Copernicus GFM, Sentinel-1, Sentinel-2, Google Earth Engine, Cloud Run, Cloud Scheduler.
+react, typescript, ionic, capacitor, swift, swiftui, widgetkit, activitykit, python, fastapi, google-cloud-run, google-cloud-scheduler, mongodb-atlas, google-maps, google-places-api, google-routes-api, gemini, vertex-ai, laya, noaa, fema, national-weather-service, here-traffic, openstreetmap, copernicus-sentinel, github-actions, github-pages, altstore
