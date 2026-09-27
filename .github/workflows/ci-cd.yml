@@ -13,6 +13,7 @@
 #   CORS_ORIGINS          comma-separated frontend origins (e.g. the Vercel URL)
 #   GEMINI_API_KEY
 #   GOOGLE_MAPS_API_KEY
+#   GOOGLE_MAPS_SIGNING_SECRET  Static Maps URL-signing secret (heads-up images; optional, unset = no image)
 #   HERE_API_KEY
 #   TICKETMASTER_API_KEY
 #   EIA_API_KEY
@@ -142,6 +143,7 @@ jobs:
           CORS_ORIGINS: ${{ secrets.CORS_ORIGINS }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
+          GOOGLE_MAPS_SIGNING_SECRET: ${{ secrets.GOOGLE_MAPS_SIGNING_SECRET }}
           HERE_API_KEY: ${{ secrets.HERE_API_KEY }}
           TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
           EIA_API_KEY: ${{ secrets.EIA_API_KEY }}
@@ -167,7 +169,7 @@ jobs:
           # Values can contain ',' and '@' (e.g. CORS_ORIGINS, MONGODB_URI), so use gcloud's
           # custom-delimiter syntax (^##^) instead of the default comma separator.
           vars=""
-          for name in MONGODB_URI MONGODB_DB_NAME CORS_ORIGINS GEMINI_API_KEY GOOGLE_MAPS_API_KEY \
+          for name in MONGODB_URI MONGODB_DB_NAME CORS_ORIGINS GEMINI_API_KEY GOOGLE_MAPS_API_KEY GOOGLE_MAPS_SIGNING_SECRET \
                       HERE_API_KEY TICKETMASTER_API_KEY EIA_API_KEY NWS_USER_AGENT \
                       VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT \
                       GOOGLE_GENAI_USE_VERTEXAI GOOGLE_CLOUD_PROJECT GOOGLE_CLOUD_LOCATION \
