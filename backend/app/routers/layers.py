@@ -3,16 +3,17 @@
 Read-only: probabilities for time `t` are computed from each belief's evidence without writing
 decay back (refresh_belief persists decay only for "now"). Shape: frontend/public/mocks/layers.json.
 
-Serving is snapshot-first (A26): `collect_features` runs `feature_for` over every belief once and
-keeps the result with bounds precomputed per feature. A request whose `t` is within
-SNAPSHOT_FRESH_SECONDS of now filters that in-process snapshot (a plain bounds check, no Mongo
-round-trip, no per-request Shapely parsing); once the snapshot is older than SNAPSHOT_TTL_SECONDS
-it is rebuilt in the background while the stale copy keeps serving (stale-while-revalidate), and
-`/internal/ingest/*` marks it stale and rebuilds it in the background when a job finishes. Only a
-request that finds no snapshot at all waits for a build. `t` further away keeps the exact slow
-path, since only time-dependent predictions (crowd decay, news windows) care about it.
+Serving is snapshot-first (A27): `collect_features` runs `feature_for` over every belief once and
+encodes each feature as compact JSON `bytes` with its bounds precomputed. A request whose `t` is
+within SNAPSHOT_FRESH_SECONDS of now filters those bytes (a plain bounds check, no Mongo
+round-trip, no per-request Shapely parsing). Once the snapshot is older than SNAPSHOT_TTL_SECONDS
+it is rebuilt inline, inside the request: Cloud Run only gives CPU while a request is in flight,
+so a task left running between requests could stall mid-build while holding its memory. For the
+same reason `/internal/ingest/*` rebuilds it inline after the job, and only when a cheap content
+fingerprint of the belief and evidence documents shows the job actually changed something.
 """
 import asyncio
+import hashlib
 import json
 import logging
 import time
@@ -24,7 +25,7 @@ from shapely.geometry import box, mapping, shape
 
 from app.db.mongo import get_db
 from app.routing.beliefs import belief_at, probability, utc
-from app.routing.pre_route import belief_docs
+from app.routing.pre_route import belief_docs, clear_belief_cache
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/layers", tags=["layers"])
@@ -166,7 +167,7 @@ def feature_for(doc: dict, evidence_docs: list[dict], t: datetime) -> dict | Non
 
 
 Bounds = tuple[float, float, float, float]
-Feature = tuple[dict, Bounds]
+Feature = tuple[bytes, Bounds]  # compact JSON bytes + (west, south, east, north)
 
 
 def geometry_bounds(geometry: dict) -> Bounds:
@@ -193,14 +194,73 @@ def _intersects(bounds: Bounds, area: Bounds) -> bool:
     return minx <= east and maxx >= west and miny <= north and maxy >= south
 
 
-async def collect_features(db, t: datetime) -> tuple[dict[str, list[Feature]], dict[str, datetime]]:
-    """Every belief at `t` as a map feature with its bounds, plus per-source freshness.
+def _digest(doc: dict, skip: tuple[str, ...] = ()) -> bytes:
+    """Digest of one document's content, with `skip` fields left out.
+
+    `last_updated` is bumped by every re-registration even when geometry, properties and prior are
+    identical, so hashing it would rebuild the snapshot after every weather and HERE run.
+    """
+    payload = {key: value for key, value in doc.items() if key not in skip}
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), default=str).encode()
+    return hashlib.blake2b(encoded, digest_size=16).digest()
+
+
+class Fingerprint:
+    """Content hash of the belief store: XOR of per-document digests plus counts.
+
+    XOR makes the result independent of the order documents come back in, so no sort is needed.
+    """
+
+    __slots__ = ("_beliefs_xor", "_evidence_xor", "beliefs", "evidence")
+
+    def __init__(self) -> None:
+        self.beliefs = 0
+        self.evidence = 0
+        self._beliefs_xor = bytearray(16)
+        self._evidence_xor = bytearray(16)
+
+    @staticmethod
+    def _xor(target: bytearray, digest: bytes) -> None:
+        for index, byte in enumerate(digest):
+            target[index] ^= byte
+
+    def add_belief(self, doc: dict) -> None:
+        self.beliefs += 1
+        self._xor(self._beliefs_xor, _digest(doc, ("last_updated",)))
+
+    def add_evidence(self, doc: dict) -> None:
+        self.evidence += 1
+        self._xor(self._evidence_xor, _digest(doc))
+
+    def hexdigest(self) -> str:
+        digest = hashlib.blake2b(digest_size=16)
+        digest.update(self.beliefs.to_bytes(8, "big"))
+        digest.update(bytes(self._beliefs_xor))
+        digest.update(self.evidence.to_bytes(8, "big"))
+        digest.update(bytes(self._evidence_xor))
+        return digest.hexdigest()
+
+
+async def hazards_fingerprint(db) -> str:
+    """Fingerprint of every belief + evidence document, streamed: it never holds the whole store."""
+    fingerprint = Fingerprint()
+    async for doc in db.intel_cache.find({"type": "hazard_belief"}, {"last_updated": 0}):
+        fingerprint.add_belief(doc)
+    async for doc in db.intel_cache.find({"_id": {"$regex": "^evidence:"}}):
+        fingerprint.add_evidence(doc)
+    return fingerprint.hexdigest()
+
+
+async def collect_features(db, t: datetime) -> tuple[dict[str, list[Feature]], dict[str, datetime], str]:
+    """Every belief at `t` as encoded map feature bytes with bounds, per-source freshness, and a
+    content fingerprint of the documents read.
 
     This is the expensive step (one Mongo read of beliefs + evidence, Shapely per geometry);
     the snapshot calls it once and reuses the result instead of running it per request.
     """
     beliefs = await belief_docs(db)
     evidence_docs = await db.intel_cache.find({"_id": {"$regex": "^evidence:"}}).to_list(length=None)
+    fingerprint = Fingerprint()
     by_hazard: dict[str, list[dict]] = {}
     for item in evidence_docs:
         if item.get("hazard_id"):
@@ -208,6 +268,7 @@ async def collect_features(db, t: datetime) -> tuple[dict[str, list[Feature]], d
     features: dict[str, list[Feature]] = {key: [] for key in CATEGORIES}
     freshness: dict[str, datetime] = {}
     for doc in beliefs:
+        fingerprint.add_belief(doc)
         source = source_kind(doc["hazard_id"])
         if doc.get("last_updated"):
             freshness[source] = max(freshness.get(source, utc(doc["last_updated"])), utc(doc["last_updated"]))
@@ -220,136 +281,164 @@ async def collect_features(db, t: datetime) -> tuple[dict[str, list[Feature]], d
             continue
         feature = feature_for(doc, by_hazard.get(doc["hazard_id"], []), t)
         if feature:
-            features[doc["hazard_type"]].append((feature, geometry_bounds(feature["geometry"])))
+            encoded = json.dumps(feature, separators=(",", ":"), default=str).encode()
+            features[doc["hazard_type"]].append((encoded, geometry_bounds(feature["geometry"])))
     for item in evidence_docs:
+        fingerprint.add_evidence(item)
         created = _parse(item.get("created_at"))
         kind = "news" if item.get("type") == "news" else item.get("type")
         if created and kind:
             freshness[kind] = max(freshness.get(kind, created), created)
-    return features, freshness
+    return features, freshness, fingerprint.hexdigest()
+
+
+_RADAR_BYTES = json.dumps(RADAR_OVERLAY, separators=(",", ":")).encode()
 
 
 def _render(t: datetime, features: dict[str, list[Feature]], freshness: dict[str, datetime],
-            area: Bounds | None = None) -> dict:
-    layers = {key: {"type": "FeatureCollection",
-                    "features": [feature for feature, bounds in entries
-                                 if area is None or _intersects(bounds, area)]}
-              for key, entries in features.items()}
-    return {"t": t.isoformat(), "freshness": {k: v.isoformat() for k, v in sorted(freshness.items())},
-            "radar": RADAR_OVERLAY, **layers}
+            area: Bounds | None = None) -> bytes:
+    """Join the pre-encoded feature bytes into the response JSON, without re-serialising them."""
+    parts = [b'{"t":"', t.isoformat().encode(), b'","freshness":',
+             json.dumps({key: value.isoformat() for key, value in sorted(freshness.items())},
+                        separators=(",", ":")).encode(),
+             b',"radar":', _RADAR_BYTES]
+    for key in CATEGORIES:
+        parts.append(b',"' + key.encode() + b'":{"type":"FeatureCollection","features":[')
+        first = True
+        for encoded, bounds in features.get(key, ()):
+            if area is not None and not _intersects(bounds, area):
+                continue
+            if not first:
+                parts.append(b",")
+            first = False
+            parts.append(encoded)
+        parts.append(b"]}")
+    parts.append(b"}")
+    return b"".join(parts)
 
 
-async def build_layers(db, t: datetime, area=None) -> dict:
+async def build_layers(db, t: datetime, area=None) -> bytes:
     """Slow path: read and convert everything for this exact `t` (used when `t` is far from now)."""
-    features, freshness = await collect_features(db, t)
+    features, freshness, _ = await collect_features(db, t)
     return _render(t, features, freshness, area.bounds if area is not None else None)
 
 
 class Snapshot:
-    """All map features at one build time, each with precomputed bounds; read-only once built."""
+    """Encoded map features at one build time, with bounds and a content fingerprint.
 
-    __slots__ = ("built_at", "built_monotonic", "count", "features", "freshness")
+    Features are compact JSON `bytes`, not nested dicts: the snapshot is a few MB instead of tens
+    of MB, and rendering a response is a join instead of a re-serialisation (A27).
+    """
 
-    def __init__(self, built_at: datetime, features: dict[str, list[Feature]], freshness: dict[str, datetime]):
+    __slots__ = ("built_at", "built_monotonic", "count", "features", "fingerprint", "freshness")
+
+    def __init__(self, built_at: datetime, features: dict[str, list[Feature]],
+                 freshness: dict[str, datetime], fingerprint: str):
         self.built_at = built_at
         self.built_monotonic = time.monotonic()
         self.features = features
         self.freshness = freshness
+        self.fingerprint = fingerprint
         self.count = sum(len(entries) for entries in features.values())
-
-    def mark_stale(self) -> None:
-        """Force the age past SNAPSHOT_TTL_SECONDS: requests serve it once more and rebuild."""
-        self.built_monotonic = time.monotonic() - SNAPSHOT_TTL_SECONDS - 1
 
 
 LAYERS_CACHE_SECONDS = 60
 _layers_cache: dict[tuple, tuple[float, bytes]] = {}
 
 _snapshot: Snapshot | None = None
-_rebuild_task: asyncio.Task | None = None
-_generation = 0
+_snapshot_locks: dict[int, asyncio.Lock] = {}
 
 
-def invalidate_snapshot(db=None) -> None:
-    """Ingestion finished: mark the snapshot stale and rebuild it in the background.
-
-    The old snapshot keeps serving requests while the rebuild runs (stale-while-revalidate);
-    only a request that finds no snapshot at all waits for a build.
-    """
-    global _generation
-    _generation += 1
-    _layers_cache.clear()
-    if _snapshot is None:
-        return
-    _snapshot.mark_stale()
-    if db is not None:
-        _kick_rebuild(db)
+def _snapshot_lock() -> asyncio.Lock:
+    """One lock per running event loop: the app has a single loop, tests create several."""
+    loop = asyncio.get_running_loop()
+    lock = _snapshot_locks.get(id(loop))
+    if lock is None:
+        lock = asyncio.Lock()
+        _snapshot_locks[id(loop)] = lock
+    return lock
 
 
 def clear_snapshot() -> None:
     """Drop the snapshot entirely (tests need each fake database to build its own)."""
-    global _snapshot, _generation
+    global _snapshot
     _snapshot = None
-    _generation += 1
     _layers_cache.clear()
 
 
-async def _rebuild(db, generation: int) -> None:
-    global _snapshot
+async def _build_snapshot(db) -> Snapshot:
     started = time.monotonic()
     built_at = datetime.now(timezone.utc)
-    try:
-        features, freshness = await collect_features(db, built_at)
-    except Exception:
-        log.exception("Layers snapshot rebuild failed")
-        return
-    if generation != _generation:
-        # Ingest invalidated this build mid-flight: drop it and start over on the newer data.
-        log.info("Layers snapshot rebuild discarded (invalidated mid-build); retrying")
-        _start_rebuild(db)
-        return
-    _snapshot = Snapshot(built_at, features, freshness)
-    log.info("Layers snapshot rebuilt in %.0f ms: %d features", (time.monotonic() - started) * 1000, _snapshot.count)
-
-
-def _start_rebuild(db) -> asyncio.Task | None:
-    """Always start a fresh build task (or return None without a running event loop)."""
-    global _rebuild_task
-    try:
-        loop = asyncio.get_running_loop()
-    except RuntimeError:  # no running loop; callers fall back to the slow path
-        return None
-    _rebuild_task = loop.create_task(_rebuild(db, _generation))
-    return _rebuild_task
-
-
-def _kick_rebuild(db) -> asyncio.Task | None:
-    if _rebuild_task is not None and not _rebuild_task.done():
-        return _rebuild_task
-    return _start_rebuild(db)
-
-
-async def get_snapshot(db) -> Snapshot | None:
-    """The snapshot, rebuilding it in the background when stale. A request only waits when no
-    snapshot has ever been built; otherwise it is served the current one immediately."""
-    snapshot = _snapshot
-    if snapshot is None:
-        task = _kick_rebuild(db)
-        if task is not None:
-            await task
-        return _snapshot
-    if time.monotonic() - snapshot.built_monotonic >= SNAPSHOT_TTL_SECONDS:
-        _kick_rebuild(db)
+    # The shared belief cache may be up to a minute old: a fresh snapshot must not inherit it.
+    clear_belief_cache()
+    features, freshness, fingerprint = await collect_features(db, built_at)
+    snapshot = Snapshot(built_at, features, freshness, fingerprint)
+    # Far-`t` answers cached before this build are based on the old hazards.
+    _layers_cache.clear()
+    log.info("Layers snapshot rebuilt in %.0f ms: %d features", (time.monotonic() - started) * 1000,
+             snapshot.count)
     return snapshot
 
 
+async def refresh_snapshot_if_changed(db) -> bool:
+    """Rebuild the snapshot inline when the belief store changed since it was built.
+
+    Called from inside `/internal/ingest/*` (Cloud Run has CPU while the request runs) after the
+    job. Jobs re-register unchanged hazards, so the content fingerprint decides, not their write
+    count. Never raises: a failed check drops the snapshot so the next `/layers` request rebuilds
+    it inline. Returns whether the snapshot was rebuilt.
+    """
+    global _snapshot
+    async with _snapshot_lock():
+        snapshot = _snapshot
+        if snapshot is not None:
+            try:
+                current = await hazards_fingerprint(db)
+            except Exception:
+                log.exception("Layers fingerprint check failed; dropping the snapshot")
+                _snapshot = None
+                return False
+            if current == snapshot.fingerprint:
+                log.info("Layers snapshot kept (%d features): no hazard change", snapshot.count)
+                return False
+        try:
+            _snapshot = await _build_snapshot(db)
+        except Exception:
+            log.exception("Layers snapshot rebuild failed; dropping the snapshot")
+            _snapshot = None
+            return False
+        return True
+
+
+async def get_snapshot(db) -> Snapshot | None:
+    """The snapshot, rebuilt inline when missing or older than the TTL.
+
+    There is no background rebuild: Cloud Run throttles CPU between requests, so a task could
+    stall halfway while holding its memory. A failed rebuild keeps the previous snapshot serving.
+    """
+    global _snapshot
+    snapshot = _snapshot
+    if snapshot is not None and time.monotonic() - snapshot.built_monotonic < SNAPSHOT_TTL_SECONDS:
+        return snapshot
+    async with _snapshot_lock():
+        snapshot = _snapshot
+        if snapshot is not None and time.monotonic() - snapshot.built_monotonic < SNAPSHOT_TTL_SECONDS:
+            return snapshot
+        try:
+            _snapshot = await _build_snapshot(db)
+        except Exception:
+            log.exception("Layers snapshot rebuild failed")
+            return _snapshot
+        return _snapshot
+
+
 def warm_snapshot() -> None:
-    """Start the first build in the background; app startup doesn't wait for it (A26)."""
-    _kick_rebuild(get_db())
+    """Used to start the first build in the background (A26). Kept for the app startup call site
+    (main.py); there are no background builds any more, so the first /layers request builds it
+    inline instead (A27)."""
 
 
-def _response(payload: dict) -> Response:
-    body = json.dumps(payload, separators=(",", ":"), default=str).encode()
+def _response(body: bytes) -> Response:
     return Response(content=body, media_type="application/json",
                     headers={"Cache-Control": "public, max-age=60"})
 
@@ -372,7 +461,7 @@ async def get_layers(t: Annotated[datetime | None, Query(description="Departure 
     if cached and time.monotonic() - cached[0] < LAYERS_CACHE_SECONDS:
         return Response(content=cached[1], media_type="application/json",
                         headers={"Cache-Control": "public, max-age=60"})
-    body = json.dumps(await build_layers(get_db(), when, area), separators=(",", ":"), default=str).encode()
+    body = await build_layers(get_db(), when, area)
     now = time.monotonic()
     for stale in [k for k, (at, _) in _layers_cache.items() if now - at >= LAYERS_CACHE_SECONDS]:
         del _layers_cache[stale]
