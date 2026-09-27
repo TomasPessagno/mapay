@@ -15,6 +15,7 @@
 #   GOOGLE_MAPS_API_KEY
 #   GOOGLE_MAPS_SIGNING_SECRET  Static Maps URL-signing secret (heads-up images; optional, unset = no image)
 #   GFM_EMAIL / GFM_PASSWORD    Copernicus GFM account for satellite floods (optional; unset = Earth Engine only)
+#   LAYA_URL / LAYA_API_KEY     Laya news first pass on Jean's laptop (services/laya; optional; unset = Gemini-only)
 #   HERE_API_KEY
 #   TICKETMASTER_API_KEY
 #   EIA_API_KEY
@@ -143,6 +144,8 @@ jobs:
           GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
           GOOGLE_MAPS_SIGNING_SECRET: ${{ secrets.GOOGLE_MAPS_SIGNING_SECRET }}
           GFM_EMAIL: ${{ secrets.GFM_EMAIL }}
+          LAYA_URL: ${{ secrets.LAYA_URL }}
+          LAYA_API_KEY: ${{ secrets.LAYA_API_KEY }}
           GFM_PASSWORD: ${{ secrets.GFM_PASSWORD }}
           GFM_AOI_ID: ${{ vars.GFM_AOI_ID }}
           EARTH_ENGINE_PROJECT: ${{ vars.EARTH_ENGINE_PROJECT }}
@@ -176,7 +179,7 @@ jobs:
                       VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT \
                       GOOGLE_GENAI_USE_VERTEXAI GOOGLE_CLOUD_PROJECT GOOGLE_CLOUD_LOCATION \
                       INTERNAL_AUDIENCE SCHEDULER_SERVICE_ACCOUNT \
-                      GFM_EMAIL GFM_PASSWORD GFM_AOI_ID EARTH_ENGINE_PROJECT; do
+                      GFM_EMAIL GFM_PASSWORD GFM_AOI_ID EARTH_ENGINE_PROJECT LAYA_URL LAYA_API_KEY; do
             vars+="##${name}=${!name}"
           done
           sa_flag=()
