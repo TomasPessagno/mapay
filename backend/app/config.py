@@ -32,6 +32,10 @@ class Settings(BaseSettings):
     # Comma-separated. Defaults cover the browser dev server and the iOS Capacitor web view
     # (capacitor://localhost); deployments append the Vercel domain via CORS_ORIGINS.
     cors_origins: str = "capacitor://localhost,http://localhost:5173"
+    # POST /internal/*: Cloud Scheduler's OIDC token must carry this audience (the Cloud Run
+    # service URL) and this service account's email. Unset = internal jobs refuse to run.
+    internal_audience: str = ""
+    scheduler_service_account: str = ""
 
     @property
     def cors_origin_list(self) -> list[str]:
