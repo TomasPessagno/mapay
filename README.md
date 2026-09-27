@@ -2,6 +2,8 @@
 
 **A colour-coded map of what's wrong with Miami's streets, and a heads-up on your iPhone before your daily trips.**
 
+**Try it on the web: [tomaspessagno.github.io/mapay](https://tomaspessagno.github.io/mapay/)** (switch between Demo and Live data in Preferences).
+
 Mapay puts street problems on one colour-coded map: flooded streets, construction, congestion, closures, missing sidewalks and more. You save your routine trips (say, MMC → BBC at 9:30 and back between 17:00 and 19:00), tell it what you'd rather avoid, and before each trip a big Duolingo-style widget pops up on your iPhone: **Start** the route in Google Maps, or **Customize** it with a prompt.
 
 > **Status:** being built at ShellHacks 2026 in Miami as an **iPhone app**, tested in the iOS Simulator on a Mac and demoed on an iPhone via AltStore. This README is the product spec; [`docs/design.md`](docs/design.md) is the design spec (Apple-like); [`AGENTS.md`](AGENTS.md) is the build guide (platform, priorities, algorithms, data sources, schema, hour-by-hour plan).
@@ -388,7 +390,7 @@ mapay/
 - agentes hacen scrape de las noticias locales y las incluyen en una "mente" diaria y considera reportes anteriores tambien para el "INCONVENIENTE" de las intersecciones/calles
 - Widget sale antes de la hora establecida de la ruta (como el de duolingo para mantener la racha que sale 2h antes de perderla).
   - tiene boton de empezar la ruta o cambiarla con un prompt)
-- pagina en vercel o cloudflare pages
+- pagina web: [GitHub Pages](https://tomaspessagno.github.io/mapay/)
 - QUIZA carplay
 - La opcion de caminar que una llm con vision interprete el prompt y que recomiende en base a info satelital.
 - adapta el transito acorde con feriados y festividades y te AVISA DE ANTEMANO
