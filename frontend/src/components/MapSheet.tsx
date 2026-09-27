@@ -113,6 +113,7 @@ const MapSheet: React.FC<MapSheetProps> = ({
       ref={modal}
       isOpen={isOpen}
       keepContentsMounted={true}
+      handle={!isCollapsed}
       backdropBreakpoint={0.5}
       initialBreakpoint={COLLAPSED_BREAKPOINT}
       breakpoints={[COLLAPSED_BREAKPOINT, 0.5, 0.9]}
@@ -151,6 +152,7 @@ const MapSheet: React.FC<MapSheetProps> = ({
           <RouteOptions 
             response={routeResponse} 
             selectedIndex={selectedRouteIndex} 
+            breakpoint={sheetBreakpoint}
             onSelect={onRouteSelect} 
             onClose={onClearRoute}
           />

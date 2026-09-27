@@ -9,6 +9,7 @@ import { closeOutline } from 'ionicons/icons';
 interface RouteOptionsProps {
   response: RouteResponse;
   selectedIndex: number;
+  breakpoint: number;
   onSelect: (index: number) => void;
   onClose: () => void;
 }
@@ -26,14 +27,14 @@ const formatDistance = (meters: number) => {
   return `${miles.toFixed(1)} mi`;
 };
 
-const RouteOptions: React.FC<RouteOptionsProps> = ({ response, selectedIndex, onSelect, onClose }) => {
+const RouteOptions: React.FC<RouteOptionsProps> = ({ response, selectedIndex, breakpoint, onSelect, onClose }) => {
   // Handle case where API might return `alternatives` instead of `routes` in mock
   const routes: RouteOption[] = response.routes || (response as unknown as { alternatives?: RouteOption[] }).alternatives || [];
 
   if (!routes.length) return null;
 
   return (
-    <div className="route-options">
+    <div className="route-options" style={{ flex: `0 0 ${breakpoint * 100}%`, height: `${breakpoint * 100}%` }}>
       <div className="route-options-header">
         <IonText color="dark"><h2 className="dynamic-title2" style={{ fontWeight: 'bold', margin: 0 }}>Route Options</h2></IonText>
         <IonButton fill="clear" color="medium" onClick={onClose} aria-label="Close route options" style={{ margin: 0, height: '44px' }}>

@@ -190,11 +190,11 @@ ion-tab-bar.glass {
   border-radius: 24px;
   box-shadow: var(--glass-shadow);
   margin: 0 12px max(8px, var(--ion-safe-area-bottom, env(safe-area-inset-bottom, 0px)));
-  width: calc(100% - 24px);
+  width: calc(100% - 26px);
   /* The margin already clears the home indicator; Ionic's own safe-area padding would add it twice
      on the iPhone. Fixed height so the map sheet below can stop right above it. */
   padding-bottom: 0;
-  height: 56px;
+  height: 54px;
 }
 
 ion-tab-bar.glass ion-tab-button {
@@ -364,7 +364,7 @@ ion-modal.map-sheet.map-sheet-compact::part(content) {
   background: transparent;
   border-radius: 0;
   box-shadow: none;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .map-sheet-content-compact {
@@ -374,8 +374,9 @@ ion-modal.map-sheet.map-sheet-compact::part(content) {
 .map-sheet-content-compact::part(scroll) {
   display: flex;
   align-items: flex-end;
-  overflow: visible;
+  overflow: hidden;
   padding: 0;
+  transform: translateY(-90%);
 }
 
 .map-search-pill {
@@ -414,10 +415,10 @@ ion-modal.map-sheet.map-sheet-compact::part(content) {
 
 .route-options {
   display: flex;
-  flex: 1;
   flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  width: 100%;
 }
 
 .route-options-header {
