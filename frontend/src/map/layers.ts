@@ -22,6 +22,45 @@ const UNCONFIRMED_THRESHOLD = 0.5;
 const layerVisibility = new Map<string, boolean>();
 const layerDataCache = new Map<string, GeoJSON.FeatureCollection>();
 
+// Congestion is Google's own live traffic (TrafficLayer), drawn by Google inside the map like on
+// Google Maps. The HERE flow hazards behind the old congestion lines still count in routing; they
+// just aren't drawn on top of the map any more.
+const TRAFFIC_ID = 'congestion';
+let trafficLayer: google.maps.TrafficLayer | null = null;
+
+function setTrafficVisible(map: google.maps.Map, visible: boolean): void {
+  if (!trafficLayer) trafficLayer = new google.maps.TrafficLayer();
+  trafficLayer.setMap(visible ? map : null);
+}
+
+// Line widths follow the zoom like Google's roads (in screen pixels), so a hazard line reads as
+// part of the street instead of a fixed-width stroke painted over it. ~4 px at zoom 14, doubling
+// every two zoom levels, clamped to what still looks like a road.
+function roadWidth(zoom: number): number {
+  return Math.min(16, Math.max(1.5, 4 * Math.pow(2, (zoom - 14) / 2)));
+}
+
+// Severity 1–5 widens a line a little (0.85×–1.25×), without turning it into a smear.
+function severityScale(severity: number): number {
+  return 0.75 + Math.min(Math.max(severity, 1), 5) * 0.1;
+}
+
+// A darker shade of a line's colour for its edge: how Google outlines coloured road features.
+function darken(hex: string, amount = 0.35): string {
+  const value = parseInt(hex.slice(1), 16);
+  const channel = (shift: number) => Math.round(((value >> shift) & 0xff) * (1 - amount));
+  return `#${[16, 8, 0].map((shift) => channel(shift).toString(16).padStart(2, '0')).join('')}`;
+}
+
+function isLine(feature: google.maps.Data.Feature): boolean {
+  const type = feature.getGeometry()?.getType();
+  return type === 'LineString' || type === 'MultiLineString';
+}
+
+// Flood lines get a slightly wider, darker line underneath (an edge), drawn by a second Data layer.
+const EDGED_LAYERS = new Set(['flood']);
+const edgeLayers = new Map<string, google.maps.Data>();
+
 function formatObservedAge(value: string | undefined): string | null {
   if (!value) return null;
   const timestamp = new Date(value).getTime();
@@ -115,6 +154,16 @@ function setupMapListeners(map: google.maps.Map) {
   
   zoomListener = map.addListener('zoom_changed', () => {
     const zoom = map.getZoom() ?? 0;
+
+    // Re-evaluate styles so line widths follow the zoom.
+    layers.forEach((layer) => {
+      const style = layer.getStyle();
+      if (typeof style === 'function') layer.setStyle(style);
+    });
+    edgeLayers.forEach((layer) => {
+      const style = layer.getStyle();
+      if (typeof style === 'function') layer.setStyle(style);
+    });
     
     // Check no_sidewalk layer visibility based on zoom
     const nsLayer = layers.get('no_sidewalk');
@@ -211,6 +260,11 @@ export async function upsertGeoJsonLayer(
 ): Promise<void> {
   setupMapListeners(map);
   layerDataCache.set(id, data);
+
+  if (id === TRAFFIC_ID) {
+    setTrafficVisible(map, layerVisibility.get(id) !== false);
+    return;
+  }
   
   if (!advancedMarkerLib) {
     advancedMarkerLib = await google.maps.importLibrary("marker") as google.maps.MarkerLibrary;
@@ -342,16 +396,17 @@ export async function upsertGeoJsonLayer(
     const baseColor = isDark ? token.colorDark : token.colorLight;
 
     let fillOpacity = Math.max(probability * 0.4, 0.25);
-    let strokeOpacity = Math.max(probability, 0.25);
+    // Lines are near-solid like Google's road colours; only unconfirmed and predicted ones fade.
+    let strokeOpacity = probability >= 0.73 ? 0.9 : 0.75;
 
     if (status === 'predicted') {
       fillOpacity = Math.max(fillOpacity * 0.5, 0.25);
-      strokeOpacity = Math.max(strokeOpacity * 0.5, 0.25);
+      strokeOpacity = 0.6;
     }
 
     if (probability < UNCONFIRMED_THRESHOLD) {
       fillOpacity *= 0.5;
-      strokeOpacity *= 0.5;
+      strokeOpacity *= 0.6;
     }
     
     if (!isFocused(getCentroid(feature))) {
@@ -359,7 +414,10 @@ export async function upsertGeoJsonLayer(
       strokeOpacity *= 0.3;
     }
 
-    const strokeWeight = severity * 1.5;
+    const zoom = map.getZoom() ?? 14;
+    const line = isLine(feature);
+    // Area outlines stay thin; lines take the width of a road at this zoom.
+    const strokeWeight = line ? roadWidth(zoom) * severityScale(severity) : 1.5;
 
     const options: google.maps.Data.StyleOptions = {
       fillColor: baseColor,
@@ -372,7 +430,8 @@ export async function upsertGeoJsonLayer(
 
     switch (hazardType) {
       case 'flood':
-        options.strokeWeight = severity * 2;
+        options.strokeWeight = line ? strokeWeight : 2;
+        options.zIndex = 2;
         break;
       case 'weather':
         options.strokeWeight = 0;
@@ -380,8 +439,8 @@ export async function upsertGeoJsonLayer(
         break;
       case 'construction':
         // Thin, translucent lines: active roadwork shouldn't paint whole streets solid orange.
-        options.strokeWeight = 2;
-        options.strokeOpacity = Math.min(strokeOpacity, 0.7);
+        options.strokeWeight = line ? roadWidth(zoom) * 0.6 : 1.5;
+        options.strokeOpacity = Math.min(strokeOpacity, 0.8);
         break;
       case 'closure':
         options.strokeOpacity = 0;
@@ -390,8 +449,8 @@ export async function upsertGeoJsonLayer(
           icon: {
             path: 'M 0,-1 0,1',
             strokeOpacity: strokeOpacity,
-            scale: severity * 1.5,
-            strokeWeight: severity * 1.5,
+            scale: roadWidth(zoom) * 0.6,
+            strokeWeight: roadWidth(zoom) * 0.6,
             strokeColor: baseColor
           },
           offset: '0',
@@ -439,6 +498,10 @@ export async function upsertGeoJsonLayer(
     return options;
   });
 
+  if (EDGED_LAYERS.has(id)) {
+    upsertEdgeLayer(map, id, layer, isVisible);
+  }
+
   if (isVisible) {
     layer.setMap(map);
   } else {
@@ -446,8 +509,44 @@ export async function upsertGeoJsonLayer(
   }
 }
 
+// The edge under a layer's lines: same features, a bit wider and darker, below the line itself.
+function upsertEdgeLayer(map: google.maps.Map, id: string, source: google.maps.Data, visible: boolean): void {
+  let edge = edgeLayers.get(id);
+  if (!edge) {
+    edge = new google.maps.Data();
+    edgeLayers.set(id, edge);
+  } else {
+    edge.forEach((feature) => edge!.remove(feature));
+  }
+  // Copies, not the same feature objects: a feature belongs to one Data layer.
+  source.forEach((feature) => {
+    if (!isLine(feature)) return;
+    const properties: Record<string, unknown> = {};
+    feature.forEachProperty((value, key) => { properties[key] = value; });
+    edge!.add(new google.maps.Data.Feature({ geometry: feature.getGeometry(), properties }));
+  });
+  edge.setStyle((feature) => {
+    const main = source.getStyle();
+    const style = typeof main === 'function' ? main(feature) : main;
+    if (!style || style.visible === false || !style.strokeWeight) return { visible: false };
+    return {
+      clickable: false,
+      strokeColor: darken(style.strokeColor ?? '#000000'),
+      strokeOpacity: Math.min(1, (style.strokeOpacity ?? 1) * 0.9),
+      strokeWeight: (style.strokeWeight ?? 0) + 2,
+      zIndex: 1,
+    };
+  });
+  edge.setMap(visible ? map : null);
+}
+
 export function toggleLayer(id: string, map: google.maps.Map, visible: boolean): void {
   layerVisibility.set(id, visible);
+
+  if (id === TRAFFIC_ID) {
+    setTrafficVisible(map, visible);
+    return;
+  }
   
   const zoom = map.getZoom() ?? 0;
   let isVisible = visible;
@@ -462,6 +561,7 @@ export function toggleLayer(id: string, map: google.maps.Map, visible: boolean):
       layer.setStyle(layer.getStyle() as google.maps.Data.StylingFunction);
     }
   }
+  edgeLayers.get(id)?.setMap(isVisible ? map : null);
   
   const markers = layerMarkers.get(id);
   if (markers) {
@@ -470,8 +570,11 @@ export function toggleLayer(id: string, map: google.maps.Map, visible: boolean):
 }
 
 export function removeLayer(id: string): void {
+  if (id === TRAFFIC_ID) trafficLayer?.setMap(null);
   layers.get(id)?.setMap(null);
   layers.delete(id);
+  edgeLayers.get(id)?.setMap(null);
+  edgeLayers.delete(id);
   
   const markers = layerMarkers.get(id);
   if (markers) {
