@@ -1,9 +1,10 @@
 import ActivityKit
 import Capacitor
 import Foundation
+import WidgetKit
 
-/// App-local Capacitor plugin (#37): starts, updates and ends the heads-up Live Activity.
-/// JS: `registerPlugin('MapayNative')`, see src/headsup/liveActivity.ts.
+/// App-local Capacitor plugin: the heads-up Live Activity (#37) and the home-screen widget's reloads (#29).
+/// JS: src/lib/native.ts.
 @objc(MapayNativePlugin)
 public class MapayNativePlugin: CAPPlugin, CAPBridgedPlugin {
     public let identifier = "MapayNativePlugin"
@@ -12,6 +13,7 @@ public class MapayNativePlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "startLiveActivity", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "endLiveActivity", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "areActivitiesEnabled", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "reloadWidgets", returnType: CAPPluginReturnPromise),
     ]
 
     /// How long a Live Activity stays up after its departure time.
@@ -82,5 +84,11 @@ public class MapayNativePlugin: CAPPlugin, CAPBridgedPlugin {
             }
             call.resolve()
         }
+    }
+
+    /// Refetches the home-screen widget's timeline, e.g. after a routine edit.
+    @objc func reloadWidgets(_ call: CAPPluginCall) {
+        WidgetCenter.shared.reloadAllTimelines()
+        call.resolve()
     }
 }
