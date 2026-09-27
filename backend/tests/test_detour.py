@@ -158,7 +158,7 @@ class PlanTests(unittest.TestCase):
         prefs = merge_preferences({"avoid_neighborhoods": ["brickell"]})
         result, _ = self.plan([], [into], prefs, start=into)
         self.assertEqual(result["unavoidable"], ["Brickell"])
-        self.assertIn("No route avoids Brickell", briefing(result["route"], False, result["unavoidable"]))
+        self.assertIn("Couldn't avoid: brickell", briefing(result["route"], False, result["unavoidable"]))
 
 
 class BriefingTests(unittest.TestCase):

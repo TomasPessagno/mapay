@@ -118,6 +118,18 @@ class IncidentGeoJsonTests(unittest.TestCase):
         self.assertIsNone(here_incidents.links_geometry([]))
 
 
+class TitleTests(unittest.TestCase):
+    def test_titles_by_kind_and_place_from_description(self):
+        base = {"criticality": "critical", "road_closed": True, "description": "Between A St and B Ave - Closed",
+                "summary": "Closed", "start_time": None, "end_time": None}
+        closure = here_incidents.hazard_properties({**base, "kind": "closure"})
+        self.assertEqual((closure["title"], closure["place"]), ("Road closed", "Between A St and B Ave"))
+        roadwork = here_incidents.hazard_properties({**base, "kind": "construction", "road_closed": False})
+        self.assertEqual(roadwork["title"], "Roadwork")
+        crash = here_incidents.hazard_properties({**base, "kind": "incident", "summary": "Accident"})
+        self.assertEqual(crash["title"], "Accident")
+
+
 class IncidentRunTests(unittest.IsolatedAsyncioTestCase):
     async def test_registers_current_incidents_with_criticality_priors(self):
         cache = FakeIntelCache()

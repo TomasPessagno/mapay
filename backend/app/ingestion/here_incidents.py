@@ -99,13 +99,25 @@ def is_current(props: dict, now: datetime) -> bool:
     return (start is None or start <= utc(now)) and (end is None or utc(now) <= end)
 
 
+# Card titles by category. HERE's own summary is often a bare word ("Closed"), so it only fills in
+# for the generic `incident` kind; the location text goes in `place`.
+KIND_TITLES = {"closure": "Road closed", "construction": "Roadwork"}
+
+
+def place_from(description: str) -> str | None:
+    """HERE descriptions read "Between A and B - Road construction": keep the location part."""
+    place = (description or "").rsplit(" - ", 1)[0].strip()
+    return place or None
+
+
 def hazard_properties(props: dict) -> dict:
     criticality = props["criticality"]
     severity = CRITICALITY_SEVERITY.get(criticality, 2)
     if props["kind"] == "closure" and props["road_closed"]:
         severity = 5
     return {"probability": CRITICALITY_PROBABILITY.get(criticality, 0.75), "severity": severity,
-            "title": props["summary"], "description": props["description"], "source": "here",
+            "title": KIND_TITLES.get(props["kind"]) or props["summary"] or "Incident",
+            "place": place_from(props["description"]), "description": props["description"], "source": "here",
             "start_time": props["start_time"], "end_time": props["end_time"]}
 
 
