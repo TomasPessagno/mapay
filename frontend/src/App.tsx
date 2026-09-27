@@ -14,6 +14,8 @@ import { mapOutline, timeOutline, settingsOutline } from 'ionicons/icons';
 import { App as CapacitorApp } from '@capacitor/app';
 import { useEffect, useState } from 'react';
 import { useLiveActivitySync } from './headsup/liveActivity';
+import { useDeepLinks } from './headsup/deeplinks';
+import { useHeadsUpNotifications } from './headsup/notifications';
 
 // Pages
 import MapPage from './pages/MapPage';
@@ -28,6 +30,8 @@ const App: React.FC = () => {
   const [customizeRoutine, setCustomizeRoutine] = useState<string | undefined>();
   const [customizeLeg, setCustomizeLeg] = useState<number | undefined>();
   useLiveActivitySync();
+  useDeepLinks();
+  useHeadsUpNotifications();
 
   useEffect(() => {
     // Listen for deep links like mapay://customize?routine=...&leg=...

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar } from '@ionic/react';
+import { IonContent, IonHeader, IonItem, IonList, IonNote, IonPage, IonTitle, IonToggle, IonToolbar } from '@ionic/react';
+import { enableHeadsUpNotifications, notificationsAllowed } from '../headsup/notifications';
 import PreferencesTab from '../routines/PreferencesTab';
 import { getDeviceId } from '../lib/api';
 
@@ -22,6 +23,34 @@ const DeviceIdLine: React.FC = () => {
   );
 };
 
+// Heads-up notifications (#28): permission is asked from this toggle, a user gesture. Native only.
+const NotificationsRow: React.FC = () => {
+  const [allowed, setAllowed] = useState<boolean | null>(null);
+  useEffect(() => {
+    if (Capacitor.isNativePlatform()) notificationsAllowed().then(setAllowed);
+  }, []);
+  if (allowed === null) return null;
+  return (
+    <>
+      <h2 style={{ marginLeft: 16, marginTop: 24, marginBottom: 8, fontSize: 14, textTransform: 'uppercase', color: 'var(--ion-color-medium)' }}>
+        Heads-up
+      </h2>
+      <IonList inset>
+        <IonItem>
+          <IonToggle
+            checked={allowed}
+            disabled={allowed}
+            onIonChange={e => { if (e.detail.checked) enableHeadsUpNotifications().then(setAllowed); }}
+          >
+            Notify me before each trip
+          </IonToggle>
+        </IonItem>
+      </IonList>
+      {allowed && <IonNote style={{ display: 'block', margin: '0 32px', fontSize: 13 }}>To turn them off, use Settings › Notifications › Mapay.</IonNote>}
+    </>
+  );
+};
+
 const PreferencesPage: React.FC = () => {
   return (
     <IonPage>
@@ -38,6 +67,7 @@ const PreferencesPage: React.FC = () => {
         </IonHeader>
         
         <PreferencesTab />
+        <NotificationsRow />
         <DeviceIdLine />
       </IonContent>
     </IonPage>

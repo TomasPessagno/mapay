@@ -81,6 +81,7 @@ export const api = {
   saveRoutine: async (r: Routine) => {
     const saved = await request<Routine>("/routines", { method: "POST", body: JSON.stringify(r) });
     reloadWidgets(); // the home-screen widget shows the next leg
+    window.dispatchEvent(new Event('mapay:routines-changed')); // reschedules the heads-up notifications
     return saved;
   },
   upcomingRoutines: (days: number = 7) => request<UpcomingRoutinesResponse>(`/routines/upcoming?days=${days}`),
