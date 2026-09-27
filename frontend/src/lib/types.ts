@@ -105,6 +105,7 @@ export interface UpcomingLeg {
   heads_up_at: string;
   window: { start: string; end: string } | null;
   best_departure_at: string | null;
+  best_saving_s?: number | null; // seconds saved vs leaving at the window start ("Leave at 17:45: 14 min faster")
   duration_s: number;
   static_duration_s: number;
   summary: string;
