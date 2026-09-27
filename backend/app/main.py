@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 
 from app.config import get_settings
 from app.db.mongo import close_client, init_indexes
@@ -31,6 +32,8 @@ async def lifespan(app: FastAPI):
 settings = get_settings()
 app = FastAPI(title="MAPAY API", version="0.1.0", lifespan=lifespan)
 
+# /layers is ~14 MB of JSON for all of Miami-Dade (~20k City permits); gzip brings it under 1 MB.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origin_list,

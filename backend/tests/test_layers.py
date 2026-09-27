@@ -176,3 +176,33 @@ class LayersTests(unittest.TestCase):
         body = self.get([])
         self.assertEqual(body["freshness"], {})
         self.assertTrue(all(body[k]["features"] == [] for k in layers.CATEGORIES))
+
+
+class PayloadTests(unittest.TestCase):
+    def test_geometry_is_simplified_and_rounded(self):
+        wiggly = {"type": "LineString", "coordinates": [[-80.2, 25.8], [-80.1999999, 25.80000001],
+                                                         [-80.19999, 25.80001], [-80.1, 25.8]]}
+        slim = layers.slim_geometry(wiggly)
+        self.assertEqual(slim["type"], "LineString")
+        self.assertLess(len(slim["coordinates"]), 4)
+        self.assertTrue(all(len(str(c).split(".")[-1]) <= 5 for pt in slim["coordinates"] for c in pt))
+        point = layers.slim_geometry({"type": "Point", "coordinates": [-80.1897374, 25.7618462]})
+        self.assertEqual(point, {"type": "Point", "coordinates": [-80.18974, 25.76185]})
+
+    def test_responses_are_gzipped(self):
+        import importlib
+        import os
+
+        from app.config import get_settings
+        # The real app reads settings at import; CI has no .env, so give it dummy ones.
+        with patch.dict(os.environ, {"MONGODB_URI": "mongodb://unused", "MONGODB_DB_NAME": "unused"}):
+            get_settings.cache_clear()
+            try:
+                main = importlib.import_module("app.main")
+            finally:
+                get_settings.cache_clear()
+        with patch("app.routers.layers.get_db", return_value=FakeDb(seeded() * 20)), \
+             patch("app.main.init_indexes"):
+            response = TestClient(main.app).get("/layers", headers={"Accept-Encoding": "gzip"})
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.headers.get("content-encoding"), "gzip")
