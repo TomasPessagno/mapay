@@ -11,8 +11,23 @@ const layerMarkers = new Map<string, google.maps.marker.AdvancedMarkerElement[]>
 const MAX_MARKERS_PER_LAYER = 150;
 const DENSE_LAYERS = new Set(['construction', 'no_sidewalk', 'pothole']);
 const DENSE_MIN_ZOOM = 12;
+// Hazards below p 0.5 are hidden by default: planned City of Miami roadway projects (p 0.2) cover
+// every street but never affect routing. The legend sheet's switch brings them back, faded.
+const UNCONFIRMED_THRESHOLD = 0.5;
 const layerVisibility = new Map<string, boolean>();
 const layerDataCache = new Map<string, GeoJSON.FeatureCollection>();
+
+let showUnconfirmed = false;
+
+export function getShowUnconfirmed(): boolean {
+  return showUnconfirmed;
+}
+
+export function setShowUnconfirmed(value: boolean): void {
+  if (showUnconfirmed === value) return;
+  showUnconfirmed = value;
+  refreshAllLayers();
+}
 
 let mapInstance: google.maps.Map | null = null;
 let advancedMarkerLib: google.maps.MarkerLibrary | null = null;
@@ -213,12 +228,16 @@ export async function upsertGeoJsonLayer(
     
     // Skip markers for congestion and no_sidewalk lines, and for crowded layers (shapes only)
     if (!showMarkers || hazardType === 'congestion' || hazardType === 'no_sidewalk') return;
+    if (probability < UNCONFIRMED_THRESHOLD && !showUnconfirmed) return;
     
     const centroid = getCentroid(feature);
     if (!centroid) return;
     
     let opacity = probability;
     if (status === 'predicted') {
+      opacity *= 0.5;
+    }
+    if (probability < UNCONFIRMED_THRESHOLD) {
       opacity *= 0.5;
     }
     if (!isFocused(centroid)) {
@@ -258,6 +277,8 @@ export async function upsertGeoJsonLayer(
     const severity = feature.getProperty('severity') as number ?? 3;
     const status = feature.getProperty('status') as string;
 
+    if (probability < UNCONFIRMED_THRESHOLD && !showUnconfirmed) return { visible: false };
+
     const token = HAZARD_TOKENS[hazardType] || HAZARD_TOKENS.incident;
     const baseColor = isDark ? token.colorDark : token.colorLight;
 
@@ -267,6 +288,11 @@ export async function upsertGeoJsonLayer(
     if (status === 'predicted') {
       fillOpacity = Math.max(fillOpacity * 0.5, 0.25);
       strokeOpacity = Math.max(strokeOpacity * 0.5, 0.25);
+    }
+
+    if (probability < UNCONFIRMED_THRESHOLD) {
+      fillOpacity *= 0.5;
+      strokeOpacity *= 0.5;
     }
     
     if (!isFocused(getCentroid(feature))) {
@@ -294,7 +320,9 @@ export async function upsertGeoJsonLayer(
         options.fillOpacity = Math.max(0.25, fillOpacity);
         break;
       case 'construction':
-        options.strokeOpacity = 1;
+        // Thin, translucent lines: active roadwork shouldn't paint whole streets solid orange.
+        options.strokeWeight = 2;
+        options.strokeOpacity = Math.min(strokeOpacity, 0.7);
         break;
       case 'closure':
         options.strokeOpacity = 0;
