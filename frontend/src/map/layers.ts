@@ -22,6 +22,20 @@ const UNCONFIRMED_THRESHOLD = 0.5;
 const layerVisibility = new Map<string, boolean>();
 const layerDataCache = new Map<string, GeoJSON.FeatureCollection>();
 
+// Google's own live traffic (TrafficLayer), drawn inside the map like the Traffic layer in the
+// Google Maps app. It can't be recoloured, so it includes green for free-flowing roads; that's why
+// it's an opt-in switch in the legend (off by default) next to our own congestion lines.
+export const GOOGLE_TRAFFIC_ID = 'google_traffic';
+let googleTraffic: google.maps.TrafficLayer | null = null;
+
+function setGoogleTraffic(map: google.maps.Map, visible: boolean): void {
+  if (!googleTraffic) {
+    if (!visible) return;
+    googleTraffic = new google.maps.TrafficLayer();
+  }
+  googleTraffic.setMap(visible ? map : null);
+}
+
 // Line widths follow the zoom like Google's roads (in screen pixels), so a hazard line reads as
 // part of the street instead of a fixed-width stroke painted over it. ~4 px at zoom 14, doubling
 // every two zoom levels, clamped to what still looks like a road.
@@ -528,6 +542,11 @@ function upsertEdgeLayer(map: google.maps.Map, id: string, source: google.maps.D
 
 export function toggleLayer(id: string, map: google.maps.Map, visible: boolean): void {
   layerVisibility.set(id, visible);
+
+  if (id === GOOGLE_TRAFFIC_ID) {
+    setGoogleTraffic(map, visible);
+    return;
+  }
   
   const zoom = map.getZoom() ?? 0;
   let isVisible = visible;

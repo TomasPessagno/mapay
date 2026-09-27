@@ -14,7 +14,7 @@ import {
   IonButton
 } from '@ionic/react';
 import { HAZARD_TOKENS, TRAFFIC_COLORS } from '../map/legend';
-import { getShowUnconfirmed, setShowUnconfirmed } from '../map/layers';
+import { GOOGLE_TRAFFIC_ID, getShowUnconfirmed, setShowUnconfirmed } from '../map/layers';
 import type { HazardType } from '../lib/types';
 import { closeOutline } from 'ionicons/icons';
 
@@ -104,6 +104,18 @@ const LegendSheet: React.FC<Props> = ({ isOpen, onDidDismiss, toggled, onToggle 
                 setUnconfirmed(e.detail.checked);
                 setShowUnconfirmed(e.detail.checked);
               }}
+            />
+          </IonItem>
+          <IonItem>
+            <IonLabel className="ion-text-wrap">
+              <h2>Google live traffic</h2>
+              <p>Google's own traffic layer, drawn into the map; includes green for free-flowing roads</p>
+            </IonLabel>
+            <IonToggle
+              slot="end"
+              checked={toggled[GOOGLE_TRAFFIC_ID] === true}
+              aria-label="Show Google live traffic"
+              onIonChange={(e) => onToggle(GOOGLE_TRAFFIC_ID, e.detail.checked)}
             />
           </IonItem>
         </IonList>
