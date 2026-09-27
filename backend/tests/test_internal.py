@@ -28,7 +28,8 @@ def settings(audience=AUDIENCE, account=SCHEDULER):
 class IngestTests(unittest.TestCase):
     def test_runs_the_named_job_with_db_and_now(self):
         job = AsyncMock(return_value={"registered": 15})
-        with patch.dict(internal.JOBS, {"tides": job}), patch("app.routers.internal.get_db", return_value="db"):
+        with patch.dict(internal.JOBS, {"tides": job}), patch("app.routers.internal.get_db", return_value="db"), \
+             patch.object(internal.layers, "refresh_snapshot_if_changed", AsyncMock(return_value=False)):
             response = make_client().post("/internal/ingest/tides")
         self.assertEqual(response.status_code, 200, response.text)
         body = response.json()
@@ -42,25 +43,39 @@ class IngestTests(unittest.TestCase):
 
     def test_failing_job_is_502_so_scheduler_retries(self):
         with patch.dict(internal.JOBS, {"tides": AsyncMock(side_effect=RuntimeError("NOAA down"))}), \
-             patch("app.routers.internal.get_db"):
+             patch("app.routers.internal.get_db"), \
+             patch.object(internal.layers, "refresh_snapshot_if_changed", AsyncMock(return_value=False)):
             response = make_client().post("/internal/ingest/tides")
         self.assertEqual(response.status_code, 502)
 
-    def test_successful_ingest_invalidates_the_layers_snapshot(self):
+    def test_successful_ingest_refreshes_the_layers_snapshot_inline(self):
+        refresh = AsyncMock(return_value=True)
         with patch.dict(internal.JOBS, {"tides": AsyncMock(return_value={})}), \
              patch("app.routers.internal.get_db") as get_db, \
-             patch("app.routers.internal.invalidate_snapshot") as invalidate:
+             patch.object(internal.layers, "refresh_snapshot_if_changed", refresh):
             response = make_client().post("/internal/ingest/tides")
         self.assertEqual(response.status_code, 200, response.text)
-        invalidate.assert_called_once_with(get_db.return_value)
+        # Awaited inside the request: Cloud Run gives CPU now and none between requests.
+        refresh.assert_awaited_once_with(get_db.return_value)
 
-    def test_failed_ingest_still_invalidates_the_layers_snapshot(self):
+    def test_unchanged_ingest_keeps_the_layers_snapshot(self):
+        refresh = AsyncMock(return_value=False)
+        with patch.dict(internal.JOBS, {"tides": AsyncMock(return_value={})}), \
+             patch("app.routers.internal.get_db"), \
+             patch.object(internal.layers, "refresh_snapshot_if_changed", refresh):
+            response = make_client().post("/internal/ingest/tides")
+        self.assertEqual(response.status_code, 200, response.text)
+        refresh.assert_awaited_once()
+
+    def test_failed_ingest_still_refreshes_the_layers_snapshot(self):
+        refresh = AsyncMock(return_value=False)
         with patch.dict(internal.JOBS, {"tides": AsyncMock(side_effect=RuntimeError("NOAA down"))}), \
              patch("app.routers.internal.get_db") as get_db, \
-             patch("app.routers.internal.invalidate_snapshot") as invalidate:
+             patch.object(internal.layers, "refresh_snapshot_if_changed", refresh):
             response = make_client().post("/internal/ingest/tides")
         self.assertEqual(response.status_code, 502)
-        invalidate.assert_called_once_with(get_db.return_value)
+        # Partial writes are possible before a failure; refresh before Scheduler retries.
+        refresh.assert_awaited_once_with(get_db.return_value)
 
     def test_registry_has_the_merged_jobs(self):
         self.assertTrue({"news", "weather", "here", "tides", "city_gis", "sidewalks", "potholes"} <= set(internal.JOBS))
@@ -69,7 +84,7 @@ class IngestTests(unittest.TestCase):
         db = SimpleNamespace(ingest_runs=AsyncMock())
         with patch.dict(internal.JOBS, {"news": AsyncMock(return_value={"fetched": 0, "new": 0})}), \
              patch("app.routers.internal.get_db", return_value=db), \
-             patch("app.routers.internal.invalidate_snapshot"):
+             patch.object(internal.layers, "refresh_snapshot_if_changed", AsyncMock(return_value=False)):
             response = make_client().post("/internal/ingest/news")
         self.assertEqual(response.status_code, 200, response.text)
         query, update = db.ingest_runs.update_one.await_args.args[:2]
@@ -81,7 +96,7 @@ class IngestTests(unittest.TestCase):
         db = SimpleNamespace(ingest_runs=AsyncMock())
         with patch.dict(internal.JOBS, {"news": AsyncMock(side_effect=RuntimeError("boom"))}), \
              patch("app.routers.internal.get_db", return_value=db), \
-             patch("app.routers.internal.invalidate_snapshot"):
+             patch.object(internal.layers, "refresh_snapshot_if_changed", AsyncMock(return_value=False)):
             response = make_client().post("/internal/ingest/news")
         self.assertEqual(response.status_code, 502)
         db.ingest_runs.update_one.assert_not_awaited()
@@ -102,7 +117,8 @@ class TokenTests(unittest.TestCase):
         verify = patch("app.routers.internal._verify_token",
                        side_effect=error or (lambda token, audience: claims))
         with verify as fake, patch.dict(internal.JOBS, {"tides": AsyncMock(return_value={})}), \
-             patch("app.routers.internal.get_db"):
+             patch("app.routers.internal.get_db"), \
+             patch.object(internal.layers, "refresh_snapshot_if_changed", AsyncMock(return_value=False)):
             response = make_client(override=False).post("/internal/ingest/tides", headers=headers or {})
         return response, fake
 

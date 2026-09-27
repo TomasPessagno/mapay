@@ -31,7 +31,7 @@ from app.ingestion import (
     tides,
     traffic_samples,
 )
-from app.routers.layers import invalidate_snapshot
+from app.routers import layers
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/internal", tags=["internal"])
@@ -136,6 +136,15 @@ async def require_scheduler(authorization: Annotated[str | None, Header()] = Non
     return claims
 
 
+async def _refresh_layers(db) -> bool:
+    """Rebuild the /layers snapshot inline (never a background task: Cloud Run has CPU now)."""
+    try:
+        return await layers.refresh_snapshot_if_changed(db)
+    except Exception:  # the snapshot must never fail the ingest response
+        log.exception("Layers snapshot refresh failed")
+        return False
+
+
 @router.post("/ingest/{job}")
 async def ingest(job: str, _: Annotated[dict, Depends(require_scheduler)]):
     run = JOBS.get(job)
@@ -146,18 +155,17 @@ async def ingest(job: str, _: Annotated[dict, Depends(require_scheduler)]):
     try:
         result = await run(db, started)
     except Exception as exc:
-        # A 5xx makes Cloud Scheduler retry per the job's retry config.
+        # A partial run may still have written hazards: refresh the snapshot before the 5xx, so
+        # the retry (and /layers) sees them. A 5xx makes Cloud Scheduler retry per the job config.
         log.exception("Ingestion job %s failed", job)
+        await _refresh_layers(db)
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"{job} failed: {type(exc).__name__}") from exc
-    else:
-        try:
-            await record_ingest_run(db, job, started, result)
-        except Exception:  # run metadata must never fail an otherwise good run
-            log.exception("Could not record the %s ingest run", job)
-    finally:
-        # /layers serves an in-process snapshot (A26): mark it stale and refresh it in the
-        # background; the old snapshot keeps answering requests until the rebuild lands.
-        invalidate_snapshot(db)
+    try:
+        await record_ingest_run(db, job, started, result)
+    except Exception:  # run metadata must never fail an otherwise good run
+        log.exception("Could not record the %s ingest run", job)
+    rebuilt = await _refresh_layers(db)
     seconds = round((datetime.now(timezone.utc) - started).total_seconds(), 1)
-    log.info("Ingestion job %s finished in %ss: %s", job, seconds, result)
+    log.info("Ingestion job %s finished in %ss, layers snapshot %s: %s", job, seconds,
+             "rebuilt" if rebuilt else "unchanged", result)
     return {"job": job, "started_at": started.isoformat(), "seconds": seconds, "result": result}
