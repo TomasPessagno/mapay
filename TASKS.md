@@ -71,24 +71,26 @@ To **swap a task**, reassign its issue on GitHub first, then update the queues h
 
 | # | Issue | Task | Est. | Notes |
 | --- | --- | --- | --- | --- |
-| 1 | [#11](https://github.com/TomasPessagno/mapay/issues/11) | A4 · Routes API client + `/route` alternatives | 2.5 h | critical path |
-| 2 | [#3](https://github.com/TomasPessagno/mapay/issues/3) | A2 · Floods → beliefs (tides + FEMA + hotspots) | 2.5 h | agent |
-| 3 | [#6](https://github.com/TomasPessagno/mapay/issues/6) | A12 · HERE incidents + flow | 1.5 h | agent |
-| 4 | [#9](https://github.com/TomasPessagno/mapay/issues/9) | A17 · Satellite floods (GFM / Earth Engine) | 3 h | agent · accounts from T0 |
-| 5 | [#46](https://github.com/TomasPessagno/mapay/issues/46) | A24 · Laya service on Jean's laptop | 1 h | an agent writes it, Jean runs it (free, through a tunnel) · Tomas's #15 uses it |
-| 6 | [#13](https://github.com/TomasPessagno/mapay/issues/13) | A3 · `/layers` from beliefs | 1.5 h |  |
-| 7 | [#14](https://github.com/TomasPessagno/mapay/issues/14) | A15 · `/internal/ingest` + Cloud Scheduler | 1.5 h |  |
-| 8 | [#17](https://github.com/TomasPessagno/mapay/issues/17) | A6 · Route scoring | 2 h | needs Tomas's #4 |
-| 9 | [#26](https://github.com/TomasPessagno/mapay/issues/26) | A7 · Detour + deep links | 2 h |  |
+| 1 | [#11](https://github.com/TomasPessagno/mapay/issues/11) | A4 · Routes API client + `/route` alternatives | 2.5 h | ✅ done: [#61](https://github.com/TomasPessagno/mapay/pull/61) |
+| 2 | [#3](https://github.com/TomasPessagno/mapay/issues/3) | A2 · Floods → beliefs (tides + FEMA + hotspots) | 2.5 h | ✅ done: [#62](https://github.com/TomasPessagno/mapay/pull/62) |
+| 3 | [#6](https://github.com/TomasPessagno/mapay/issues/6) | A12 · HERE incidents + flow | 1.5 h | ✅ done: [#63](https://github.com/TomasPessagno/mapay/pull/63) |
+| 4 | [#9](https://github.com/TomasPessagno/mapay/issues/9) | A17 · Satellite floods (GFM / Earth Engine) | 3 h | ✅ done: [#89](https://github.com/TomasPessagno/mapay/pull/89), [#91](https://github.com/TomasPessagno/mapay/pull/91) · live runs wait for a GFM account or Earth Engine registration |
+| 5 | [#46](https://github.com/TomasPessagno/mapay/issues/46) | A24 · Laya service on Jean's laptop | 1 h | ✅ done: [#102](https://github.com/TomasPessagno/mapay/pull/102) · runs on Jean's laptop; `LAYA_URL` stays unset until a fixed tunnel + the #47 checkpoint |
+| 6 | [#13](https://github.com/TomasPessagno/mapay/issues/13) | A3 · `/layers` from beliefs | 1.5 h | ✅ done: [#64](https://github.com/TomasPessagno/mapay/pull/64) |
+| 7 | [#14](https://github.com/TomasPessagno/mapay/issues/14) | A15 · `/internal/ingest` + Cloud Scheduler | 1.5 h | ✅ done: [#70](https://github.com/TomasPessagno/mapay/pull/70), [#71](https://github.com/TomasPessagno/mapay/pull/71) · jobs created in Cloud Scheduler |
+| 8 | [#17](https://github.com/TomasPessagno/mapay/issues/17) | A6 · Route scoring | 2 h | ✅ done: [#72](https://github.com/TomasPessagno/mapay/pull/72) |
+| 9 | [#26](https://github.com/TomasPessagno/mapay/issues/26) | A7 · Detour + deep links | 2 h | ✅ done: [#74](https://github.com/TomasPessagno/mapay/pull/74) |
 | — | [#38](https://github.com/TomasPessagno/mapay/issues/38) | **T1 · Integration: real map + routing** | | together |
-| 10 | [#18](https://github.com/TomasPessagno/mapay/issues/18) | A8 · Routines v2 (legs, places, preferences) | 2.5 h | needs Tomas's #10 |
-| 11 | [#32](https://github.com/TomasPessagno/mapay/issues/32) | A9 · `/routines/upcoming` + briefings + demo | 3 h |  |
+| 10 | [#18](https://github.com/TomasPessagno/mapay/issues/18) | A8 · Routines v2 (legs, places, preferences) | 2.5 h | ✅ done: [#75](https://github.com/TomasPessagno/mapay/pull/75) |
+| 11 | [#32](https://github.com/TomasPessagno/mapay/issues/32) | A9 · `/routines/upcoming` + briefings + demo | 3 h | ✅ done: [#80](https://github.com/TomasPessagno/mapay/pull/80), [#81](https://github.com/TomasPessagno/mapay/pull/81), [#83](https://github.com/TomasPessagno/mapay/pull/83) |
 | — | [#42](https://github.com/TomasPessagno/mapay/issues/42) | **T2 · Integration: heads-up end to end** | | together |
-| 12 | [#33](https://github.com/TomasPessagno/mapay/issues/33) | A10 · `/customize` | 2.5 h |  |
+| 12 | [#33](https://github.com/TomasPessagno/mapay/issues/33) | A10 · `/customize` | 2.5 h | ✅ done: [#79](https://github.com/TomasPessagno/mapay/pull/79), [#85](https://github.com/TomasPessagno/mapay/pull/85) |
 | — | [#43](https://github.com/TomasPessagno/mapay/issues/43) | **T3 · Integration: Customize end to end** | | together |
-| 13 | [#16](https://github.com/TomasPessagno/mapay/issues/16) | A18 · Satellite construction (Sentinel-2 + Gemini) | 3 h | agent · needs Tomas's #5 |
+| 13 | [#16](https://github.com/TomasPessagno/mapay/issues/16) | A18 · Satellite construction (Sentinel-2 + Gemini) | 3 h | ✅ done: [#90](https://github.com/TomasPessagno/mapay/pull/90) · live runs wait for Earth Engine registration |
 
-**P1:** [#47](https://github.com/TomasPessagno/mapay/issues/47) A25 Fine-tune Laya on Miami news (2.5 h: Claude labels, Kaggle's free GPUs) · [#39](https://github.com/TomasPessagno/mapay/issues/39) A19 Best time inside a window (1.5 h) · [#40](https://github.com/TomasPessagno/mapay/issues/40) A20 Precomputed briefings (1.5 h) · [#23](https://github.com/TomasPessagno/mapay/issues/23) A21 Typical congestion (2 h) · [#25](https://github.com/TomasPessagno/mapay/issues/25) A23 Deploy hygiene (1 h).
+**P1 (all done):** ✅ [#47](https://github.com/TomasPessagno/mapay/issues/47) A25 Fine-tune Laya ([#111](https://github.com/TomasPessagno/mapay/pull/111); trained on CPU, held-out road stories passing 0.2: 59 % → 86 %) · ✅ [#39](https://github.com/TomasPessagno/mapay/issues/39) A19 Best time inside a window ([#97](https://github.com/TomasPessagno/mapay/pull/97)) · ✅ [#40](https://github.com/TomasPessagno/mapay/issues/40) A20 Precomputed briefings ([#99](https://github.com/TomasPessagno/mapay/pull/99)) · ✅ [#23](https://github.com/TomasPessagno/mapay/issues/23) A21 Typical congestion ([#101](https://github.com/TomasPessagno/mapay/pull/101)) · ✅ [#25](https://github.com/TomasPessagno/mapay/issues/25) A23 Deploy hygiene ([#100](https://github.com/TomasPessagno/mapay/pull/100)).
+
+**Also merged from Jean's side:** belief evaluation in one query ([#69](https://github.com/TomasPessagno/mapay/pull/69)), sidewalks + City GIS jobs fixed and hazard titles kept ([#88](https://github.com/TomasPessagno/mapay/pull/88)), `/layers` payload and caching ([#92](https://github.com/TomasPessagno/mapay/pull/92), [#93](https://github.com/TomasPessagno/mapay/pull/93), [#94](https://github.com/TomasPessagno/mapay/pull/94)), HERE titles ([#96](https://github.com/TomasPessagno/mapay/pull/96)). **Left for Jean:** the together checkpoints T1–T4 and the human steps (satellite account, re-running `backend/scripts/scheduler.sh`, a fixed Laya tunnel).
 
 **Both:** [#2](https://github.com/TomasPessagno/mapay/issues/2) T0 kickoff → [#38](https://github.com/TomasPessagno/mapay/issues/38) T1 → [#42](https://github.com/TomasPessagno/mapay/issues/42) T2 → [#43](https://github.com/TomasPessagno/mapay/issues/43) T3 → [#44](https://github.com/TomasPessagno/mapay/issues/44) T4 demo prep.
 
