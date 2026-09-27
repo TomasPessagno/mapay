@@ -73,8 +73,15 @@
         {
           "hazard_id": "event:kaseya-center-2026-09-28",
           "hazard_type": "event",
-          "title": "Event at Kaseya Center tonight",
+          "title": "Concert at Kaseya Center tonight",
           "probability": 0.95,
+          "status": "observed"
+        },
+        {
+          "hazard_id": "incident:news-sr836-nw57",
+          "hazard_type": "incident",
+          "title": "Stalled truck blocking a lane on SR-836 WB before NW 57th Ave",
+          "probability": 0.58,
           "status": "observed"
         }
       ],

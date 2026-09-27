@@ -37,24 +37,32 @@
           "coordinates": [
             [
               [
-                -80.1905,
-                25.7605
+                -80.18956,
+                25.76128
               ],
               [
-                -80.188,
-                25.7605
+                -80.18962,
+                25.76046
               ],
               [
-                -80.188,
-                25.764
+                -80.18978,
+                25.75987
               ],
               [
-                -80.1905,
-                25.764
+                -80.19036,
+                25.75999
               ],
               [
-                -80.1905,
-                25.7605
+                -80.19022,
+                25.76054
+              ],
+              [
+                -80.19016,
+                25.76132
+              ],
+              [
+                -80.18956,
+                25.76128
               ]
             ]
           ]
@@ -82,19 +90,53 @@
       {
         "type": "Feature",
         "geometry": {
-          "type": "LineString",
+          "type": "Polygon",
           "coordinates": [
             [
-              -80.144,
-              25.9085
-            ],
-            [
-              -80.14,
-              25.909
-            ],
-            [
-              -80.136,
-              25.9092
+              [
+                -80.1391,
+                25.91587
+              ],
+              [
+                -80.13995,
+                25.91551
+              ],
+              [
+                -80.14091,
+                25.91544
+              ],
+              [
+                -80.14183,
+                25.91551
+              ],
+              [
+                -80.14213,
+                25.91554
+              ],
+              [
+                -80.14207,
+                25.916
+              ],
+              [
+                -80.14179,
+                25.91597
+              ],
+              [
+                -80.14091,
+                25.9159
+              ],
+              [
+                -80.14009,
+                25.91597
+              ],
+              [
+                -80.13932,
+                25.91629
+              ],
+              [
+                -80.1391,
+                25.91587
+              ]
             ]
           ]
         },
@@ -124,6 +166,922 @@
           "last_updated": "2026-09-28T08:20:00-04:00",
           "expires_at": null
         }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.14108,
+                25.79299
+              ],
+              [
+                -80.14105,
+                25.79219
+              ],
+              [
+                -80.14104,
+                25.79222
+              ],
+              [
+                -80.14154,
+                25.79198
+              ],
+              [
+                -80.14161,
+                25.79215
+              ],
+              [
+                -80.14164,
+                25.79297
+              ],
+              [
+                -80.14108,
+                25.79299
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "flood:sunset-harbour",
+          "hazard_type": "flood",
+          "title": "Flooding expected",
+          "place": "Sunset Harbour, Alton Rd",
+          "probability": 0.77,
+          "status": "predicted",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "tides",
+              "label": "King tide 1.7 ft over the minor-flood level at Sunset Harbour",
+              "url": null,
+              "observed_at": "2026-09-28T08:55:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:55:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.17283,
+                25.84781
+              ],
+              [
+                -80.17351,
+                25.84791
+              ],
+              [
+                -80.17343,
+                25.84837
+              ],
+              [
+                -80.17275,
+                25.84827
+              ],
+              [
+                -80.17283,
+                25.84781
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "flood:shorecrest",
+          "hazard_type": "flood",
+          "title": "Flooding expected",
+          "place": "NE 79th St, Shorecrest",
+          "probability": 0.72,
+          "status": "predicted",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "tides",
+              "label": "Tide 1.5 ft over the minor-flood level + onshore wind",
+              "url": null,
+              "observed_at": "2026-09-28T08:55:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:55:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.23909,
+                25.727
+              ],
+              [
+                -80.23968,
+                25.72639
+              ],
+              [
+                -80.23978,
+                25.72627
+              ],
+              [
+                -80.2402,
+                25.72655
+              ],
+              [
+                -80.24008,
+                25.72669
+              ],
+              [
+                -80.23949,
+                25.7273
+              ],
+              [
+                -80.23909,
+                25.727
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "flood:coconut-grove",
+          "hazard_type": "flood",
+          "title": "Flooding expected",
+          "place": "South Bayshore Dr, Coconut Grove",
+          "probability": 0.68,
+          "status": "predicted",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "tides",
+              "label": "King tide + rain, FEMA zone AE along the Grove waterfront",
+              "url": null,
+              "observed_at": "2026-09-28T08:55:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:55:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.28524,
+                25.70502
+              ],
+              [
+                -80.28517,
+                25.70447
+              ],
+              [
+                -80.28565,
+                25.70443
+              ],
+              [
+                -80.28572,
+                25.70498
+              ],
+              [
+                -80.28524,
+                25.70502
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "flood:south-miami",
+          "hazard_type": "flood",
+          "title": "Flooding expected",
+          "place": "SW 57th Ave at Sunset Dr",
+          "probability": 0.64,
+          "status": "predicted",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "tides",
+              "label": "Tide 1.3 ft over the minor-flood level in South Miami",
+              "url": null,
+              "observed_at": "2026-09-28T08:55:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:55:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.37429,
+                25.76129
+              ],
+              [
+                -80.37265,
+                25.76132
+              ],
+              [
+                -80.37265,
+                25.76088
+              ],
+              [
+                -80.37429,
+                25.76085
+              ],
+              [
+                -80.37429,
+                25.76129
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "flood:fiu-mmc",
+          "hazard_type": "flood",
+          "title": "Flooded street",
+          "place": "SW 8th St at SW 107th Ave (FIU)",
+          "probability": 0.79,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "crowd",
+              "label": "3 reports from Mapay users",
+              "url": null,
+              "observed_at": "2026-09-28T08:20:00-04:00"
+            },
+            {
+              "kind": "news",
+              "label": "Local 10: street flooding reported near the FIU entrance",
+              "url": "https://www.local10.com/",
+              "observed_at": "2026-09-28T08:45:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:20:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.22931,
+                25.76568
+              ],
+              [
+                -80.22841,
+                25.7657
+              ],
+              [
+                -80.22752,
+                25.76572
+              ],
+              [
+                -80.22671,
+                25.76574
+              ],
+              [
+                -80.22669,
+                25.7653
+              ],
+              [
+                -80.2275,
+                25.76528
+              ],
+              [
+                -80.22839,
+                25.76526
+              ],
+              [
+                -80.22929,
+                25.76524
+              ],
+              [
+                -80.22931,
+                25.76568
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "flood:little-havana",
+          "hazard_type": "flood",
+          "title": "Flooded street",
+          "place": "SW 8th St at SW 22nd Ave",
+          "probability": 0.74,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "crowd",
+              "label": "4 reports from Mapay users",
+              "url": null,
+              "observed_at": "2026-09-28T08:20:00-04:00"
+            },
+            {
+              "kind": "tides",
+              "label": "High tide still 0.8 ft over the minor-flood level",
+              "url": null,
+              "observed_at": "2026-09-28T08:55:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:20:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.14067,
+                25.78127
+              ],
+              [
+                -80.14064,
+                25.78046
+              ],
+              [
+                -80.14062,
+                25.77976
+              ],
+              [
+                -80.14114,
+                25.77974
+              ],
+              [
+                -80.14116,
+                25.78044
+              ],
+              [
+                -80.14119,
+                25.78125
+              ],
+              [
+                -80.14067,
+                25.78127
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "flood:miami-beach",
+          "hazard_type": "flood",
+          "title": "Flooding expected",
+          "place": "Alton Rd at 10th St, Miami Beach",
+          "probability": 0.7,
+          "status": "predicted",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "tides",
+              "label": "King tide + full moon perigean cycle, FEMA zone AE",
+              "url": null,
+              "observed_at": "2026-09-28T08:55:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:55:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.16322,
+                25.69283
+              ],
+              [
+                -80.16304,
+                25.6936
+              ],
+              [
+                -80.163,
+                25.69438
+              ],
+              [
+                -80.16304,
+                25.6949
+              ],
+              [
+                -80.16256,
+                25.69492
+              ],
+              [
+                -80.16252,
+                25.69438
+              ],
+              [
+                -80.16256,
+                25.69354
+              ],
+              [
+                -80.16276,
+                25.69273
+              ],
+              [
+                -80.16322,
+                25.69283
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "flood:key-biscayne",
+          "hazard_type": "flood",
+          "title": "Flooding expected",
+          "place": "Crandon Blvd, Key Biscayne",
+          "probability": 0.6,
+          "status": "predicted",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "tides",
+              "label": "Tide 1.2 ft over the minor-flood level at the Rickenbacker",
+              "url": null,
+              "observed_at": "2026-09-28T08:55:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:55:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.18928,
+                25.79676
+              ],
+              [
+                -80.18929,
+                25.79712
+              ],
+              [
+                -80.18881,
+                25.79714
+              ],
+              [
+                -80.1888,
+                25.79678
+              ],
+              [
+                -80.18928,
+                25.79676
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "flood:edgewater",
+          "hazard_type": "flood",
+          "title": "Flooded street",
+          "place": "Biscayne Blvd at NE 26th St",
+          "probability": 0.44,
+          "status": "unconfirmed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "crowd",
+              "label": "1 report from Mapay users",
+              "url": null,
+              "observed_at": "2026-09-28T08:05:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:05:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.32128,
+                25.59104
+              ],
+              [
+                -80.32174,
+                25.59034
+              ],
+              [
+                -80.32221,
+                25.58965
+              ],
+              [
+                -80.32252,
+                25.58919
+              ],
+              [
+                -80.32292,
+                25.58941
+              ],
+              [
+                -80.32261,
+                25.58987
+              ],
+              [
+                -80.32216,
+                25.59056
+              ],
+              [
+                -80.3217,
+                25.59126
+              ],
+              [
+                -80.32128,
+                25.59104
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "flood:cutler-bay",
+          "hazard_type": "flood",
+          "title": "Flooding expected",
+          "place": "Old Cutler Rd at SW 184th St",
+          "probability": 0.58,
+          "status": "predicted",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "tides",
+              "label": "Rain on saturated ground, FEMA zone AE",
+              "url": null,
+              "observed_at": "2026-09-28T08:55:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:55:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.47048,
+                25.47063
+              ],
+              [
+                -80.47104,
+                25.47006
+              ],
+              [
+                -80.4714,
+                25.47034
+              ],
+              [
+                -80.47084,
+                25.47091
+              ],
+              [
+                -80.47048,
+                25.47063
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "flood:homestead",
+          "hazard_type": "flood",
+          "title": "Flooded street",
+          "place": "US-1 near SW 344th St",
+          "probability": 0.66,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "news",
+              "label": "CBS: heavy rain flooded US-1 south of Homestead",
+              "url": "https://www.cbsnews.com/miami/",
+              "observed_at": "2026-09-28T08:45:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:45:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.35556,
+                25.673
+              ],
+              [
+                -80.35466,
+                25.67303
+              ],
+              [
+                -80.35377,
+                25.67306
+              ],
+              [
+                -80.35316,
+                25.67307
+              ],
+              [
+                -80.35316,
+                25.67263
+              ],
+              [
+                -80.35375,
+                25.67262
+              ],
+              [
+                -80.35464,
+                25.67259
+              ],
+              [
+                -80.35554,
+                25.67256
+              ],
+              [
+                -80.35556,
+                25.673
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "flood:kendall",
+          "hazard_type": "flood",
+          "title": "Flooded street",
+          "place": "SW 104th St at SW 117th Ave",
+          "probability": 0.62,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "crowd",
+              "label": "2 reports from Mapay users",
+              "url": null,
+              "observed_at": "2026-09-28T07:55:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T07:55:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.33573,
+                25.7478
+              ],
+              [
+                -80.33523,
+                25.7478
+              ],
+              [
+                -80.33523,
+                25.74736
+              ],
+              [
+                -80.33573,
+                25.74736
+              ],
+              [
+                -80.33573,
+                25.7478
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "flood:westchester",
+          "hazard_type": "flood",
+          "title": "Flooding expected",
+          "place": "Coral Way at SW 87th Ave",
+          "probability": 0.55,
+          "status": "predicted",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "tides",
+              "label": "Rain + tide, low-lying FEMA zone AE in Westchester",
+              "url": null,
+              "observed_at": "2026-09-28T08:55:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:55:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.18986,
+                25.77072
+              ],
+              [
+                -80.18986,
+                25.77053
+              ],
+              [
+                -80.19038,
+                25.77053
+              ],
+              [
+                -80.19038,
+                25.77072
+              ],
+              [
+                -80.18986,
+                25.77072
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "flood:downtown",
+          "hazard_type": "flood",
+          "title": "Flooding expected",
+          "place": "SE 2nd Ave at SE 1st St",
+          "probability": 0.63,
+          "status": "predicted",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "tides",
+              "label": "King tide 1.6 ft over the minor-flood level downtown",
+              "url": null,
+              "observed_at": "2026-09-28T08:55:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:55:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.25821,
+                25.7436
+              ],
+              [
+                -80.25818,
+                25.74279
+              ],
+              [
+                -80.25815,
+                25.74197
+              ],
+              [
+                -80.25818,
+                25.74143
+              ],
+              [
+                -80.25866,
+                25.74145
+              ],
+              [
+                -80.25863,
+                25.74197
+              ],
+              [
+                -80.25866,
+                25.74277
+              ],
+              [
+                -80.25869,
+                25.74358
+              ],
+              [
+                -80.25821,
+                25.7436
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "flood:gables",
+          "hazard_type": "flood",
+          "title": "Flooding expected",
+          "place": "Ponce de Leon Blvd at Alcazar Ave",
+          "probability": 0.52,
+          "status": "predicted",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "tides",
+              "label": "Tide 1.1 ft over the minor-flood level, low-lying blocks",
+              "url": null,
+              "observed_at": "2026-09-28T08:55:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:55:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.19927,
+                25.7995
+              ],
+              [
+                -80.1993,
+                25.80031
+              ],
+              [
+                -80.19933,
+                25.80112
+              ],
+              [
+                -80.19934,
+                25.80147
+              ],
+              [
+                -80.1989,
+                25.80149
+              ],
+              [
+                -80.19889,
+                25.80114
+              ],
+              [
+                -80.19886,
+                25.80033
+              ],
+              [
+                -80.19883,
+                25.79952
+              ],
+              [
+                -80.19927,
+                25.7995
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "flood:wynwood",
+          "hazard_type": "flood",
+          "title": "Flooded street",
+          "place": "NW 2nd Ave at NW 24th St",
+          "probability": 0.38,
+          "status": "unconfirmed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "crowd",
+              "label": "1 report from Mapay users",
+              "url": null,
+              "observed_at": "2026-09-28T07:40:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T07:40:00-04:00",
+          "expires_at": null
+        }
       }
     ]
   },
@@ -141,16 +1099,20 @@
                 25.86
               ],
               [
-                -80.12,
+                -80.13,
                 25.86
               ],
               [
                 -80.12,
+                25.895
+              ],
+              [
+                -80.17,
                 25.97
               ],
               [
-                -80.3,
-                25.97
+                -80.29,
+                25.955
               ],
               [
                 -80.3,
@@ -172,11 +1134,113 @@
               "kind": "nws",
               "label": "NWS Miami: Coastal Flood Advisory until 1 PM",
               "url": "https://api.weather.gov/alerts/active?point=25.7617,-80.1918",
-              "observed_at": "2026-09-28T06:12:00-04:00"
+              "observed_at": "2026-09-28T08:58:00-04:00"
             }
           ],
           "last_updated": "2026-09-28T08:58:00-04:00",
           "expires_at": "2026-09-28T13:00:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.42,
+                25.6
+              ],
+              [
+                -80.3,
+                25.585
+              ],
+              [
+                -80.26,
+                25.65
+              ],
+              [
+                -80.28,
+                25.72
+              ],
+              [
+                -80.38,
+                25.73
+              ],
+              [
+                -80.42,
+                25.6
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "weather:nws-flash-flood-watch",
+          "hazard_type": "weather",
+          "title": "Flash flood watch",
+          "place": "Southwest Miami-Dade",
+          "probability": 0.55,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "nws",
+              "label": "NWS Miami: Flash Flood Watch until 8 PM",
+              "url": "https://api.weather.gov/alerts/active?point=25.7617,-80.1918",
+              "observed_at": "2026-09-28T08:58:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:58:00-04:00",
+          "expires_at": "2026-09-28T20:00:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.14,
+                25.68
+              ],
+              [
+                -80.115,
+                25.68
+              ],
+              [
+                -80.115,
+                25.87
+              ],
+              [
+                -80.135,
+                25.87
+              ],
+              [
+                -80.14,
+                25.68
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "weather:nws-high-surf",
+          "hazard_type": "weather",
+          "title": "High surf advisory",
+          "place": "Miami Beach and Key Biscayne",
+          "probability": 0.92,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "nws",
+              "label": "NWS Miami: High Surf Advisory until 7 PM",
+              "url": "https://api.weather.gov/alerts/active?point=25.7617,-80.1918",
+              "observed_at": "2026-09-28T08:58:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:58:00-04:00",
+          "expires_at": "2026-09-28T19:00:00-04:00"
         }
       }
     ]
@@ -191,24 +1255,154 @@
           "coordinates": [
             [
               [
-                -80.1585,
-                25.8985
+                -80.32043,
+                25.77665
               ],
               [
-                -80.1555,
-                25.8985
+                -80.3204,
+                25.77584
               ],
               [
-                -80.1555,
-                25.901
+                -80.32037,
+                25.77503
               ],
               [
-                -80.1585,
-                25.901
+                -80.32035,
+                25.77422
               ],
               [
-                -80.1585,
-                25.8985
+                -80.32036,
+                25.77394
+              ],
+              [
+                -80.32088,
+                25.77396
+              ],
+              [
+                -80.32087,
+                25.77422
+              ],
+              [
+                -80.32089,
+                25.77501
+              ],
+              [
+                -80.32092,
+                25.77582
+              ],
+              [
+                -80.32095,
+                25.77663
+              ],
+              [
+                -80.32043,
+                25.77665
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:sr-826-nb-sw-8th",
+          "hazard_type": "construction",
+          "title": "Lane closures",
+          "place": "SR-826 NB at SW 8th St",
+          "probability": 0.82,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE roadworks: two lanes closed on SR-826 NB at SW 8th St",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.31834,
+                25.73215
+              ],
+              [
+                -80.31833,
+                25.7316
+              ],
+              [
+                -80.31881,
+                25.7316
+              ],
+              [
+                -80.31882,
+                25.73215
+              ],
+              [
+                -80.31834,
+                25.73215
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:sr-826-sb-bird",
+          "hazard_type": "construction",
+          "title": "Lane closures",
+          "place": "SR-826 SB at Bird Rd",
+          "probability": 0.78,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE roadworks: shoulder and one lane closed on SR-826 SB",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.16207,
+                25.90033
+              ],
+              [
+                -80.1612,
+                25.90021
+              ],
+              [
+                -80.16062,
+                25.90019
+              ],
+              [
+                -80.16064,
+                25.89969
+              ],
+              [
+                -80.16126,
+                25.89971
+              ],
+              [
+                -80.16215,
+                25.89983
+              ],
+              [
+                -80.16207,
+                25.90033
               ]
             ]
           ]
@@ -230,10 +1424,1173 @@
             },
             {
               "kind": "s2",
-              "label": "New site on Sentinel-2, confirmed by Gemini",
+              "label": "Sentinel-2: new site on the NE 135th St rebuild, confirmed by Gemini",
               "url": null,
               "observed_at": null,
               "pass_time": "2026-09-24T12:02:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.14741,
+                25.91583
+              ],
+              [
+                -80.14698,
+                25.9158
+              ],
+              [
+                -80.14702,
+                25.91534
+              ],
+              [
+                -80.14745,
+                25.91537
+              ],
+              [
+                -80.14741,
+                25.91583
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:ne-151st-bbc",
+          "hazard_type": "construction",
+          "title": "Roadwork",
+          "place": "NE 151st St at the BBC entrance",
+          "probability": 0.75,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE roadworks: turn-lane work at the campus entrance",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.20624,
+                25.8418
+              ],
+              [
+                -80.20633,
+                25.84258
+              ],
+              [
+                -80.20654,
+                25.84335
+              ],
+              [
+                -80.20661,
+                25.84356
+              ],
+              [
+                -80.20605,
+                25.84372
+              ],
+              [
+                -80.20596,
+                25.84349
+              ],
+              [
+                -80.20575,
+                25.84268
+              ],
+              [
+                -80.20564,
+                25.84186
+              ],
+              [
+                -80.20624,
+                25.8418
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:i95-nb-79th",
+          "hazard_type": "construction",
+          "title": "Lane closures",
+          "place": "I-95 NB near NW 79th St",
+          "probability": 0.83,
+          "status": "observed",
+          "severity": 4,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE roadworks: two lanes closed on I-95 NB overnight",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.20049,
+                25.78184
+              ],
+              [
+                -80.2008,
+                25.7826
+              ],
+              [
+                -80.20087,
+                25.78274
+              ],
+              [
+                -80.20031,
+                25.78294
+              ],
+              [
+                -80.20024,
+                25.78278
+              ],
+              [
+                -80.19993,
+                25.78202
+              ],
+              [
+                -80.20049,
+                25.78184
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:i95-sb-downtown",
+          "hazard_type": "construction",
+          "title": "Lane closures",
+          "place": "I-95 SB near NW 8th St",
+          "probability": 0.72,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE roadworks: barrier work on I-95 SB at the downtown curve",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.30675,
+                25.69042
+              ],
+              [
+                -80.30609,
+                25.69096
+              ],
+              [
+                -80.30544,
+                25.69151
+              ],
+              [
+                -80.30527,
+                25.69164
+              ],
+              [
+                -80.30493,
+                25.6913
+              ],
+              [
+                -80.30508,
+                25.69117
+              ],
+              [
+                -80.30573,
+                25.69062
+              ],
+              [
+                -80.30641,
+                25.69008
+              ],
+              [
+                -80.30675,
+                25.69042
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:us1-nb-kendall",
+          "hazard_type": "construction",
+          "title": "Lane closures",
+          "place": "US-1 NB at Kendall Dr",
+          "probability": 0.8,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "county",
+              "label": "Miami-Dade: bus-rapid-transit lane work on US-1",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.28937,
+                25.70475
+              ],
+              [
+                -80.2887,
+                25.70528
+              ],
+              [
+                -80.28841,
+                25.70551
+              ],
+              [
+                -80.28807,
+                25.70515
+              ],
+              [
+                -80.28836,
+                25.70492
+              ],
+              [
+                -80.28903,
+                25.70439
+              ],
+              [
+                -80.28937,
+                25.70475
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:us1-south-miami",
+          "hazard_type": "construction",
+          "title": "Construction",
+          "place": "US-1 at SW 57th Ave",
+          "probability": 0.77,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "county",
+              "label": "Miami-Dade: repaving and signal work on US-1",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.33573,
+                25.7478
+              ],
+              [
+                -80.33523,
+                25.7478
+              ],
+              [
+                -80.33523,
+                25.74736
+              ],
+              [
+                -80.33573,
+                25.74736
+              ],
+              [
+                -80.33573,
+                25.7478
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:coral-way-westchester",
+          "hazard_type": "construction",
+          "title": "Roadwork",
+          "place": "Coral Way at SW 87th Ave",
+          "probability": 0.74,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "city_gis",
+              "label": "Roadway project: Coral Way drainage upgrades",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.23926,
+                25.76536
+              ],
+              [
+                -80.23895,
+                25.7654
+              ],
+              [
+                -80.23887,
+                25.76494
+              ],
+              [
+                -80.23918,
+                25.7649
+              ],
+              [
+                -80.23926,
+                25.76536
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:sw-8th-havana",
+          "hazard_type": "construction",
+          "title": "Lane closures",
+          "place": "SW 8th St at SW 27th Ave",
+          "probability": 0.8,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "city_gis",
+              "label": "Partial lane closure for curb and sidewalk work",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.19308,
+                25.75799
+              ],
+              [
+                -80.19304,
+                25.75805
+              ],
+              [
+                -80.19262,
+                25.75783
+              ],
+              [
+                -80.19266,
+                25.75777
+              ],
+              [
+                -80.19308,
+                25.75799
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:brickell-ave",
+          "hazard_type": "construction",
+          "title": "Roadwork",
+          "place": "Brickell Ave at SE 13th St",
+          "probability": 0.76,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "city_gis",
+              "label": "Lane shift for streetscape work on Brickell Ave",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.18967,
+                25.80582
+              ],
+              [
+                -80.18968,
+                25.80613
+              ],
+              [
+                -80.18916,
+                25.80615
+              ],
+              [
+                -80.18915,
+                25.80584
+              ],
+              [
+                -80.18967,
+                25.80582
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:biscayne-wynwood",
+          "hazard_type": "construction",
+          "title": "Lane closures",
+          "place": "Biscayne Blvd at NE 29th St",
+          "probability": 0.79,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE roadworks: crane placement on Biscayne Blvd",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.23337,
+                25.77987
+              ],
+              [
+                -80.23247,
+                25.77989
+              ],
+              [
+                -80.23191,
+                25.77991
+              ],
+              [
+                -80.23189,
+                25.77947
+              ],
+              [
+                -80.23245,
+                25.77945
+              ],
+              [
+                -80.23335,
+                25.77943
+              ],
+              [
+                -80.23337,
+                25.77987
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:nw-7th-st",
+          "hazard_type": "construction",
+          "title": "Roadwork",
+          "place": "NW 7th St near NW 22nd Ave",
+          "probability": 0.71,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "county",
+              "label": "Miami-Dade: water-main replacement under NW 7th St",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.30242,
+                25.83881
+              ],
+              [
+                -80.30306,
+                25.83938
+              ],
+              [
+                -80.3037,
+                25.83992
+              ],
+              [
+                -80.3044,
+                25.8404
+              ],
+              [
+                -80.30449,
+                25.84045
+              ],
+              [
+                -80.30423,
+                25.84085
+              ],
+              [
+                -80.3041,
+                25.84078
+              ],
+              [
+                -80.30336,
+                25.84028
+              ],
+              [
+                -80.3027,
+                25.83972
+              ],
+              [
+                -80.30206,
+                25.83915
+              ],
+              [
+                -80.30242,
+                25.83881
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:okeechobee-hialeah",
+          "hazard_type": "construction",
+          "title": "Lane closures",
+          "place": "Okeechobee Rd at W 12th Ave",
+          "probability": 0.81,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE roadworks: intersection rebuild on Okeechobee Rd",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.33727,
+                25.81008
+              ],
+              [
+                -80.33658,
+                25.81001
+              ],
+              [
+                -80.33664,
+                25.80955
+              ],
+              [
+                -80.33733,
+                25.80962
+              ],
+              [
+                -80.33727,
+                25.81008
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:nw-36th-doral",
+          "hazard_type": "construction",
+          "title": "Roadwork",
+          "place": "NW 36th St near NW 87th Ave",
+          "probability": 0.78,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "county",
+              "label": "Miami-Dade: widening work on NW 36th St",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.36484,
+                25.81151
+              ],
+              [
+                -80.36535,
+                25.81152
+              ],
+              [
+                -80.36533,
+                25.81196
+              ],
+              [
+                -80.36482,
+                25.81195
+              ],
+              [
+                -80.36484,
+                25.81151
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:nw-41st-doral",
+          "hazard_type": "construction",
+          "title": "Roadwork",
+          "place": "NW 41st St near NW 107th Ave",
+          "probability": 0.73,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "city_gis",
+              "label": "Doral: median and lighting work on NW 41st St",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.12391,
+                25.80866
+              ],
+              [
+                -80.12379,
+                25.80946
+              ],
+              [
+                -80.12366,
+                25.81026
+              ],
+              [
+                -80.12364,
+                25.8104
+              ],
+              [
+                -80.1232,
+                25.81034
+              ],
+              [
+                -80.12322,
+                25.8102
+              ],
+              [
+                -80.12335,
+                25.8094
+              ],
+              [
+                -80.12347,
+                25.8086
+              ],
+              [
+                -80.12391,
+                25.80866
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:collins-beach",
+          "hazard_type": "construction",
+          "title": "Roadwork",
+          "place": "Collins Ave at 41st St",
+          "probability": 0.8,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "city_gis",
+              "label": "Miami Beach: sidewalk and drainage work on Collins Ave",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.1402,
+                25.9154
+              ],
+              [
+                -80.14111,
+                25.91537
+              ],
+              [
+                -80.14203,
+                25.91546
+              ],
+              [
+                -80.14236,
+                25.91549
+              ],
+              [
+                -80.14228,
+                25.91609
+              ],
+              [
+                -80.14197,
+                25.91606
+              ],
+              [
+                -80.14109,
+                25.91599
+              ],
+              [
+                -80.14022,
+                25.91602
+              ],
+              [
+                -80.1402,
+                25.9154
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:s2-bbc-lot",
+          "hazard_type": "construction",
+          "title": "Satellite-confirmed construction",
+          "place": "NE 151st St at Biscayne Blvd",
+          "probability": 0.88,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "s2",
+              "label": "Sentinel-2: new cleared lot detected by change detection, confirmed by Gemini",
+              "url": null,
+              "observed_at": null,
+              "pass_time": "2026-09-24T12:02:00-04:00"
+            },
+            {
+              "kind": "city_gis",
+              "label": "matching City permit nearby",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.36802,
+                25.7558
+              ],
+              [
+                -80.36802,
+                25.7556
+              ],
+              [
+                -80.36862,
+                25.7556
+              ],
+              [
+                -80.36862,
+                25.7558
+              ],
+              [
+                -80.36802,
+                25.7558
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "construction:s2-sw-107th",
+          "hazard_type": "construction",
+          "title": "Satellite-confirmed construction",
+          "place": "SW 107th Ave at SW 8th St",
+          "probability": 0.86,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "s2",
+              "label": "Sentinel-2: grading at the FIU edge detected by NDVI change, confirmed by Gemini",
+              "url": null,
+              "observed_at": null,
+              "pass_time": "2026-09-24T12:02:00-04:00"
+            },
+            {
+              "kind": "city_gis",
+              "label": "matching County permit nearby",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.36842,
+                25.76288
+              ],
+              [
+                -80.36838,
+                25.76214
+              ],
+              [
+                -80.36882,
+                25.76212
+              ],
+              [
+                -80.36886,
+                25.76286
+              ],
+              [
+                -80.36842,
+                25.76288
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "city:permit:sw-107th-16th",
+          "hazard_type": "construction",
+          "title": "Planned roadwork",
+          "place": "SW 107th Ave at SW 16th St",
+          "probability": 0.25,
+          "status": "unconfirmed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "city_gis",
+              "label": "Planned roadway project: resurfacing, status: planned",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.36323,
+                25.76151
+              ],
+              [
+                -80.36104,
+                25.76155
+              ],
+              [
+                -80.36104,
+                25.76115
+              ],
+              [
+                -80.36323,
+                25.76111
+              ],
+              [
+                -80.36323,
+                25.76151
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "city:permit:sw-8th-112th",
+          "hazard_type": "construction",
+          "title": "Planned roadwork",
+          "place": "SW 8th St at SW 112th Ave",
+          "probability": 0.32,
+          "status": "unconfirmed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "city_gis",
+              "label": "Planned roadway project: milling and resurfacing",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.23807,
+                25.75026
+              ],
+              [
+                -80.23806,
+                25.74979
+              ],
+              [
+                -80.2385,
+                25.74979
+              ],
+              [
+                -80.23851,
+                25.75026
+              ],
+              [
+                -80.23807,
+                25.75026
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "city:permit:sw-27th-coral-way",
+          "hazard_type": "construction",
+          "title": "Planned roadwork",
+          "place": "SW 27th Ave at Coral Way",
+          "probability": 0.28,
+          "status": "unconfirmed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "city_gis",
+              "label": "Planned roadway project: intersection upgrades",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.19165,
+                25.76206
+              ],
+              [
+                -80.19177,
+                25.76163
+              ],
+              [
+                -80.19215,
+                25.76171
+              ],
+              [
+                -80.19203,
+                25.76214
+              ],
+              [
+                -80.19165,
+                25.76206
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "city:permit:brickell-se-13th",
+          "hazard_type": "construction",
+          "title": "Planned roadwork",
+          "place": "Brickell Ave at SE 13th St",
+          "probability": 0.22,
+          "status": "unconfirmed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "city_gis",
+              "label": "Planned roadway project: streetscape, status: planned",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Polygon",
+          "coordinates": [
+            [
+              [
+                -80.19793,
+                25.79655
+              ],
+              [
+                -80.19883,
+                25.79652
+              ],
+              [
+                -80.19893,
+                25.79652
+              ],
+              [
+                -80.19893,
+                25.79688
+              ],
+              [
+                -80.19885,
+                25.79688
+              ],
+              [
+                -80.19795,
+                25.79691
+              ],
+              [
+                -80.19793,
+                25.79655
+              ]
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "city:permit:nw-21st-2nd-ave",
+          "hazard_type": "construction",
+          "title": "Planned roadwork",
+          "place": "NW 21st St at NW 2nd Ave",
+          "probability": 0.35,
+          "status": "unconfirmed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "city_gis",
+              "label": "Planned roadway project: signal and curb work",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
             }
           ],
           "last_updated": "2026-09-28T06:00:00-04:00",
@@ -251,16 +2608,24 @@
           "type": "LineString",
           "coordinates": [
             [
-              -80.221,
-              25.7655
+              -80.2202,
+              25.76569
             ],
             [
-              -80.218,
-              25.7656
+              -80.2196,
+              25.76571
             ],
             [
-              -80.215,
-              25.7657
+              -80.219,
+              25.76573
+            ],
+            [
+              -80.21841,
+              25.76575
+            ],
+            [
+              -80.21781,
+              25.76576
             ]
           ]
         },
@@ -277,11 +2642,335 @@
               "kind": "here",
               "label": "HERE incident: road closed for event setup",
               "url": null,
-              "observed_at": "2026-09-28T07:30:00-04:00"
+              "observed_at": "2026-09-28T08:57:00-04:00"
             }
           ],
           "last_updated": "2026-09-28T08:57:00-04:00",
           "expires_at": "2026-09-28T18:00:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.31858,
+              25.73215
+            ],
+            [
+              -80.31857,
+              25.73161
+            ],
+            [
+              -80.31857,
+              25.7316
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "closure:sr-826-nb-bird-rd",
+          "hazard_type": "closure",
+          "title": "Lanes closed on SR-826 NB at Bird Rd",
+          "place": "SR-826 NB at Bird Rd",
+          "probability": 0.9,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE incident: two lanes closed for emergency repairs",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.19868,
+              25.77185
+            ],
+            [
+              -80.1986,
+              25.77238
+            ],
+            [
+              -80.19861,
+              25.77292
+            ],
+            [
+              -80.19866,
+              25.77333
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "closure:i95-sb-us1-ramp",
+          "hazard_type": "closure",
+          "title": "Ramp closed on I-95 SB to US-1",
+          "place": "I-95 SB at the US-1 exit",
+          "probability": 0.88,
+          "status": "observed",
+          "severity": 4,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE incident: exit ramp closed for barrier repair",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": "2026-09-28T15:00:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.29265,
+              25.70176
+            ],
+            [
+              -80.29221,
+              25.70212
+            ],
+            [
+              -80.29202,
+              25.70227
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "closure:us1-sb-62nd",
+          "hazard_type": "closure",
+          "title": "Road closed on US-1 SB at SW 62nd Ave",
+          "place": "US-1 SB at SW 62nd Ave",
+          "probability": 0.92,
+          "status": "observed",
+          "severity": 4,
+          "sources": [
+            {
+              "kind": "city_gis",
+              "label": "Full closure for repaving, detour posted",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": "2026-09-28T17:00:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.15444,
+              25.9152
+            ],
+            [
+              -80.15384,
+              25.91523
+            ],
+            [
+              -80.15374,
+              25.91528
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "closure:ne-151st-biscayne",
+          "hazard_type": "closure",
+          "title": "Road closed at Biscayne Blvd",
+          "place": "NE 151st St at Biscayne Blvd",
+          "probability": 0.85,
+          "status": "observed",
+          "severity": 4,
+          "sources": [
+            {
+              "kind": "news",
+              "label": "Local 10: NE 151st St closed at Biscayne Blvd because of flooding",
+              "url": "https://www.local10.com/",
+              "observed_at": "2026-09-28T08:45:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:45:00-04:00",
+          "expires_at": "2026-09-28T12:00:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.14117,
+              25.7893
+            ],
+            [
+              -80.14116,
+              25.78891
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "closure:alton-17th-overnight",
+          "hazard_type": "closure",
+          "title": "Overnight closure on Alton Rd at 17th St",
+          "place": "Alton Rd at 17th St",
+          "probability": 0.9,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "city_gis",
+              "label": "Overnight utility work, signed detour",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": "2026-09-29T06:00:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.47066,
+              25.47077
+            ],
+            [
+              -80.47105,
+              25.47036
+            ],
+            [
+              -80.47122,
+              25.4702
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "closure:us1-344th",
+          "hazard_type": "closure",
+          "title": "Road closed on US-1 near SW 344th St",
+          "place": "US-1 near SW 344th St, Homestead",
+          "probability": 0.87,
+          "status": "observed",
+          "severity": 5,
+          "sources": [
+            {
+              "kind": "news",
+              "label": "CBS: crash closes US-1 in both directions near SW 344th St",
+              "url": "https://www.cbsnews.com/miami/",
+              "observed_at": "2026-09-28T08:45:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:45:00-04:00",
+          "expires_at": "2026-09-28T11:30:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.23956,
+              25.72822
+            ],
+            [
+              -80.24016,
+              25.7282
+            ],
+            [
+              -80.24076,
+              25.72817
+            ],
+            [
+              -80.24132,
+              25.72816
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "closure:grand-ave-festival",
+          "hazard_type": "closure",
+          "title": "Grand Ave closed for the street festival",
+          "place": "Grand Ave at Main Hwy, Coconut Grove",
+          "probability": 0.9,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "city_gis",
+              "label": "Street festival setup: full closure until late",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": "2026-09-28T22:00:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.19905,
+              25.7996
+            ],
+            [
+              -80.19907,
+              25.80014
+            ],
+            [
+              -80.19909,
+              25.80068
+            ],
+            [
+              -80.19911,
+              25.80122
+            ],
+            [
+              -80.19912,
+              25.8014
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "closure:nw-2nd-ave-crane",
+          "hazard_type": "closure",
+          "title": "NW 2nd Ave closed for crane work",
+          "place": "NW 2nd Ave at NW 24th St",
+          "probability": 0.93,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "city_gis",
+              "label": "Full closure for tower-crane assembly",
+              "url": null,
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": "2026-09-28T16:00:00-04:00"
         }
       }
     ]
@@ -295,16 +2984,12 @@
           "type": "LineString",
           "coordinates": [
             [
-              -80.339,
-              25.761
+              -80.32074,
+              25.77812
             ],
             [
-              -80.338,
-              25.775
-            ],
-            [
-              -80.337,
-              25.79
+              -80.3207,
+              25.77708
             ]
           ]
         },
@@ -326,7 +3011,766 @@
           ],
           "last_updated": "2026-09-28T08:57:00-04:00",
           "expires_at": null,
-          "level": "heavy"
+          "level": "heavy",
+          "ratio": 0.65
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.31864,
+              25.73304
+            ],
+            [
+              -80.3186,
+              25.7327
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:sr-826-sb-bird",
+          "hazard_type": "congestion",
+          "title": "Heavy traffic",
+          "place": "SR-826 southbound at Bird Rd",
+          "probability": 0.88,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 24 mph vs 55 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "heavy",
+          "ratio": 0.6
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.321,
+              25.75819
+            ],
+            [
+              -80.32088,
+              25.75766
+            ],
+            [
+              -80.32076,
+              25.75713
+            ],
+            [
+              -80.32065,
+              25.75661
+            ],
+            [
+              -80.32053,
+              25.75608
+            ],
+            [
+              -80.32048,
+              25.75586
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:palmetto-mmc",
+          "hazard_type": "congestion",
+          "title": "Heavy traffic",
+          "place": "SR-826 near SW 8th St, by MMC",
+          "probability": 0.86,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 21 mph vs 55 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "heavy",
+          "ratio": 0.62
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.20885,
+              25.88358
+            ],
+            [
+              -80.20886,
+              25.88384
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:i95-nb-125th",
+          "hazard_type": "congestion",
+          "title": "Slow traffic",
+          "place": "I-95 northbound at NE 125th St",
+          "probability": 0.82,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 31 mph vs 60 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "moderate",
+          "ratio": 0.4
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.1997,
+              25.77747
+            ],
+            [
+              -80.19979,
+              25.77998
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:i95-sb-downtown",
+          "hazard_type": "congestion",
+          "title": "Severe traffic",
+          "place": "I-95 southbound near the downtown curve",
+          "probability": 0.91,
+          "status": "observed",
+          "severity": 4,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 11 mph vs 55 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "severe",
+          "ratio": 0.82
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.18836,
+              25.94238
+            ],
+            [
+              -80.18795,
+              25.94277
+            ],
+            [
+              -80.18758,
+              25.94319
+            ],
+            [
+              -80.18741,
+              25.94342
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:i95-nb-ives",
+          "hazard_type": "congestion",
+          "title": "Severe traffic",
+          "place": "I-95 northbound at Ives Dairy Rd",
+          "probability": 0.89,
+          "status": "observed",
+          "severity": 4,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 13 mph vs 60 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "severe",
+          "ratio": 0.78
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.28775,
+              25.70587
+            ],
+            [
+              -80.28851,
+              25.70528
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:us1-nb-south-miami",
+          "hazard_type": "congestion",
+          "title": "Heavy traffic",
+          "place": "US-1 NB at SW 57th Ave",
+          "probability": 0.87,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 16 mph vs 45 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "heavy",
+          "ratio": 0.58
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.30613,
+              25.69062
+            ],
+            [
+              -80.30569,
+              25.69098
+            ],
+            [
+              -80.30525,
+              25.69135
+            ],
+            [
+              -80.30507,
+              25.6915
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:us1-sb-kendall",
+          "hazard_type": "congestion",
+          "title": "Severe traffic",
+          "place": "US-1 SB at Kendall Dr",
+          "probability": 0.9,
+          "status": "observed",
+          "severity": 4,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 12 mph vs 45 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "severe",
+          "ratio": 0.75
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.32267,
+              25.6683
+            ],
+            [
+              -80.32244,
+              25.6688
+            ],
+            [
+              -80.32235,
+              25.66898
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:us1-nb-dadeland",
+          "hazard_type": "congestion",
+          "title": "Slow traffic",
+          "place": "US-1 NB near Dadeland",
+          "probability": 0.8,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 28 mph vs 45 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "moderate",
+          "ratio": 0.38
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.23922,
+              25.76513
+            ],
+            [
+              -80.23891,
+              25.76517
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:sw-8th-27th",
+          "hazard_type": "congestion",
+          "title": "Heavy traffic",
+          "place": "SW 8th St at SW 27th Ave",
+          "probability": 0.85,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 14 mph vs 35 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "heavy",
+          "ratio": 0.6
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.25314,
+              25.7462
+            ],
+            [
+              -80.25374,
+              25.74618
+            ],
+            [
+              -80.25434,
+              25.74617
+            ],
+            [
+              -80.25443,
+              25.74616
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:coral-way-gables",
+          "hazard_type": "congestion",
+          "title": "Slow traffic",
+          "place": "Coral Way at SW 42nd Ave",
+          "probability": 0.78,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 22 mph vs 35 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "moderate",
+          "ratio": 0.42
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.19276,
+              25.75805
+            ],
+            [
+              -80.19261,
+              25.75857
+            ],
+            [
+              -80.19248,
+              25.7591
+            ],
+            [
+              -80.19234,
+              25.75962
+            ],
+            [
+              -80.1922,
+              25.76014
+            ],
+            [
+              -80.1922,
+              25.76015
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:brickell-ave-se7th",
+          "hazard_type": "congestion",
+          "title": "Severe traffic",
+          "place": "Brickell Ave at SE 7th St",
+          "probability": 0.92,
+          "status": "observed",
+          "severity": 4,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 8 mph vs 30 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "severe",
+          "ratio": 0.8
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.18906,
+              25.78573
+            ],
+            [
+              -80.18906,
+              25.7862
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:biscayne-downtown",
+          "hazard_type": "congestion",
+          "title": "Heavy traffic",
+          "place": "Biscayne Blvd at NE 6th St",
+          "probability": 0.88,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 15 mph vs 35 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "heavy",
+          "ratio": 0.63
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.14123,
+              25.78989
+            ],
+            [
+              -80.14117,
+              25.7894
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:alton-17th",
+          "hazard_type": "congestion",
+          "title": "Slow traffic",
+          "place": "Alton Rd at 17th St",
+          "probability": 0.76,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 19 mph vs 30 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "moderate",
+          "ratio": 0.35
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.3023,
+              25.83903
+            ],
+            [
+              -80.30272,
+              25.83941
+            ],
+            [
+              -80.30315,
+              25.83979
+            ],
+            [
+              -80.3036,
+              25.84015
+            ],
+            [
+              -80.30407,
+              25.84048
+            ],
+            [
+              -80.3044,
+              25.84068
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:okeechobee-hialeah",
+          "hazard_type": "congestion",
+          "title": "Heavy traffic",
+          "place": "Okeechobee Rd at W 12th Ave",
+          "probability": 0.84,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 17 mph vs 45 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "heavy",
+          "ratio": 0.6
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.33795,
+              25.80995
+            ],
+            [
+              -80.33747,
+              25.80988
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:nw-36th-doral",
+          "hazard_type": "congestion",
+          "title": "Slow traffic",
+          "place": "NW 36th St near NW 87th Ave",
+          "probability": 0.8,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 20 mph vs 35 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "moderate",
+          "ratio": 0.4
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.14553,
+              25.91563
+            ],
+            [
+              -80.14499,
+              25.91546
+            ],
+            [
+              -80.14441,
+              25.91559
+            ],
+            [
+              -80.14404,
+              25.91564
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:ne-151st-bbc",
+          "hazard_type": "congestion",
+          "title": "Slow traffic",
+          "place": "NE 151st St at Biscayne Blvd",
+          "probability": 0.75,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 16 mph vs 30 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "moderate",
+          "ratio": 0.36
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.33961,
+              25.78156
+            ],
+            [
+              -80.34021,
+              25.78156
+            ],
+            [
+              -80.34031,
+              25.78156
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:sr-836-nw57",
+          "hazard_type": "congestion",
+          "title": "Severe traffic",
+          "place": "SR-836 WB before NW 57th Ave",
+          "probability": 0.91,
+          "status": "observed",
+          "severity": 4,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 10 mph vs 50 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "severe",
+          "ratio": 0.84
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.34142,
+              25.6877
+            ],
+            [
+              -80.34082,
+              25.68773
+            ],
+            [
+              -80.34044,
+              25.68774
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "congestion:kendall-dr-137",
+          "hazard_type": "congestion",
+          "title": "Slow traffic",
+          "place": "Kendall Dr at SW 137th Ave",
+          "probability": 0.77,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "here",
+              "label": "HERE flow: 21 mph vs 35 mph free flow",
+              "url": null,
+              "observed_at": "2026-09-28T08:57:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:57:00-04:00",
+          "expires_at": null,
+          "level": "moderate",
+          "ratio": 0.34
         }
       }
     ]
@@ -340,24 +3784,1171 @@
           "type": "LineString",
           "coordinates": [
             [
-              -80.383,
-              25.76
+              -80.37304,
+              25.7613
             ],
             [
-              -80.383,
-              25.7625
-            ],
-            [
-              -80.383,
-              25.765
+              -80.37523,
+              25.76125
             ]
           ]
         },
         "properties": {
-          "hazard_id": "no_sidewalk:osm-way-000001",
+          "hazard_id": "no_sidewalk:osm-way-535353766",
           "hazard_type": "no_sidewalk",
           "title": "No sidewalk",
-          "place": "SW 117th Ave",
+          "place": "Southwest 8th Street",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.3754,
+              25.76125
+            ],
+            [
+              -80.37577,
+              25.76124
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-1310007572",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Southwest 8th Street",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.37185,
+              25.76132
+            ],
+            [
+              -80.37216,
+              25.76131
+            ],
+            [
+              -80.37221,
+              25.76131
+            ],
+            [
+              -80.37241,
+              25.76131
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-1309209619",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Southwest 8th Street",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.37615,
+              25.76123
+            ],
+            [
+              -80.37621,
+              25.76123
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-534597359",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Southwest 8th Street",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.37627,
+              25.76123
+            ],
+            [
+              -80.37693,
+              25.76121
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-991369364",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Southwest 8th Street",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.37052,
+              25.76135
+            ],
+            [
+              -80.37129,
+              25.76133
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-159220292",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Southwest 8th Street",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.37759,
+              25.7612
+            ],
+            [
+              -80.37801,
+              25.76119
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-513980883",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Southwest 8th Street",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.37843,
+              25.76118
+            ],
+            [
+              -80.37942,
+              25.76115
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-385182110",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Southwest 8th Street",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.38041,
+              25.76113
+            ],
+            [
+              -80.38135,
+              25.76111
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-513980885",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Southwest 8th Street",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.3823,
+              25.7611
+            ],
+            [
+              -80.383,
+              25.7611
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-513980886",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Southwest 8th Street",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.38453,
+              25.76109
+            ],
+            [
+              -80.38468,
+              25.76109
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-43336871",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Southwest 8th Street",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.36782,
+              25.76142
+            ],
+            [
+              -80.36823,
+              25.76141
+            ],
+            [
+              -80.36838,
+              25.7614
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-1016506600",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Southwest 8th Street",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.32009,
+              25.74827
+            ],
+            [
+              -80.32009,
+              25.74791
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-38728838",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Palmetto Expressway",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.32009,
+              25.74791
+            ],
+            [
+              -80.32008,
+              25.74728
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-87544091",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Palmetto Expressway",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.32009,
+              25.74838
+            ],
+            [
+              -80.32009,
+              25.74833
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-1033376991",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Palmetto Expressway",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.34568,
+              25.69415
+            ],
+            [
+              -80.34577,
+              25.69404
+            ],
+            [
+              -80.34611,
+              25.69367
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-87544127",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Snapper Creek Expressway",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.34091,
+              25.69522
+            ],
+            [
+              -80.34031,
+              25.69524
+            ],
+            [
+              -80.34006,
+              25.69525
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-1033369128",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Snapper Creek Expressway",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.34114,
+              25.69521
+            ],
+            [
+              -80.34091,
+              25.69522
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-1033369129",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Snapper Creek Expressway",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.30189,
+              25.69429
+            ],
+            [
+              -80.30215,
+              25.69417
+            ],
+            [
+              -80.30227,
+              25.69411
+            ],
+            [
+              -80.30242,
+              25.69404
+            ],
+            [
+              -80.3025,
+              25.694
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-38687022",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Snapper Creek Expressway",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.27871,
+              25.71697
+            ],
+            [
+              -80.27866,
+              25.71684
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-956127341",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Dickenson Drive",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.23253,
+              25.76039
+            ],
+            [
+              -80.23253,
+              25.76032
+            ],
+            [
+              -80.23253,
+              25.76029
+            ],
+            [
+              -80.23251,
+              25.75991
+            ],
+            [
+              -80.23251,
+              25.75986
+            ],
+            [
+              -80.23251,
+              25.75982
+            ],
+            [
+              -80.23249,
+              25.7594
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-981459962",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Southwest 23rd Avenue",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.2304,
+              25.75624
+            ],
+            [
+              -80.23045,
+              25.75624
+            ],
+            [
+              -80.2315,
+              25.7562
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-237322338",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Southwest 17th Alley",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.29319,
+              25.84092
+            ],
+            [
+              -80.2938,
+              25.84108
+            ],
+            [
+              -80.29425,
+              25.84118
+            ],
+            [
+              -80.29468,
+              25.84127
+            ],
+            [
+              -80.29493,
+              25.8413
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-47670847",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Hialeah Expressway",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.29015,
+              25.84066
+            ],
+            [
+              -80.2903,
+              25.84066
+            ],
+            [
+              -80.29094,
+              25.84065
+            ],
+            [
+              -80.29134,
+              25.84066
+            ],
+            [
+              -80.29137,
+              25.84066
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-129195136",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Hialeah Expressway",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.31862,
+              25.80185
+            ],
+            [
+              -80.31863,
+              25.80208
+            ],
+            [
+              -80.31863,
+              25.80224
+            ],
+            [
+              -80.31864,
+              25.80248
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-1000471559",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Northwest 75th Avenue",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.31959,
+              25.79725
+            ],
+            [
+              -80.31994,
+              25.79724
+            ],
+            [
+              -80.32049,
+              25.79722
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-188844364",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Northwest 25th Street Viaduct",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.19786,
+              25.87692
+            ],
+            [
+              -80.19777,
+              25.87693
+            ],
+            [
+              -80.1977,
+              25.87695
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-1050304336",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Northeast 111th Street",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.1982,
+              25.87698
+            ],
+            [
+              -80.19824,
+              25.87696
+            ],
+            [
+              -80.19827,
+              25.87696
+            ],
+            [
+              -80.1983,
+              25.87695
+            ],
+            [
+              -80.19831,
+              25.87695
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-1050304338",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Northwest 111th Street",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.13429,
+              25.79004
+            ],
+            [
+              -80.13435,
+              25.79003
+            ],
+            [
+              -80.13436,
+              25.79003
+            ],
+            [
+              -80.13467,
+              25.79002
+            ],
+            [
+              -80.13481,
+              25.79002
+            ],
+            [
+              -80.13485,
+              25.79002
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-11142430",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Lincoln Lane South",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "osm",
+              "label": "OpenStreetMap: sidewalk=no",
+              "url": "https://www.openstreetmap.org/",
+              "observed_at": "2026-09-28T03:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T03:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "LineString",
+          "coordinates": [
+            [
+              -80.13541,
+              25.79
+            ],
+            [
+              -80.13549,
+              25.79
+            ],
+            [
+              -80.13594,
+              25.78999
+            ],
+            [
+              -80.13647,
+              25.78998
+            ],
+            [
+              -80.1365,
+              25.78998
+            ]
+          ]
+        },
+        "properties": {
+          "hazard_id": "no_sidewalk:osm-way-765261052",
+          "hazard_type": "no_sidewalk",
+          "title": "No sidewalk",
+          "place": "Lincoln Lane South",
           "probability": 0.95,
           "status": "observed",
           "severity": 1,
@@ -383,8 +4974,8 @@
         "geometry": {
           "type": "Point",
           "coordinates": [
-            -80.37,
-            25.761
+            -80.37311,
+            25.7611
           ]
         },
         "properties": {
@@ -406,6 +4997,499 @@
           "last_updated": "2026-09-28T06:00:00-04:00",
           "expires_at": null
         }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.36878,
+            25.76525
+          ]
+        },
+        "properties": {
+          "hazard_id": "pothole:311-sw-107th-ave",
+          "hazard_type": "pothole",
+          "title": "Chronic potholes",
+          "place": "SW 107th Ave near SW 12th St",
+          "probability": 0.4,
+          "status": "predicted",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "311",
+              "label": "Miami-Dade 311: 5 complaints/km (2023)",
+              "url": null,
+              "observed_at": null
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.33501,
+            25.74759
+          ]
+        },
+        "properties": {
+          "hazard_id": "pothole:311-sw-24th-st",
+          "hazard_type": "pothole",
+          "title": "Chronic potholes",
+          "place": "Coral Way at SW 87th Ave",
+          "probability": 0.55,
+          "status": "predicted",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "311",
+              "label": "Miami-Dade 311: 6 complaints/km (2023)",
+              "url": null,
+              "observed_at": null
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.34083,
+            25.68772
+          ]
+        },
+        "properties": {
+          "hazard_id": "pothole:311-kendall-dr",
+          "hazard_type": "pothole",
+          "title": "Chronic potholes",
+          "place": "Kendall Dr at SW 137th Ave",
+          "probability": 0.45,
+          "status": "predicted",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "311",
+              "label": "Miami-Dade 311: 4 complaints/km (2023)",
+              "url": null,
+              "observed_at": null
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.28856,
+            25.70507
+          ]
+        },
+        "properties": {
+          "hazard_id": "pothole:311-us1-south-miami",
+          "hazard_type": "pothole",
+          "title": "Chronic potholes",
+          "place": "US-1 at SW 57th Ave",
+          "probability": 0.6,
+          "status": "predicted",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "311",
+              "label": "Miami-Dade 311: 9 complaints/km (2023)",
+              "url": null,
+              "observed_at": null
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.23901,
+            25.76513
+          ]
+        },
+        "properties": {
+          "hazard_id": "pothole:311-sw-8th-27th",
+          "hazard_type": "pothole",
+          "title": "Chronic potholes",
+          "place": "SW 8th St at SW 27th Ave",
+          "probability": 0.58,
+          "status": "predicted",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "311",
+              "label": "Miami-Dade 311: 8 complaints/km (2023)",
+              "url": null,
+              "observed_at": null
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.23995,
+            25.77231
+          ]
+        },
+        "properties": {
+          "hazard_id": "pothole:311-flagler-27th",
+          "hazard_type": "pothole",
+          "title": "Chronic potholes",
+          "place": "W Flagler St at SW 27th Ave",
+          "probability": 0.52,
+          "status": "predicted",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "311",
+              "label": "Miami-Dade 311: 6 complaints/km (2023)",
+              "url": null,
+              "observed_at": null
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.19118,
+            25.76462
+          ]
+        },
+        "properties": {
+          "hazard_id": "pothole:311-brickell-ave",
+          "hazard_type": "pothole",
+          "title": "Chronic potholes",
+          "place": "Brickell Ave at SE 10th St",
+          "probability": 0.55,
+          "status": "predicted",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "311",
+              "label": "Miami-Dade 311: 5 complaints/km (2023)",
+              "url": null,
+              "observed_at": null
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.1818,
+            25.86065
+          ]
+        },
+        "properties": {
+          "hazard_id": "pothole:311-biscayne-79th",
+          "hazard_type": "pothole",
+          "title": "Chronic potholes",
+          "place": "Biscayne Blvd at NE 79th St",
+          "probability": 0.57,
+          "status": "predicted",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "311",
+              "label": "Miami-Dade 311: 7 complaints/km (2023)",
+              "url": null,
+              "observed_at": null
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.1397,
+            25.79666
+          ]
+        },
+        "properties": {
+          "hazard_id": "pothole:311-alton-rd",
+          "hazard_type": "pothole",
+          "title": "Chronic potholes",
+          "place": "Alton Rd at 41st St",
+          "probability": 0.53,
+          "status": "predicted",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "311",
+              "label": "Miami-Dade 311: 6 complaints/km (2023)",
+              "url": null,
+              "observed_at": null
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.30318,
+            25.83982
+          ]
+        },
+        "properties": {
+          "hazard_id": "pothole:311-okeechobee",
+          "hazard_type": "pothole",
+          "title": "Chronic potholes",
+          "place": "Okeechobee Rd at W 12th Ave",
+          "probability": 0.6,
+          "status": "predicted",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "311",
+              "label": "Miami-Dade 311: 10 complaints/km (2023)",
+              "url": null,
+              "observed_at": null
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.33716,
+            25.80983
+          ]
+        },
+        "properties": {
+          "hazard_id": "pothole:311-nw-36th",
+          "hazard_type": "pothole",
+          "title": "Chronic potholes",
+          "place": "NW 36th St near NW 87th Ave",
+          "probability": 0.42,
+          "status": "predicted",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "311",
+              "label": "Miami-Dade 311: 5 complaints/km (2023)",
+              "url": null,
+              "observed_at": null
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.15058,
+            25.91542
+          ]
+        },
+        "properties": {
+          "hazard_id": "pothole:311-ne-151st",
+          "hazard_type": "pothole",
+          "title": "Chronic potholes",
+          "place": "NE 151st St at Biscayne Blvd",
+          "probability": 0.59,
+          "status": "predicted",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "311",
+              "label": "Miami-Dade 311: 6 complaints/km (2023)",
+              "url": null,
+              "observed_at": null
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.25443,
+            25.74616
+          ]
+        },
+        "properties": {
+          "hazard_id": "pothole:311-coral-way",
+          "hazard_type": "pothole",
+          "title": "Chronic potholes",
+          "place": "Coral Way at SW 42nd Ave",
+          "probability": 0.54,
+          "status": "predicted",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "311",
+              "label": "Miami-Dade 311: 7 complaints/km (2023)",
+              "url": null,
+              "observed_at": null
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.1991,
+            25.80099
+          ]
+        },
+        "properties": {
+          "hazard_id": "pothole:report-nw-2nd-ave",
+          "hazard_type": "pothole",
+          "title": "Pothole reported",
+          "place": "NW 2nd Ave at NW 24th St",
+          "probability": 0.78,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "crowd",
+              "label": "1 report from Mapay users",
+              "url": null,
+              "observed_at": "2026-09-28T07:58:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T07:58:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.13008,
+            25.79013
+          ]
+        },
+        "properties": {
+          "hazard_id": "pothole:report-collins",
+          "hazard_type": "pothole",
+          "title": "Pothole reported",
+          "place": "Collins Ave at 71st St",
+          "probability": 0.72,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "crowd",
+              "label": "1 report from Mapay users",
+              "url": null,
+              "observed_at": "2026-09-28T07:32:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T07:32:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.24252,
+            25.72808
+          ]
+        },
+        "properties": {
+          "hazard_id": "pothole:report-grand-ave",
+          "hazard_type": "pothole",
+          "title": "Pothole reported",
+          "place": "Grand Ave at Commodore Plaza",
+          "probability": 0.7,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "crowd",
+              "label": "1 report from Mapay users",
+              "url": null,
+              "observed_at": "2026-09-28T08:02:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:02:00-04:00",
+          "expires_at": null
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.35485,
+            25.6728
+          ]
+        },
+        "properties": {
+          "hazard_id": "pothole:report-sw-104th",
+          "hazard_type": "pothole",
+          "title": "Pothole reported",
+          "place": "SW 104th St at SW 117th Ave",
+          "probability": 0.74,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "crowd",
+              "label": "1 report from Mapay users",
+              "url": null,
+              "observed_at": "2026-09-28T07:20:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T07:20:00-04:00",
+          "expires_at": null
+        }
       }
     ]
   },
@@ -417,14 +5501,14 @@
         "geometry": {
           "type": "Point",
           "coordinates": [
-            -80.204,
-            25.89
+            -80.20885,
+            25.88358
           ]
         },
         "properties": {
           "hazard_id": "incident:news-i95-nb-125th",
           "hazard_type": "incident",
-          "title": "Crash on I-95",
+          "title": "Crash blocks two lanes on I-95 NB at NE 125th St",
           "place": "I-95 northbound near NE 125th St",
           "probability": 0.7,
           "status": "observed",
@@ -432,13 +5516,274 @@
           "sources": [
             {
               "kind": "news",
-              "label": "NBC6: crash blocks two lanes on I-95 NB",
+              "label": "NBC6: crash blocks two lanes on I-95 NB at NE 125th St",
               "url": "https://www.nbcmiami.com/",
-              "observed_at": "2026-09-28T08:40:00-04:00"
+              "observed_at": "2026-09-28T08:45:00-04:00"
             }
           ],
           "last_updated": "2026-09-28T08:45:00-04:00",
-          "expires_at": null
+          "expires_at": "2026-09-28T11:30:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.31857,
+            25.7316
+          ]
+        },
+        "properties": {
+          "hazard_id": "incident:news-sr826-nb-bird",
+          "hazard_type": "incident",
+          "title": "Crash blocks two lanes on SR-826 NB at Bird Rd",
+          "place": "SR-826 northbound at Bird Rd",
+          "probability": 0.72,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "news",
+              "label": "Local 10: two lanes blocked after a crash on SR-826 NB at Bird Rd",
+              "url": "https://www.local10.com/",
+              "observed_at": "2026-09-28T08:45:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:45:00-04:00",
+          "expires_at": "2026-09-28T11:45:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.30538,
+            25.69124
+          ]
+        },
+        "properties": {
+          "hazard_id": "incident:news-us1-sb-kendall",
+          "hazard_type": "incident",
+          "title": "Crash on US-1 SB at Kendall Dr",
+          "place": "US-1 southbound at Kendall Dr",
+          "probability": 0.68,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "news",
+              "label": "CBS: crash slows US-1 SB at Kendall Dr",
+              "url": "https://www.cbsnews.com/miami/",
+              "observed_at": "2026-09-28T08:45:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:45:00-04:00",
+          "expires_at": "2026-09-28T11:15:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.19239,
+            25.75998
+          ]
+        },
+        "properties": {
+          "hazard_id": "incident:news-brickell-ave",
+          "hazard_type": "incident",
+          "title": "Police activity on Brickell Ave at SE 8th St",
+          "place": "Brickell Ave at SE 8th St",
+          "probability": 0.48,
+          "status": "unconfirmed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "news",
+              "label": "NBC6: police activity closes one lane on Brickell Ave",
+              "url": "https://www.nbcmiami.com/",
+              "observed_at": "2026-09-28T08:45:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:10:00-04:00",
+          "expires_at": "2026-09-28T11:10:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.18905,
+            25.79697
+          ]
+        },
+        "properties": {
+          "hazard_id": "incident:news-biscayne-blvd",
+          "hazard_type": "incident",
+          "title": "Disabled vehicle blocking a lane on Biscayne Blvd NB",
+          "place": "Biscayne Blvd at NE 36th St",
+          "probability": 0.55,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "news",
+              "label": "WLRN: disabled vehicle blocking a lane on Biscayne Blvd NB",
+              "url": "https://www.wlrn.org/",
+              "observed_at": "2026-09-28T08:45:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:28:00-04:00",
+          "expires_at": "2026-09-28T11:28:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.14124,
+            25.7897
+          ]
+        },
+        "properties": {
+          "hazard_id": "incident:news-alton-rd",
+          "hazard_type": "incident",
+          "title": "Crash on Alton Rd at 17th St leaves one lane open",
+          "place": "Alton Rd at 17th St",
+          "probability": 0.74,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "news",
+              "label": "Local 10: crash on Alton Rd at 17th St leaves one lane open",
+              "url": "https://www.local10.com/",
+              "observed_at": "2026-09-28T08:45:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:45:00-04:00",
+          "expires_at": "2026-09-28T11:40:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.30329,
+            25.83991
+          ]
+        },
+        "properties": {
+          "hazard_id": "incident:news-okeechobee",
+          "hazard_type": "incident",
+          "title": "Multi-car crash on Okeechobee Rd near W 12th Ave",
+          "place": "Okeechobee Rd near W 12th Ave",
+          "probability": 0.77,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "news",
+              "label": "NBC6: multi-car crash delays Okeechobee Rd near W 12th Ave",
+              "url": "https://www.nbcmiami.com/",
+              "observed_at": "2026-09-28T08:45:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:45:00-04:00",
+          "expires_at": "2026-09-28T12:00:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.228,
+            25.76549
+          ]
+        },
+        "properties": {
+          "hazard_id": "incident:news-sw-8th-22nd",
+          "hazard_type": "incident",
+          "title": "Crash on SW 8th St at SW 22nd Ave",
+          "place": "SW 8th St at SW 22nd Ave",
+          "probability": 0.65,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "news",
+              "label": "WLRN: crash blocks a lane on SW 8th St at SW 22nd Ave",
+              "url": "https://www.wlrn.org/",
+              "observed_at": "2026-09-28T08:45:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:45:00-04:00",
+          "expires_at": "2026-09-28T11:20:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.33698,
+            25.78156
+          ]
+        },
+        "properties": {
+          "hazard_id": "incident:news-sr836-nw57",
+          "hazard_type": "incident",
+          "title": "Stalled truck blocking a lane on SR-836 WB before NW 57th Ave",
+          "place": "SR-836 WB before NW 57th Ave",
+          "probability": 0.58,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "news",
+              "label": "CBS: stalled truck blocking a lane on SR-836 WB",
+              "url": "https://www.cbsnews.com/miami/",
+              "observed_at": "2026-09-28T08:45:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:22:00-04:00",
+          "expires_at": "2026-09-28T11:22:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.47007,
+            25.47138
+          ]
+        },
+        "properties": {
+          "hazard_id": "incident:news-us1-344th",
+          "hazard_type": "incident",
+          "title": "Crash closes a lane on US-1 near SW 344th St",
+          "place": "US-1 near SW 344th St, Homestead",
+          "probability": 0.7,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "news",
+              "label": "Local 10: crash closes a lane on US-1 near SW 344th St",
+              "url": "https://www.local10.com/",
+              "observed_at": "2026-09-28T08:45:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T08:45:00-04:00",
+          "expires_at": "2026-09-28T11:35:00-04:00"
         }
       }
     ]
@@ -451,15 +5796,15 @@
         "geometry": {
           "type": "Point",
           "coordinates": [
-            -80.187,
+            -80.1874,
             25.7814
           ]
         },
         "properties": {
           "hazard_id": "event:kaseya-center-2026-09-28",
           "hazard_type": "event",
-          "title": "Event tonight",
-          "place": "Kaseya Center, 7:30 PM",
+          "title": "Concert at Kaseya Center",
+          "place": "Kaseya Center · doors 6:30 PM",
           "probability": 0.95,
           "status": "observed",
           "severity": 2,
@@ -472,7 +5817,152 @@
             }
           ],
           "last_updated": "2026-09-28T06:00:00-04:00",
-          "expires_at": null
+          "expires_at": "2026-09-28T23:30:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.1878,
+            25.7868
+          ]
+        },
+        "properties": {
+          "hazard_id": "event:arsht-center-2026-09-28",
+          "hazard_type": "event",
+          "title": "Performance at the Arsht Center",
+          "place": "Adrienne Arsht Center · 8:00 PM",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "ticketmaster",
+              "label": "Ticketmaster: performance, curtain 8:00 PM",
+              "url": "https://www.ticketmaster.com/",
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": "2026-09-28T22:30:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.2196,
+            25.7781
+          ]
+        },
+        "properties": {
+          "hazard_id": "event:loan-depot-park-2026-09-28",
+          "hazard_type": "event",
+          "title": "Baseball at loanDepot park",
+          "place": "loanDepot park · 6:40 PM",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "ticketmaster",
+              "label": "Ticketmaster: home game, first pitch 6:40 PM",
+              "url": "https://www.ticketmaster.com/",
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": "2026-09-28T23:00:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.1338,
+            25.7939
+          ]
+        },
+        "properties": {
+          "hazard_id": "event:miami-beach-convention-2026-09-29",
+          "hazard_type": "event",
+          "title": "Conference at the Miami Beach Convention Center",
+          "place": "Miami Beach Convention Center · 9:00 AM",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 1,
+          "sources": [
+            {
+              "kind": "ticketmaster",
+              "label": "Ticketmaster: conference, doors 8:00 AM",
+              "url": "https://www.ticketmaster.com/",
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": "2026-09-29T17:00:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.2195,
+            25.7655
+          ]
+        },
+        "properties": {
+          "hazard_id": "event:calle-ocho-viernes-2026-10-02",
+          "hazard_type": "event",
+          "title": "Viernes Culturales on SW 8th St",
+          "place": "SW 8th St between 14th and 17th Ave · 6–10 PM",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 2,
+          "sources": [
+            {
+              "kind": "ticketmaster",
+              "label": "Ticketmaster: street festival, Friday 6–10 PM",
+              "url": "https://www.ticketmaster.com/",
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": "2026-10-03T00:00:00-04:00"
+        }
+      },
+      {
+        "type": "Feature",
+        "geometry": {
+          "type": "Point",
+          "coordinates": [
+            -80.2389,
+            25.958
+          ]
+        },
+        "properties": {
+          "hazard_id": "event:hard-rock-2026-10-03",
+          "hazard_type": "event",
+          "title": "College football at Hard Rock Stadium",
+          "place": "Hard Rock Stadium · 3:30 PM",
+          "probability": 0.95,
+          "status": "observed",
+          "severity": 3,
+          "sources": [
+            {
+              "kind": "ticketmaster",
+              "label": "Ticketmaster: football, kickoff 3:30 PM",
+              "url": "https://www.ticketmaster.com/",
+              "observed_at": "2026-09-28T06:00:00-04:00"
+            }
+          ],
+          "last_updated": "2026-09-28T06:00:00-04:00",
+          "expires_at": "2026-10-03T20:00:00-04:00"
         }
       }
     ]
