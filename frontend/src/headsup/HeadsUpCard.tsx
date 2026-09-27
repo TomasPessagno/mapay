@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { IonCard, IonCardContent, IonButton, IonText } from '@ionic/react';
 import { Haptics, NotificationType } from '@capacitor/haptics';
 import type { UpcomingLeg } from '../lib/types';
@@ -21,6 +21,7 @@ interface HeadsUpCardProps {
 
 const HeadsUpCard: React.FC<HeadsUpCardProps> = ({ leg, timeOffsetMs = 0, onCustomize }) => {
   const [now, setNow] = useState(() => new Date(Date.now() + timeOffsetMs));
+  const warnedOccurrenceRef = useRef<string | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -30,10 +31,12 @@ const HeadsUpCard: React.FC<HeadsUpCardProps> = ({ leg, timeOffsetMs = 0, onCust
   }, [timeOffsetMs]);
 
   useEffect(() => {
-    if (leg.top_hazards && leg.top_hazards.length > 0) {
+    const occurrence = `${leg.routine_id}:${leg.leg}:${leg.departure_at}`;
+    if (leg.top_hazards?.length && warnedOccurrenceRef.current !== occurrence) {
+      warnedOccurrenceRef.current = occurrence;
       Haptics.notification({ type: NotificationType.Warning }).catch(() => {});
     }
-  }, [leg.routine_id, leg.leg, leg.top_hazards]);
+  }, [leg.routine_id, leg.leg, leg.departure_at, leg.top_hazards]);
 
   const targetTime = leg.best_departure_at ? new Date(leg.best_departure_at) : new Date(leg.departure_at);
   const diffMs = targetTime.getTime() - now.getTime();
@@ -46,27 +49,24 @@ const HeadsUpCard: React.FC<HeadsUpCardProps> = ({ leg, timeOffsetMs = 0, onCust
     : `Left ${Math.abs(diffMins)} min ago`;
 
   return (
-    <IonCard style={{ borderRadius: '26px', margin: '0 0 16px 0', boxShadow: 'none', background: 'var(--secondary-system-background)' }}>
+    <IonCard className="heads-up-card" style={{ margin: '0 0 16px 0', boxShadow: 'none' }}>
       <IonCardContent>
         {/* Countdown */}
-        <h1 style={{ 
-          fontFamily: "ui-rounded, 'SF Pro Rounded', system-ui, sans-serif",
-          fontSize: '34px', 
-          fontWeight: 'bold', 
-          color: 'var(--ion-color-dark)',
-          margin: '0 0 12px 0'
-        }}>
+        <h1
+          className="heads-up-countdown dynamic-large-title"
+          style={{ fontSize: '34px', fontWeight: 700, lineHeight: '41px' }}
+        >
           {countdownText}
         </h1>
 
         {/* Route (Title 2) and Trip time */}
         <IonText color="dark">
-          <h2 style={{ fontSize: '22px', fontWeight: 'bold', margin: '0 0 4px 0' }}>
+          <h2 className="heads-up-route-title dynamic-title2">
             {leg.from.name} → {leg.to.name}
           </h2>
         </IonText>
         <IonText color="medium">
-          <p style={{ margin: '0 0 12px 0', fontSize: '17px' }}>
+          <p className="dynamic-body" style={{ margin: '0 0 12px 0' }}>
             {formatTime(leg.duration_s)} trip
             {leg.window && leg.best_departure_at
               ? ` · Best time to leave ${new Date(leg.best_departure_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`
@@ -82,14 +82,17 @@ const HeadsUpCard: React.FC<HeadsUpCardProps> = ({ leg, timeOffsetMs = 0, onCust
         )}
 
         {/* Buttons */}
-        <div style={{ display: 'flex', gap: '12px' }}>
+        <div className="heads-up-actions">
           <IonButton 
             expand="block" 
             shape="round" 
-            style={{ flex: 1, margin: 0 }}
+            className="heads-up-action dynamic-headline"
+            aria-label={`Start route from ${leg.from.name} to ${leg.to.name}`}
             onClick={() => {
               if (leg.deep_links.google_maps) {
-                openLink(leg.deep_links.google_maps);
+                void openLink(leg.deep_links.google_maps).then(() =>
+                  Haptics.notification({ type: NotificationType.Success }).catch(() => {})
+                );
               }
             }}
           >
@@ -98,9 +101,9 @@ const HeadsUpCard: React.FC<HeadsUpCardProps> = ({ leg, timeOffsetMs = 0, onCust
           <IonButton 
             expand="block" 
             shape="round" 
+            className="heads-up-action dynamic-headline"
+            aria-label={`Customize route from ${leg.from.name} to ${leg.to.name}`}
             style={{ 
-              flex: 1, 
-              margin: 0, 
               // Tinted, not filled: system blue at low opacity (docs/design.md, heads-up card).
               '--background': 'rgba(var(--ion-color-primary-rgb, 0, 122, 255), 0.12)',
               '--color': 'var(--ion-color-primary)',

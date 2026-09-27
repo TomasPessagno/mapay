@@ -72,7 +72,7 @@ const App: React.FC = () => {
             <Route path="/" element={<Navigate to="/map" replace />} />
           </IonRouterOutlet>
 
-          <IonTabBar slot="bottom" className="glass">
+          <IonTabBar slot="bottom" className="glass glass-tab-bar">
             <IonTabButton tab="map" href="/map">
               <IonIcon aria-hidden="true" icon={mapOutline} />
               <IonLabel>Map</IonLabel>

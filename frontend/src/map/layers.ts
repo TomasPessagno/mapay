@@ -22,6 +22,18 @@ const UNCONFIRMED_THRESHOLD = 0.5;
 const layerVisibility = new Map<string, boolean>();
 const layerDataCache = new Map<string, GeoJSON.FeatureCollection>();
 
+function formatObservedAge(value: string | undefined): string | null {
+  if (!value) return null;
+  const timestamp = new Date(value).getTime();
+  if (!Number.isFinite(timestamp)) return null;
+  const elapsedMinutes = Math.max(0, Math.round((Date.now() - timestamp) / 60000));
+  if (elapsedMinutes < 60) return `${elapsedMinutes} ${elapsedMinutes === 1 ? 'minute' : 'minutes'} ago`;
+  const elapsedHours = Math.round(elapsedMinutes / 60);
+  if (elapsedHours < 24) return `${elapsedHours} ${elapsedHours === 1 ? 'hour' : 'hours'} ago`;
+  const elapsedDays = Math.round(elapsedHours / 24);
+  return `${elapsedDays} ${elapsedDays === 1 ? 'day' : 'days'} ago`;
+}
+
 let showUnconfirmed = false;
 
 export function getShowUnconfirmed(): boolean {
@@ -167,6 +179,7 @@ function createMarkerContent(token: LegendToken, isDark: boolean, opacity: numbe
   div.style.justifyContent = 'center';
   div.style.color = baseColor;
   div.style.opacity = Math.max(opacity, 0.25).toString();
+  div.setAttribute('aria-hidden', 'true');
   
   // 1.5px halo using drop-shadow
   div.style.filter = `drop-shadow(0px 1.5px 0px ${haloColor}) drop-shadow(0px -1.5px 0px ${haloColor}) drop-shadow(1.5px 0px 0px ${haloColor}) drop-shadow(-1.5px 0px 0px ${haloColor})`;
@@ -275,11 +288,24 @@ export async function upsertGeoJsonLayer(
     }
     
     const token = HAZARD_TOKENS[hazardType] || HAZARD_TOKENS.incident;
+    const markerTitle = feature.getProperty('title') as string || token.name;
+    const place = feature.getProperty('place') as string;
+    const confidence = status === 'predicted'
+      ? 'predicted'
+      : probability >= 0.9
+        ? 'high confidence'
+        : probability >= 0.73
+          ? 'medium confidence'
+          : 'unconfirmed';
+    const observedAt = feature.getProperty('observed_at') as string
+      || feature.getProperty('last_updated') as string
+      || undefined;
+    const observedAge = status === 'predicted' ? null : formatObservedAge(observedAt);
     const marker = new advancedMarkerLib!.AdvancedMarkerElement({
       map: isVisible ? map : null,
       position: centroid,
       content: createMarkerContent(token, isDark, opacity),
-      title: feature.getProperty('title') as string,
+      title: `${token.name} on ${place || markerTitle}, ${confidence}${observedAge ? `, observed ${observedAge}` : ''}`,
       gmpClickable: true,
     });
     

@@ -31,23 +31,23 @@ const PlaceCard: React.FC<PlaceCardProps> = ({ place, onRoute, onAddToRoutine, o
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px' }}>
         <div>
           <IonText color="dark">
-            <h2 style={{ fontSize: '22px', fontWeight: 'bold', margin: '0 0 4px 0' }}>{place.name}</h2>
+            <h2 className="dynamic-title2" style={{ fontWeight: 'bold', margin: '0 0 4px 0' }}>{place.name}</h2>
           </IonText>
           <IonText color="medium">
-            <p style={{ margin: 0, fontSize: '15px' }}>
+            <p className="dynamic-subheadline" style={{ margin: 0 }}>
               {place.type && <span style={{ textTransform: 'capitalize' }}>{place.type} · </span>}
               {place.distanceMiles !== undefined ? `${place.distanceMiles.toFixed(1)} mi` : ''}
             </p>
           </IonText>
         </div>
-        <IonButton fill="clear" color="medium" onClick={onClose} style={{ margin: '-8px -8px 0 0', height: '32px' }}>
-          <IonIcon slot="icon-only" icon={closeOutline} />
+        <IonButton fill="clear" color="medium" onClick={onClose} aria-label={`Close ${place.name}`} style={{ margin: '-8px -8px 0 0', height: '44px' }}>
+          <IonIcon aria-hidden="true" slot="icon-only" icon={closeOutline} />
         </IonButton>
       </div>
       
       {place.address && (
         <IonText color="medium">
-          <p style={{ margin: '0 0 16px 0', fontSize: '15px' }}>{place.address}</p>
+          <p className="dynamic-subheadline" style={{ margin: '0 0 16px 0' }}>{place.address}</p>
         </IonText>
       )}
 

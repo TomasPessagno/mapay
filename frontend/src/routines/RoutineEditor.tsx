@@ -118,8 +118,8 @@ export default function RoutineEditor({ routine, places, onSave, onCancel }: Rou
               <IonButton fill="outline" size="small" onClick={() => addReturnLeg(leg)}>
                 Add the way back
               </IonButton>
-              <IonButton fill="clear" color="danger" size="small" onClick={() => removeLeg(i)}>
-                <IonIcon icon={trash} slot="icon-only" />
+              <IonButton fill="clear" color="danger" size="small" aria-label={`Remove leg ${i + 1}`} onClick={() => removeLeg(i)}>
+                <IonIcon aria-hidden="true" icon={trash} slot="icon-only" />
               </IonButton>
             </div>
           </IonItemGroup>

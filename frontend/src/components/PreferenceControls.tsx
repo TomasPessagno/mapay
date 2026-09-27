@@ -33,6 +33,7 @@ const getSourceHint = (source: string) => {
 };
 
 export default function PreferenceControls({ preferences, onChange, showNavApp = true }: Props) {
+  const [isDark, setIsDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
   const [initialNeighborhoods, setInitialNeighborhoods] = useState<Neighborhood[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<Neighborhood[]>([]);
@@ -43,6 +44,13 @@ export default function PreferenceControls({ preferences, onChange, showNavApp =
   useEffect(() => {
     // Initial fetch to resolve names of already selected IDs
     api.neighborhoods().then(setInitialNeighborhoods).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (event: MediaQueryListEvent) => setIsDark(event.matches);
+    media.addEventListener('change', handleChange);
+    return () => media.removeEventListener('change', handleChange);
   }, []);
 
   const handleChange = (field: keyof Preferences, value: unknown) => {
@@ -102,7 +110,7 @@ export default function PreferenceControls({ preferences, onChange, showNavApp =
           const token = HAZARD_TOKENS[hazard];
           return (
             <IonItem key={hazard}>
-              <IonIcon icon={token.icon} slot="start" style={{ color: `var(--ion-color-${hazard}, ${token.colorLight})` }} />
+              <IonIcon aria-hidden="true" icon={token.icon} slot="start" style={{ color: isDark ? token.colorDark : token.colorLight }} />
               <IonLabel>{token.name}</IonLabel>
               <IonSelect 
                 value={preferences.categories?.[hazard] || 'ignore'} 
@@ -128,7 +136,9 @@ export default function PreferenceControls({ preferences, onChange, showNavApp =
                 return (
                   <IonChip key={id} style={{ margin: 0 }}>
                     <IonLabel>{n ? n.name : id}</IonLabel>
-                    <IonIcon icon={closeCircle} onClick={() => handleRemoveNeighborhood(id)} />
+                    <IonButton fill="clear" aria-label={`Remove ${n ? n.name : id} from avoided neighbourhoods`} onClick={() => handleRemoveNeighborhood(id)} style={{ margin: 0 }}>
+                      <IonIcon aria-hidden="true" icon={closeCircle} />
+                    </IonButton>
                   </IonChip>
                 );
               })}
@@ -149,7 +159,7 @@ export default function PreferenceControls({ preferences, onChange, showNavApp =
         breakpoints={[0, 0.5, 0.75, 1]}
       >
         <IonHeader className="ion-no-border">
-          <IonToolbar>
+          <IonToolbar className="glass">
             <IonSearchbar 
               placeholder="Search neighbourhoods..."
               value={searchQuery}

@@ -125,7 +125,7 @@ const CustomizeSheet: React.FC<CustomizeSheetProps> = ({ isOpen, onClose, routin
     <IonCard style={{ margin: '0 0 12px 0', borderRadius: '16px', background: 'var(--secondary-system-background)', boxShadow: 'none' }}>
       <IonCardContent>
         <IonText color="dark">
-          <h3 style={{ fontSize: '17px', fontWeight: 'bold', margin: '0 0 4px 0' }}>{title}</h3>
+          <h3 className="dynamic-headline" style={{ fontWeight: 'bold', margin: '0 0 4px 0' }}>{title}</h3>
         </IonText>
         <p style={{ margin: '0 0 4px 0', fontSize: '15px' }}>{route.summary}</p>
         <p style={{ margin: 0, fontSize: '15px', color: 'var(--ion-color-medium)' }}>
@@ -151,14 +151,15 @@ const CustomizeSheet: React.FC<CustomizeSheetProps> = ({ isOpen, onClose, routin
       backdropDismiss={true}
     >
       <IonContent className="ion-padding">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '22px', fontWeight: 'bold', margin: 0 }}>Customize Route</h2>
-          <IonButton fill="clear" onClick={onClose} style={{ margin: 0, '--padding-end': 0 }}>
-            <IonIcon icon={closeOutline} slot="icon-only" />
+        <div className="customize-sheet-header glass" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 className="dynamic-title2" style={{ fontWeight: 'bold', margin: 0 }}>Customize Route</h2>
+          <IonButton fill="clear" onClick={onClose} aria-label="Close customize route" style={{ margin: 0, '--padding-end': 0 }}>
+            <IonIcon aria-hidden="true" icon={closeOutline} slot="icon-only" />
           </IonButton>
         </div>
 
         <IonTextarea
+          aria-label="Describe how you want to change this route"
           placeholder="e.g. stop at a Starbucks and stay off the Palmetto"
           value={prompt}
           onIonInput={e => setPrompt(e.detail.value!)}
@@ -178,17 +179,17 @@ const CustomizeSheet: React.FC<CustomizeSheetProps> = ({ isOpen, onClose, routin
         />
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '24px' }}>
-          <IonChip outline onClick={() => addChip('Add a stop')}>
-            <IonIcon icon={addOutline} /> Add a stop
+          <IonChip outline onClick={() => addChip('Add a stop')} aria-label="Add a stop to the route">
+            <IonIcon aria-hidden="true" icon={addOutline} /> Add a stop
           </IonChip>
-          <IonChip outline onClick={() => addChip('Avoid floods')}>
-            <IonIcon icon={warningOutline} /> Avoid floods
+          <IonChip outline onClick={() => addChip('Avoid floods')} aria-label="Avoid floods">
+            <IonIcon aria-hidden="true" icon={warningOutline} /> Avoid floods
           </IonChip>
-          <IonChip outline onClick={() => addChip('Leave later')}>
-            <IonIcon icon={timeOutline} /> Leave later
+          <IonChip outline onClick={() => addChip('Leave later')} aria-label="Leave later">
+            <IonIcon aria-hidden="true" icon={timeOutline} /> Leave later
           </IonChip>
-          <IonChip outline onClick={() => addChip('Avoid a neighbourhood')}>
-            <IonIcon icon={navigateOutline} /> Avoid a neighbourhood
+          <IonChip outline onClick={() => addChip('Avoid a neighbourhood')} aria-label="Avoid a neighbourhood">
+            <IonIcon aria-hidden="true" icon={navigateOutline} /> Avoid a neighbourhood
           </IonChip>
         </div>
 

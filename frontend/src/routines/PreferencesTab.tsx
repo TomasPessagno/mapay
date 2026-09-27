@@ -4,6 +4,7 @@ import { api } from '../lib/api';
 import type { Preferences } from '../lib/types';
 import PreferenceControls from '../components/PreferenceControls';
 import { getDataSource, setDataSource, type DataSource } from '../lib/dataSource';
+import { Haptics } from '@capacitor/haptics';
 
 const SECTION_HEADER_STYLE: React.CSSProperties = {
   marginLeft: '16px',
@@ -38,7 +39,10 @@ function DataSourceSection() {
           <IonSegment
             value={source}
             aria-label="Data source"
-            onIonChange={(e) => handleChange(e.detail.value as DataSource)}
+            onIonChange={(e) => {
+              void Haptics.selectionChanged().catch(() => {});
+              handleChange(e.detail.value as DataSource);
+            }}
           >
             <IonSegmentButton value="demo">Demo</IonSegmentButton>
             <IonSegmentButton value="live">Live</IonSegmentButton>
