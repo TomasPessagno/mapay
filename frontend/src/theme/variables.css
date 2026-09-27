@@ -452,13 +452,14 @@ ion-modal.map-sheet.map-sheet-compact::part(content) {
 
 .route-options-actions {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
 }
 
 .route-options-actions ion-button {
   min-width: 0;
   margin: 0;
+  font-size: 14px;
 }
 
 .route-options-secondary-actions {

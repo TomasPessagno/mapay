@@ -7,7 +7,9 @@ from app.config import get_settings
 
 COMPUTE_ROUTES_URL = "https://routes.googleapis.com/directions/v2:computeRoutes"
 FIELD_MASK = ("routes.description,routes.duration,routes.staticDuration,routes.distanceMeters,"
-              "routes.polyline.encodedPolyline")
+              "routes.polyline.encodedPolyline,routes.legs.steps.navigationInstruction,"
+              "routes.legs.steps.distanceMeters,routes.legs.steps.staticDuration,"
+              "routes.legs.steps.polyline.encodedPolyline")
 TRAVEL_MODES = {"drive": "DRIVE", "walk": "WALK"}
 
 
@@ -102,7 +104,7 @@ def parse_routes(payload: dict) -> list[dict]:
             continue
         duration = _seconds(route.get("duration"))
         description = route.get("description")
-        alternatives.append({
+        alternative = {
             "summary": f"via {description}" if description else "",
             "route_geojson": {"type": "FeatureCollection", "features": [{
                 "type": "Feature", "properties": {},
@@ -110,7 +112,22 @@ def parse_routes(payload: dict) -> list[dict]:
             "duration_s": duration,
             "static_duration_s": _seconds(route.get("staticDuration")) or duration,
             "distance_m": int(route.get("distanceMeters", 0)),
-        })
+        }
+        steps = []
+        for leg in route.get("legs", []):
+            for step in leg.get("steps", []):
+                navigation = step.get("navigationInstruction") or {}
+                step_polyline = (step.get("polyline") or {}).get("encodedPolyline")
+                steps.append({
+                    "instruction": navigation.get("instructions") or "Continue on the route",
+                    "maneuver": navigation.get("maneuver") or "STRAIGHT",
+                    "distance_m": int(step.get("distanceMeters", 0)),
+                    "duration_s": _seconds(step.get("staticDuration") or step.get("duration")),
+                    "polyline": step_polyline,
+                })
+        if steps:
+            alternative["steps"] = steps
+        alternatives.append(alternative)
     return alternatives
 
 

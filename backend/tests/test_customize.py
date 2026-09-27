@@ -38,7 +38,12 @@ def encode(points):
 
 def route(name, points, seconds):
     return {"description": name, "duration": f"{seconds}s", "distanceMeters": 10000,
-            "polyline": {"encodedPolyline": encode(points)}}
+            "polyline": {"encodedPolyline": encode(points)},
+            "legs": [{"steps": [{
+                "navigationInstruction": {"instructions": f"Continue via {name}", "maneuver": "STRAIGHT"},
+                "distanceMeters": 10000, "staticDuration": f"{seconds}s",
+                "polyline": {"encodedPolyline": encode(points)},
+            }]}]}
 
 
 NEAR_STARBUCKS = (25.789, -80.25)
