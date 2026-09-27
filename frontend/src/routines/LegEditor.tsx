@@ -3,6 +3,7 @@ import {
 } from '@ionic/react';
 import type { RoutineLeg, Place } from '../lib/types';
 import PlacePicker from './PlacePicker';
+import { Haptics } from '@capacitor/haptics';
 
 interface LegEditorProps {
   leg: RoutineLeg;
@@ -65,7 +66,10 @@ export default function LegEditor({ leg, index, places, onChange }: LegEditorPro
       <IonItem>
         <IonSegment 
           value={leg.when.kind} 
-          onIonChange={e => handleWhenKindChange(e.detail.value as 'at' | 'window')}
+          onIonChange={e => {
+            void Haptics.selectionChanged().catch(() => {});
+            handleWhenKindChange(e.detail.value as 'at' | 'window');
+          }}
         >
           <IonSegmentButton value="at">
             <IonLabel>At</IonLabel>

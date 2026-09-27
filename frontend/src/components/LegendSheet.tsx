@@ -52,8 +52,8 @@ const LegendSheet: React.FC<Props> = ({ isOpen, onDidDismiss, toggled, onToggle 
         <IonToolbar className="glass">
           <IonTitle>Legend & Layers</IonTitle>
           <IonButtons slot="end">
-            <IonButton onClick={onDidDismiss}>
-              <IonIcon icon={closeOutline} />
+            <IonButton onClick={onDidDismiss} aria-label="Close legend and layers">
+              <IonIcon aria-hidden="true" icon={closeOutline} />
             </IonButton>
           </IonButtons>
         </IonToolbar>
@@ -70,6 +70,7 @@ const LegendSheet: React.FC<Props> = ({ isOpen, onDidDismiss, toggled, onToggle 
                   slot="start" 
                   icon={token.icon} 
                   style={{ color }}
+                  aria-hidden="true"
                 />
                 <IonLabel>
                   <h2>{token.name}</h2>

@@ -51,14 +51,14 @@ export default function MapView(props: Props) {
         colorScheme="FOLLOW_SYSTEM"
       >
         {props.userLocation && (
-          <AdvancedMarker position={props.userLocation} zIndex={100}>
+          <AdvancedMarker position={props.userLocation} zIndex={100} title="Your current location">
             <div style={{
               width: '18px', height: '18px',
               backgroundColor: '#007AFF',
               borderRadius: '50%',
               border: '3px solid white',
               boxShadow: '0 0 6px rgba(0,0,0,0.3)'
-            }} />
+            }} aria-hidden="true" />
           </AdvancedMarker>
         )}
         <MapController userLocation={props.userLocation} />
@@ -80,11 +80,11 @@ export default function MapView(props: Props) {
 
       {/* Floating buttons sit under the toolbar, 52 px apart: Layers, Locate Me, then Report (ReportFab). */}
       <IonFab slot="fixed" vertical="top" horizontal="end" style={{ top: 'calc(var(--ion-safe-area-top, 0px) + 60px)', right: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <IonFabButton aria-label="Legend and Layers" className="glass" onClick={() => setShowLegend(true)} style={{ width: '44px', height: '44px', borderRadius: '50%' }}>
-          <IonIcon icon={layersOutline} color="primary" />
+        <IonFabButton aria-label="Show map legend and hazard layers" className="glass map-control-label" onClick={() => setShowLegend(true)} style={{ width: '44px', height: '44px', borderRadius: '50%' }}>
+          <IonIcon aria-hidden="true" icon={layersOutline} color="primary" />
         </IonFabButton>
-        <IonFabButton aria-label="Locate Me" className="glass" onClick={props.onLocateMe} style={{ width: '44px', height: '44px', borderRadius: '50%' }}>
-          <IonIcon icon={locateOutline} color="primary" />
+        <IonFabButton aria-label="Center map on my location" className="glass map-control-label" onClick={props.onLocateMe} style={{ width: '44px', height: '44px', borderRadius: '50%' }}>
+          <IonIcon aria-hidden="true" icon={locateOutline} color="primary" />
         </IonFabButton>
       </IonFab>
 
@@ -143,7 +143,7 @@ function HazardsStatusPill({ status, onRetry }: { status: LayersStatus; onRetry:
             <span>Loading hazards…</span>
           </>
         ) : (
-          <button type="button" onClick={onRetry} style={{ all: "unset", cursor: "pointer" }}>
+          <button type="button" aria-label="Retry loading map hazards" onClick={onRetry} style={{ all: "unset", cursor: "pointer", minHeight: 44 }}>
             Couldn't load hazards · Retry
           </button>
         )}
@@ -187,7 +187,7 @@ function MapController({ userLocation }: { userLocation?: { lat: number; lng: nu
   return (
     <>
       {selectedPlace && (
-        <AdvancedMarker position={selectedPlace.location} zIndex={50} />
+        <AdvancedMarker position={selectedPlace.location} zIndex={50} title={selectedPlace.name} />
       )}
     </>
   );
@@ -197,6 +197,7 @@ function MapLayers({
   departAt,
   routeResponse,
   selectedRouteIndex,
+  mapId,
   layersToggled,
   onLayersStatus,
   retryToken,
@@ -354,7 +355,7 @@ function MapLayers({
            console.error("Failed to fit bounds", e);
        }
     }
-  }, [map, routeResponse, selectedRouteIndex]);
+  }, [map, mapId, routeResponse, selectedRouteIndex]);
 
   return null;
 }

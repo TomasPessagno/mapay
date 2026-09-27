@@ -8,6 +8,7 @@ import type { RouteResponse, UpcomingLeg } from '../lib/types';
 import { api } from '../lib/api';
 import HeadsUpCard from '../headsup/HeadsUpCard';
 import { DEMO_HEADS_UP, lastFiredHeadsUp, type DemoHeadsUpDetail } from '../headsup/demo';
+import { Haptics } from '@capacitor/haptics';
 
 interface MapSheetProps {
   isOpen: boolean;
@@ -61,12 +62,25 @@ const MapSheet: React.FC<MapSheetProps> = ({
     const end = leg.window ? new Date(leg.window.end).getTime() : new Date(leg.departure_at).getTime();
     return nowTime >= headsUp && nowTime <= end;
   });
+  const showHeadsUp = Boolean(activeLeg && !routeResponse && !selectedPlace);
 
-  // If a route is fetched OR active leg is shown OR place is selected, move to medium breakpoint
   useEffect(() => {
-    if ((routeResponse || activeLeg || selectedPlace) && modal.current) {
-      modal.current.setCurrentBreakpoint(0.5);
-    }
+    const sheet = modal.current;
+    if (!sheet) return;
+    const handleBreakpointChange = () => {
+      void Haptics.selectionChanged().catch(() => {});
+    };
+    sheet.addEventListener('ionBreakpointDidChange', handleBreakpointChange);
+    return () => sheet.removeEventListener('ionBreakpointDidChange', handleBreakpointChange);
+  }, []);
+
+  // Open one step further for heads-up so both actions remain visible at larger text sizes.
+  useEffect(() => {
+    if (!(routeResponse || activeLeg || selectedPlace) || !modal.current) return;
+    const sheet = modal.current;
+    const breakpoint = activeLeg && !routeResponse && !selectedPlace ? 0.9 : 0.5;
+    const timeout = window.setTimeout(() => { void sheet.setCurrentBreakpoint(breakpoint); }, 750);
+    return () => window.clearTimeout(timeout);
   }, [routeResponse, activeLeg, selectedPlace]);
 
   return (
@@ -80,9 +94,14 @@ const MapSheet: React.FC<MapSheetProps> = ({
       backdropDismiss={false}
       canDismiss={false}
       className="map-sheet"
+      onDidPresent={() => {
+        if (activeLeg && !routeResponse && !selectedPlace) {
+          void modal.current?.setCurrentBreakpoint(0.9);
+        }
+      }}
     >
       <IonContent className="ion-padding">
-        {activeLeg && !routeResponse && !selectedPlace ? (
+        {showHeadsUp && activeLeg ? (
           <HeadsUpCard leg={activeLeg} />
         ) : null}
 

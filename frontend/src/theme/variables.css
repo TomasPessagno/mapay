@@ -1,118 +1,382 @@
-/* Ionic Variables and Theme Tokens */
+/* Mapay's light palette follows UIKit system colors. */
 :root {
-  /* Dynamic font scaling */
+  color-scheme: light;
+  --ion-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --ion-default-dynamic-font: 16px var(--ion-font-family);
   --ion-dynamic-font: var(--ion-default-dynamic-font);
-  --ion-font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 
-  /* System blue */
-  --ion-color-primary: #007AFF;
-  --ion-color-primary-rgb: 0,122,255;
+  --ion-color-primary: #007aff;
+  --ion-color-primary-rgb: 0, 122, 255;
+  --ion-color-primary-contrast: #ffffff;
+  --ion-color-primary-contrast-rgb: 255, 255, 255;
+  --ion-color-primary-shade: #006be0;
+  --ion-color-primary-tint: #1a86ff;
+  --ion-color-dark: #1c1c1e;
+  --ion-color-dark-rgb: 28, 28, 30;
+  --ion-color-dark-contrast: #ffffff;
+  --ion-color-medium: #636366;
+  --ion-color-medium-rgb: 99, 99, 102;
+  --ion-color-medium-contrast: #ffffff;
+  --ion-color-light: #f2f2f7;
+  --ion-color-light-rgb: 242, 242, 247;
+  --ion-color-light-contrast: #1c1c1e;
+  --ion-background-color: #ffffff;
+  --ion-background-color-rgb: 255, 255, 255;
+  --ion-text-color: #000000;
+  --ion-text-color-rgb: 0, 0, 0;
+  --ion-color-step-50: #f2f2f7;
+  --ion-color-step-100: #e5e5ea;
+  --ion-color-step-150: #d1d1d6;
+  --ion-color-step-600: #636366;
+  --ion-item-background: #ffffff;
+  --ion-card-background: #ffffff;
+  --ion-toolbar-background: #ffffff;
+  --ion-tab-bar-background: #ffffff;
 
-  /* iOS System Colors (Light) */
   --label: #000000;
-  --secondary-label: rgba(60, 60, 67, 0.6);
-  --tertiary-label: rgba(60, 60, 67, 0.3);
+  --secondary-label: #636366;
+  --tertiary-label: #8e8e93;
   --system-background: #ffffff;
   --secondary-system-background: #f2f2f7;
   --system-grouped-background: #f2f2f7;
+  --list-row-background: #ffffff;
   --separator: rgba(60, 60, 67, 0.29);
 
-  /* Typography (iOS points translated to CSS px, 1:1 in web) */
-  --font-rounded: ui-rounded, 'SF Pro Rounded', -apple-system, sans-serif;
-  
+  --glass-fill: rgb(255 255 255 / 0.72);
+  --glass-solid: #ffffff;
+  --glass-border: rgb(255 255 255 / 0.64);
+  --glass-shadow: 0 6px 24px rgb(0 0 0 / 0.12);
+
+  --font-rounded: ui-rounded, "SF Pro Rounded", -apple-system, sans-serif;
   --text-large-title-size: 34px;
   --text-large-title-line: 41px;
-  --text-large-title-weight: bold;
-
   --text-title2-size: 22px;
   --text-title2-line: 28px;
-  --text-title2-weight: bold;
-
   --text-title3-size: 20px;
   --text-title3-line: 25px;
-  --text-title3-weight: 600;
-
   --text-headline-size: 17px;
   --text-headline-line: 22px;
-  --text-headline-weight: 600;
-
   --text-body-size: 17px;
   --text-body-line: 22px;
-  --text-body-weight: normal;
-
   --text-callout-size: 16px;
   --text-callout-line: 21px;
-  --text-callout-weight: normal;
-
   --text-subheadline-size: 15px;
   --text-subheadline-line: 20px;
-  --text-subheadline-weight: normal;
-
   --text-footnote-size: 13px;
   --text-footnote-line: 18px;
-  --text-footnote-weight: normal;
-
   --text-caption1-size: 12px;
   --text-caption1-line: 16px;
-  --text-caption1-weight: normal;
-
   --text-caption2-size: 11px;
   --text-caption2-line: 13px;
-  --text-caption2-weight: normal;
 }
 
-/* Dark mode overrides */
 @media (prefers-color-scheme: dark) {
   :root {
-    --ion-color-primary: #0A84FF;
-    --ion-color-primary-rgb: 10,132,255;
+    color-scheme: dark;
+    --ion-color-primary: #0a84ff;
+    --ion-color-primary-rgb: 10, 132, 255;
+    --ion-color-primary-contrast: #ffffff;
+    --ion-color-primary-contrast-rgb: 255, 255, 255;
+    --ion-color-primary-shade: #0974e0;
+    --ion-color-primary-tint: #2391ff;
+    --ion-color-dark: #f2f2f7;
+    --ion-color-dark-rgb: 242, 242, 247;
+    --ion-color-dark-contrast: #000000;
+    --ion-color-medium: #8e8e93;
+    --ion-color-medium-rgb: 142, 142, 147;
+    --ion-color-medium-contrast: #000000;
+    --ion-color-light: #1c1c1e;
+    --ion-color-light-rgb: 28, 28, 30;
+    --ion-color-light-contrast: #f2f2f7;
+    --ion-background-color: #000000;
+    --ion-background-color-rgb: 0, 0, 0;
+    --ion-text-color: #ffffff;
+    --ion-text-color-rgb: 255, 255, 255;
+    --ion-color-step-50: #1c1c1e;
+    --ion-color-step-100: #2c2c2e;
+    --ion-color-step-150: #3a3a3c;
+    --ion-color-step-600: #8e8e93;
+    --ion-item-background: #1c1c1e;
+    --ion-card-background: #1c1c1e;
+    --ion-toolbar-background: #1c1c1e;
+    --ion-tab-bar-background: #1c1c1e;
 
-    /* iOS System Colors (Dark) */
     --label: #ffffff;
-    --secondary-label: rgba(235, 235, 245, 0.6);
-    --tertiary-label: rgba(235, 235, 245, 0.3);
+    --secondary-label: #ebebf5;
+    --tertiary-label: #8e8e93;
     --system-background: #000000;
     --secondary-system-background: #1c1c1e;
     --system-grouped-background: #000000;
+    --list-row-background: #1c1c1e;
     --separator: rgba(84, 84, 88, 0.65);
+
+    --glass-fill: rgb(28 28 30 / 0.72);
+    --glass-solid: #1c1c1e;
+    --glass-border: rgb(255 255 255 / 0.12);
+    --glass-shadow: 0 6px 24px rgb(0 0 0 / 0.32);
   }
 }
 
-/* Glass Material Utility */
-.glass {
-  --background: rgb(255 255 255 / 0.72) !important;
-  background: var(--background) !important;
-  -webkit-backdrop-filter: saturate(180%) blur(20px);
-  backdrop-filter: saturate(180%) blur(20px);
+.dynamic-large-title {
+  font-size: var(--text-large-title-size);
+  line-height: var(--text-large-title-line);
 }
 
-@media (prefers-color-scheme: dark) {
+.dynamic-title2 {
+  font-size: var(--text-title2-size);
+  line-height: var(--text-title2-line);
+}
+
+.dynamic-title3 {
+  font-size: var(--text-title3-size);
+  line-height: var(--text-title3-line);
+}
+
+.dynamic-headline {
+  font-size: var(--text-headline-size);
+  line-height: var(--text-headline-line);
+}
+
+.dynamic-body {
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-line);
+}
+
+.dynamic-subheadline {
+  font-size: var(--text-subheadline-size);
+  line-height: var(--text-subheadline-line);
+}
+
+.dynamic-footnote {
+  font-size: var(--text-footnote-size);
+  line-height: var(--text-footnote-line);
+}
+
+/* Solid fallback is the default; translucent Liquid Glass is enabled where supported. */
+.glass {
+  --background: var(--glass-solid);
+  --border-color: var(--glass-border);
+  background: var(--glass-solid);
+  border: 1px solid var(--glass-border);
+}
+
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
   .glass {
-    --background: rgb(28 28 30 / 0.72) !important;
+    --background: var(--glass-fill);
+    background: var(--glass-fill);
+    -webkit-backdrop-filter: saturate(180%) blur(20px);
+    backdrop-filter: saturate(180%) blur(20px);
   }
 }
 
 @media (prefers-reduced-transparency: reduce) {
   .glass {
-    --background: #ffffff !important;
+    --background: var(--glass-solid);
+    background: var(--glass-solid);
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
-  @media (prefers-color-scheme: dark) {
-    .glass {
-      --background: #1c1c1e !important;
-    }
-  }
+}
+
+ion-toolbar.glass {
+  --border-color: transparent;
+  --min-height: 52px;
+  border: 0;
+}
+
+ion-tab-bar.glass {
+  --border: 0;
+  border: 1px solid var(--glass-border);
+  border-radius: 24px;
+  box-shadow: var(--glass-shadow);
+  margin: 0 12px max(8px, env(safe-area-inset-bottom));
+  width: calc(100% - 24px);
+}
+
+ion-tab-bar.glass ion-tab-button {
+  --color: var(--secondary-label);
+  --color-selected: var(--ion-color-primary);
+  min-height: 52px;
+  border-radius: 18px;
+}
+
+ion-modal {
+  --background: var(--system-background);
+  --border-radius: 26px 26px 0 0;
+  --handle-background: var(--tertiary-label);
+  --handle-width: 36px;
+  --handle-height: 5px;
+}
+
+ion-modal ion-header ion-toolbar:not(.glass) {
+  --background: var(--system-background);
+}
+
+ion-item {
+  --min-height: 48px;
+}
+
+html.ios-dynamic-type {
+  --ion-default-dynamic-font: -apple-system-body;
+  --ion-dynamic-font: -apple-system-body;
+}
+
+ion-list.inset {
+  --ion-item-background: var(--list-row-background);
+}
+
+ion-list.inset ion-item {
+  --background: var(--list-row-background);
+  --inner-border-color: var(--separator);
+}
+
+ion-button::part(native) {
+  min-height: 44px;
+}
+
+ion-fab-button {
+  --background-activated: var(--secondary-system-background);
+  --box-shadow: var(--glass-shadow);
+}
+
+ion-card {
+  color: var(--label);
+}
+
+.customize-sheet-header {
+  position: sticky;
+  top: -16px;
+  z-index: 2;
+  padding: 8px 0 10px;
+  margin: -16px -16px 16px;
+  border-radius: 0 0 18px 18px;
+  border-width: 0 0 1px;
+}
+
+.heads-up-card {
+  --background: var(--secondary-system-background);
+  color: var(--label);
+  border-radius: 26px;
+}
+
+.heads-up-countdown {
+  margin: 0 0 12px;
+  color: var(--label);
+  font-family: var(--font-rounded);
+  font-size: var(--text-large-title-size);
+  font-weight: 700;
+  line-height: var(--text-large-title-line);
+  overflow-wrap: anywhere;
+}
+
+.heads-up-route-title {
+  margin: 0 0 4px;
+  color: var(--label);
+  font-size: var(--text-title2-size);
+  font-weight: 700;
+  line-height: var(--text-title2-line);
+  overflow-wrap: anywhere;
+}
+
+.heads-up-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.heads-up-actions ion-button {
+  min-width: 0;
+  min-height: 48px;
+  height: auto;
+  margin: 0;
+}
+
+.heads-up-actions ion-button::part(native) {
+  min-height: 48px;
+  height: auto;
+  padding: 10px 12px;
+  white-space: normal;
+  text-align: center;
+  line-height: 1.2;
+  font: inherit;
+}
+
+.heads-up-action {
+  font-size: var(--text-headline-size);
+  font-weight: 600;
+  line-height: var(--text-headline-line);
+}
+
+.hazard-chips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.hazard-chip {
+  --background: var(--secondary-system-background);
+  --color: var(--label);
+  --border-color: var(--separator);
+  min-width: 0;
+  min-height: 32px;
+  height: auto;
+  margin: 0;
+  border: 1px solid var(--separator);
+}
+
+.hazard-chip-label {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.hazard-chip-more {
+  color: var(--secondary-label);
+}
+
+.map-sheet {
+  --background: var(--system-background);
 }
 
 /* The map sheet stops above the tab bar, so the tabs stay visible and tappable. */
 ion-modal.map-sheet {
   bottom: calc(50px + var(--ion-safe-area-bottom, 0px));
-  /* Ionic's sheet wrapper reaches a safe area below the modal; clip it so it can't swallow taps on the tabs. */
   overflow: hidden;
 }
 
 ion-modal.map-sheet::part(content) {
   border-radius: 26px 26px 0 0;
-  box-shadow: 0 -4px 16px rgba(0,0,0,0.12);
+  box-shadow: 0 -4px 16px rgb(0 0 0 / 0.12);
+}
+
+.map-control-label {
+  min-height: 44px;
+}
+
+button:focus-visible,
+ion-button:focus-visible,
+ion-item[button]:focus-visible,
+ion-card[button]:focus-visible {
+  outline: 3px solid var(--ion-color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+}
+
+/* UIKit text styles in the Capacitor iOS web view scale with the user's Dynamic Type setting. */
+html.ios-dynamic-type .dynamic-large-title { font: -apple-system-large-title; }
+html.ios-dynamic-type .dynamic-title2 { font: -apple-system-title2; }
+html.ios-dynamic-type .dynamic-title3 { font: -apple-system-title3; }
+html.ios-dynamic-type .dynamic-headline { font: -apple-system-headline; }
+html.ios-dynamic-type .dynamic-body { font: -apple-system-body; }
+html.ios-dynamic-type .dynamic-subheadline { font: -apple-system-subheadline; }
+html.ios-dynamic-type .dynamic-footnote { font: -apple-system-footnote; }
+html.ios-dynamic-type .heads-up-countdown.dynamic-large-title {
+  font: -apple-system-large-title !important;
+  font-family: var(--font-rounded) !important;
+  font-weight: 700 !important;
 }

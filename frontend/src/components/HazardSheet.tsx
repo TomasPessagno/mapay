@@ -157,7 +157,7 @@ export default function HazardSheet({ isOpen, hazard, onDidDismiss }: HazardShee
             <IonIcon icon={token.icon} style={{ fontSize: '22px', color }} />
           </div>
           <div>
-            <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 'bold' }}>{title}</h2>
+            <h2 className="dynamic-title2" style={{ margin: 0, fontWeight: 'bold' }}>{title}</h2>
             {showPlace && (
               <p style={{ margin: 0, color: 'var(--ion-color-step-600)', fontSize: '17px' }}>{place}</p>
             )}

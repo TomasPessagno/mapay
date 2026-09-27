@@ -51,7 +51,7 @@ export default function ReportFab() {
           disabled={reporting}
           style={{ width: '44px', height: '44px', borderRadius: '50%' }}
         >
-          <IonIcon icon={addOutline} color="primary" />
+          <IonIcon aria-hidden="true" icon={addOutline} color="primary" />
         </IonFabButton>
       </IonFab>
 

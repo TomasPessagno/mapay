@@ -13,6 +13,8 @@ import type { PlaceData } from '../components/PlaceCard';
 import RoutineEditor from '../routines/RoutineEditor';
 
 const API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY ?? "";
+const LIGHT_MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID";
+const DARK_MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_DARK_MAP_ID ?? LIGHT_MAP_ID;
 
 /**
  * Asks for location if needed and returns the current position, or null if it's denied.
@@ -38,8 +40,6 @@ async function locateUser(): Promise<{ lat: number; lng: number } | null> {
   const pos = await Geolocation.getCurrentPosition({ enableHighAccuracy: false, timeout: 15000, maximumAge: 60000 });
   return { lat: pos.coords.latitude, lng: pos.coords.longitude };
 }
-const MAP_ID = import.meta.env.VITE_GOOGLE_MAPS_MAP_ID ?? "DEMO_MAP_ID";
-
 function getDistanceMiles(lat1: number, lon1: number, lat2: number, lon2: number) {
   const R = 3958.8; // Radius of the earth in miles
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -52,6 +52,7 @@ function getDistanceMiles(lat1: number, lon1: number, lat2: number, lon2: number
 }
 
 const MapPage: React.FC = () => {
+  const [isDark, setIsDark] = useState(() => window.matchMedia('(prefers-color-scheme: dark)').matches);
   const [departAt] = useState(new Date());
   const [routeResponse, setRouteResponse] = useState<RouteResponse | null>(null);
   const [selectedRouteIndex, setSelectedRouteIndex] = useState(0);
@@ -64,6 +65,13 @@ const MapPage: React.FC = () => {
   const [savedPlaces, setSavedPlaces] = useState<Place[]>([]);
 
   const showSheet = useLocation().pathname.startsWith('/map');
+
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const handleChange = (event: MediaQueryListEvent) => setIsDark(event.matches);
+    media.addEventListener('change', handleChange);
+    return () => media.removeEventListener('change', handleChange);
+  }, []);
 
   useEffect(() => {
     let watchId: string | null = null;
@@ -247,7 +255,7 @@ const MapPage: React.FC = () => {
             departAt={departAt} 
             routeResponse={routeResponse} 
             selectedRouteIndex={selectedRouteIndex} 
-            mapId={MAP_ID}
+            mapId={isDark ? DARK_MAP_ID : LIGHT_MAP_ID}
             userLocation={userLocation}
             onLocateMe={handleLocateMe}
           />

@@ -1,8 +1,9 @@
 import React from 'react';
-import { IonCard, IonCardContent, IonButton, IonText, IonChip, IonIcon } from '@ionic/react';
+import { IonCard, IonCardContent, IonButton, IonText, IonChip } from '@ionic/react';
 import type { RouteResponse, RouteOption } from '../lib/types';
 import { openLink } from '../lib/deepLinks';
 import HazardChips from './HazardChips';
+import { Haptics, NotificationType } from '@capacitor/haptics';
 import { closeOutline } from 'ionicons/icons';
 
 interface RouteOptionsProps {
@@ -34,14 +35,17 @@ const RouteOptions: React.FC<RouteOptionsProps> = ({ response, selectedIndex, on
   return (
     <div className="route-options">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-        <IonText color="dark"><h2 style={{ fontSize: '22px', fontWeight: 'bold', margin: 0 }}>Route Options</h2></IonText>
-        <IonButton fill="clear" color="medium" onClick={onClose} style={{ margin: 0, height: '32px' }}>
-          <IonIcon slot="icon-only" icon={closeOutline} />
+        <IonText color="dark"><h2 className="dynamic-title2" style={{ fontWeight: 'bold', margin: 0 }}>Route Options</h2></IonText>
+        <IonButton fill="clear" color="medium" onClick={onClose} aria-label="Close route options" style={{ margin: 0, height: '44px' }}>
+          <IonIcon aria-hidden="true" slot="icon-only" icon={closeOutline} />
         </IonButton>
       </div>
       {routes.map((route, i) => (
         <IonCard 
           key={i} 
+          button={true}
+          aria-label={`${route.recommended ? 'Recommended route. ' : ''}${formatTime(route.duration_s)}, ${formatDistance(route.distance_m)}${route.hazards_on_route?.length ? `, ${route.hazards_on_route.length} hazards` : ', no reported hazards'}`}
+          aria-pressed={selectedIndex === i}
           onClick={() => onSelect(i)}
           style={{ 
             border: selectedIndex === i ? '2px solid var(--ion-color-primary)' : '2px solid transparent',
@@ -55,7 +59,7 @@ const RouteOptions: React.FC<RouteOptionsProps> = ({ response, selectedIndex, on
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <IonText color="dark">
-                  <h2 style={{ fontSize: '22px', fontWeight: 'bold', margin: '0 0 4px 0' }}>{formatTime(route.duration_s)}</h2>
+                  <h2 className="dynamic-title2" style={{ fontWeight: 'bold', margin: '0 0 4px 0' }}>{formatTime(route.duration_s)}</h2>
                 </IonText>
                 <IonText color="medium">
                   <p style={{ margin: 0 }}>{formatDistance(route.distance_m)} · {route.summary}</p>
@@ -89,7 +93,10 @@ const RouteOptions: React.FC<RouteOptionsProps> = ({ response, selectedIndex, on
         <IonButton 
           expand="block" 
           shape="round" 
-          onClick={() => response.deep_links?.google_maps && openLink(response.deep_links.google_maps)}
+          onClick={() => {
+            const link = response.deep_links?.google_maps;
+            if (link) void openLink(link).then(() => Haptics.notification({ type: NotificationType.Success }).catch(() => {}));
+          }}
           disabled={!response.deep_links?.google_maps}
         >
           Open in Google Maps
@@ -98,7 +105,10 @@ const RouteOptions: React.FC<RouteOptionsProps> = ({ response, selectedIndex, on
           expand="block" 
           fill="clear" 
           color="medium"
-          onClick={() => response.deep_links?.apple_maps && openLink(response.deep_links.apple_maps)}
+          onClick={() => {
+            const link = response.deep_links?.apple_maps;
+            if (link) void openLink(link).then(() => Haptics.notification({ type: NotificationType.Success }).catch(() => {}));
+          }}
           disabled={!response.deep_links?.apple_maps}
         >
           Apple Maps
