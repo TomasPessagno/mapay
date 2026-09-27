@@ -1,0 +1,59 @@
+# Public web preview on GitHub Pages: https://tomaspessagno.github.io/mapay/
+# Same app as the Vercel preview, built against the real backend. Added because Vercel's Hobby
+# team limit (100 deployments / 24 h) blocked redeploys during ShellHacks.
+#
+# Needs: the repo secret VITE_GOOGLE_MAPS_API_KEY (the Maps *browser* key; it ends up in the
+# public bundle by design) and Pages enabled with "GitHub Actions" as the source.
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths: ["frontend/**", ".github/workflows/pages.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+        env:
+          VITE_BASE: /mapay/
+          VITE_USE_MOCKS: "false"
+          VITE_API_BASE_URL: https://mapay-api-lgfe7q5oja-ue.a.run.app
+          VITE_GOOGLE_MAPS_MAP_ID: 3175b3df38b9e69a72a689c7
+          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+      # Single-page app: unknown paths (/mapay/routines on reload) fall back to the app.
+      - run: cp dist/index.html dist/404.html
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: frontend/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
