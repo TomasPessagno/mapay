@@ -16,7 +16,7 @@ One place for how MAPAY is built and run, as it stands on `main`. For the plan a
    - it's new (a crash, police activity, a closure): it registers a new hazard with a fixed prior, and the article is attached as evidence so its link shows on the map.
 5. Satellite (GFM) flood areas do the same: evidence on the flood hazards they overlap, and new flood hazards elsewhere.
 6. User reports (`POST /report`) linked to a hazard add crowd evidence, or "cleared" evidence if the user says it's gone.
-7. After each job, the backend records the run (shown as freshness on the map) and rebuilds the `/layers` snapshot if any hazard changed. This check is the one that currently re-reads the whole database (see Known limits).
+7. After each job, the backend records the run (shown as freshness on the map) and rebuilds the `/layers` snapshot if any hazard changed. The check is cheap: counts and newest timestamps of beliefs and evidence (`hazards_marker`), not a read of every document. A rebuild happens at most once every 15 min per server (#151).
 
 ### 2. The model updates (hazard beliefs)
 
@@ -47,7 +47,7 @@ Example: a street in FEMA zone AE starts at p 0.6 (log-odds 0.41, not active). O
 
 1. The app sends origin, destination, departure time and the user's preferences (per category: avoid / prefer to avoid / don't care, avoided neighbourhoods, tolls, highways).
 2. The backend asks **Google Routes API** for up to 3 alternatives at that departure time, with Google's own traffic prediction.
-3. It loads the current beliefs (cached for 60 s per server) and keeps the active ones.
+3. It loads the current beliefs (cached for 15 min per server, shared with the `/layers` snapshot, and reloaded when the snapshot is rebuilt) and keeps the active ones. So a newly confirmed hazard can take up to ~15 min to reach routes and the map.
 4. It **scores** each alternative: `predicted minutes + Σ penalty`, one penalty per active hazard within ~30 m of the route. `penalty = weight × severity × p × 3 min`, where weight is 10 for "avoid", 2 for "prefer to avoid", 0 for "don't care". An avoided neighbourhood counts as a severity-5 hazard with p = 1. The cheapest route wins.
    - Example: a 25-min route through an active flood (severity 4, p 0.9, "avoid") costs 25 + 10 × 4 × 0.9 × 3 = 133. A 31-min route with no hazards costs 31, so it wins.
 5. **Detour:** if the winner still crosses an "avoid" hazard of severity ≥ 4, the backend picks a point ~300 m past the hazard's edge, on the side with fewer hazards, and asks Google again with that point as a pass-through waypoint. At most 2 rounds and 3 waypoints. If nothing avoids it (e.g. the destination is in an avoided neighbourhood), it returns the best route and says so.
@@ -87,7 +87,7 @@ Example: a street in FEMA zone AE starts at p 0.6 (log-odds 0.41, not active). O
 | Native iOS | One widget extension, `MapayWidget`: WidgetKit widgets (small, medium, large) + the ActivityKit Live Activity. App-local plugin `MapayNative` | Inside the app bundle |
 | Web preview | The same app built for the browser | GitHub Pages: https://tomaspessagno.github.io/mapay/ (main). Vercel: https://mapay-blue.vercel.app/ (secondary; its Hobby plan hit its daily deploy limit) |
 | Backend | FastAPI on Python 3.14, Docker image | Cloud Run service `mapay-api`, `us-east1`: https://mapay-api-lgfe7q5oja-ue.a.run.app |
-| Database | MongoDB Atlas (free M0) through `motor` | Atlas |
+| Database | MongoDB Atlas **M10** (dedicated, billed hourly; upgraded from free M0 on Sept 27) through `motor` | Atlas |
 | Jobs | Cloud Scheduler → `POST /internal/ingest/{job}` with an OIDC token | Google Cloud |
 | AI | Gemini on Vertex AI (`google-genai`, default model `gemini-3.8-flash`). Laya (open source, fine-tuned) as an optional news first pass, not used in production | Vertex AI |
 | Maps | Google Maps Platform: Maps JavaScript, Places (New), Routes, Geocoding, Maps Static | Google |
@@ -169,8 +169,8 @@ Every call must carry a Google-signed OIDC token with `INTERNAL_AUDIENCE` as the
 | Job | Cron (America/New_York) | Source → category |
 |---|---|---|
 | `news` | every 15 min | 5 RSS feeds (NBC6, WLRN, Local10, Miami Herald, CBS Miami) + 5 GDELT queries → Laya (optional) → Gemini → geocode → evidence or new `incident` / `closure` / `construction` hazards |
-| `weather` | every 5 min (**paused**, see Known limits) | NWS alerts for Miami-Dade → `weather` |
-| `here` | every 5 min (**paused**) | HERE Traffic v7 incidents + flow → `closure`, `construction`, `congestion` |
+| `weather` | every 5 min | NWS alerts for Miami-Dade → `weather` |
+| `here` | every 5 min | HERE Traffic v7 incidents + flow → `closure`, `construction`, `congestion` |
 | `tides` | hourly | NOAA Virginia Key (8723214) tides + FEMA zones + curated hotspots → `flood` |
 | `city_gis` | daily 06:00 | City of Miami Public Works projects + permits → `construction`, `closure` |
 | `sidewalks` | daily 03:00 | OSM Overpass `sidewalk=no/none` → `no_sidewalk` |
@@ -254,12 +254,15 @@ The Console only offers an API in a key's API list once that API is enabled in t
 - Confidence values are heuristics.
 - Anonymous device ids are not authentication.
 - `/route` isn't cached (see Routing).
-- **MongoDB Atlas M0 throttling (Sept 27):** single-document queries took ~7.7 s, so Live `/route` and `/layers` timed out. Cause in the code: after every ingest job, `hazards_fingerprint` (`routers/layers.py`) streams every belief and evidence document from Atlas to decide whether to rebuild the `/layers` snapshot, and `weather` + `here` run every 5 min. Atlas Metrics showed ~14 MB/s network spikes every ~5 min and a ~300 ops/s spike. `weather` and `here` are paused until the fix (#150) is deployed; resume them with `gcloud scheduler jobs resume mapay-ingest-weather --location us-east1` (and `…-here`). If the throttle lasts, the Atlas Flex tier removes the M0 limits, at a monthly cost.
+- **MongoDB Atlas M0 throttling (Sept 27, resolved):** on the free M0 cluster, single-document queries took ~7.7 s, so Live `/route` and `/layers` timed out. Cause: after every ingest job, the old `hazards_fingerprint` streamed every belief and evidence document (~30k docs, ~19 MB) to decide whether to rebuild the `/layers` snapshot, with `weather` + `here` every 5 min, and routes re-read all beliefs every 60 s. Atlas Metrics showed ~14 MB/s network spikes every ~5 min. Two fixes:
+  - The cluster was upgraded to **M10** (no shared-tier throttling). It's billed hourly: after the hackathon, pause it or move the data back to a free cluster.
+  - **#151** (merged and deployed): a cheap change marker instead of the full read, snapshot rebuilds at most every 15 min, a 15-min belief cache shared by routes and the snapshot, and projections so only the needed fields are read.
 
 ## Production status (Sept 27)
 
 - **Google Cloud:** one project runs Cloud Run, Cloud Scheduler, Vertex AI and both Maps keys. Two keys: the browser key (`frontend/.env` → `VITE_GOOGLE_MAPS_API_KEY`) and the server key (root `.env` → `GOOGLE_MAPS_API_KEY`). The GitHub secrets were updated after the server key's rotation.
-- **Jobs:** all 11 scheduled jobs exist in `us-east1` and run. `weather` and `here` are paused (Atlas throttling). `s2` can't work without Earth Engine.
+- **Jobs:** all 11 scheduled jobs exist in `us-east1` and run. `weather` and `here` were paused during the Atlas throttling and should be resumed (`gcloud scheduler jobs resume mapay-ingest-weather --location us-east1`, same for `…-here`). `s2` can't work without Earth Engine.
 - **Satellite:** GFM has produced flood detections over Miami. Earth Engine isn't registered (its sign-up asks for an agreement), so the Sentinel-1 fallback and Sentinel-2 construction detection are off.
 - **Laya:** fine-tuned, not used in production (Gemini-only news).
 - **Cloud Run:** `min-instances=1` for judging.
+- **Database:** MongoDB Atlas M10 with #151 deployed.
