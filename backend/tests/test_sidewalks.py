@@ -28,7 +28,9 @@ class QueryTests(unittest.TestCase):
 
     def test_user_agent_is_descriptive(self):
         self.assertIn("MAPAY", sidewalks.USER_AGENT)
-        self.assertIn("@", sidewalks.USER_AGENT)
+        # A real contact (overpass-api.de answers 406 to the placeholder contact@example.com).
+        self.assertIn("https://github.com/", sidewalks.USER_AGENT)
+        self.assertNotIn("example.com", sidewalks.USER_AGENT)
 
 
 class ParseTests(unittest.TestCase):
@@ -141,3 +143,26 @@ class CoverageTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class OverpassFallbackTests(unittest.IsolatedAsyncioTestCase):
+    async def test_busy_server_falls_back_to_the_mirror(self):
+        import httpx
+        hosts = []
+
+        def handler(request):
+            hosts.append(request.url.host)
+            if request.url.host == "overpass-api.de":
+                return httpx.Response(504)
+            assert "example.com" not in request.headers["User-Agent"]
+            return httpx.Response(200, json={"elements": []})
+
+        client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+        self.assertEqual(await sidewalks.query_overpass("q", client=client), {"elements": []})
+        self.assertEqual(hosts, ["overpass-api.de", "overpass.private.coffee"])
+
+    async def test_all_servers_down_raises(self):
+        import httpx
+        client = httpx.AsyncClient(transport=httpx.MockTransport(lambda r: httpx.Response(504)))
+        with self.assertRaises(httpx.HTTPStatusError):
+            await sidewalks.query_overpass("q", client=client)

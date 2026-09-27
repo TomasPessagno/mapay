@@ -41,7 +41,8 @@ from app.routing.beliefs import register_hazard, utc
 
 logger = logging.getLogger(__name__)
 
-USER_AGENT = "MAPAY/0.1 (FIU ShellHacks 2026 hazard map; news pipeline; contact@example.com)"
+# overpass-api.de rejects placeholder contacts (contact@example.com) with 406.
+USER_AGENT = "MAPAY/0.1 (FIU ShellHacks 2026 hazard map; news pipeline; https://github.com/TomasPessagno/mapay)"
 
 RSS_FEEDS = {
     "nbc6": "https://www.nbcmiami.com/feed/",

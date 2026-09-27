@@ -186,14 +186,16 @@ class RunTests(unittest.IsolatedAsyncioTestCase):
             "permit": [permit_feature(246187, "PW21002168UP001", "Utility (UP)", "Active")],
         }
         with patch.object(closures, "fetch_all", AsyncMock(return_value=raw)), \
-                patch.object(closures, "register_hazard", AsyncMock()) as register:
+                patch.object(closures, "register_hazards", AsyncMock()) as register:
             count = await closures.run(object(), NOW)
         self.assertEqual(count, 2)
-        registered = {call.args[1]: call.args[2] for call in register.await_args_list}
-        self.assertEqual(registered, {"city:roadway:173": "construction",
-                                      "city:permit:PW21002168UP001": "construction"})
-        first = register.await_args_list[0]
-        self.assertEqual(first.args[4], {"status": "active", "severity": 4})
+        register.assert_awaited_once()  # one bulk call, not one per hazard
+        hazards = register.await_args.args[1]
+        self.assertEqual({h["id"]: h["kind"] for h in hazards},
+                         {"city:roadway:173": "construction", "city:permit:PW21002168UP001": "construction"})
+        first = hazards[0]["properties"]
+        self.assertEqual((first["status"], first["severity"]), ("active", 4))
+        self.assertTrue(first["title"])
 
 
 if __name__ == "__main__":

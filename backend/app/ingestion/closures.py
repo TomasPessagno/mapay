@@ -21,7 +21,7 @@ from datetime import datetime, timedelta, timezone
 
 import httpx
 
-from app.routing.beliefs import register_hazard, utc
+from app.routing.beliefs import register_hazards, utc
 
 log = logging.getLogger(__name__)
 
@@ -293,8 +293,9 @@ async def run(db, now: datetime) -> int:
     raw = await fetch_all()
     hazards = (roadway_hazards(raw.get("roadway", []), current)
                + permit_hazards(raw.get("permit", []), current))
-    for hazard in hazards:
-        await register_hazard(db, hazard["id"], hazard["kind"], hazard["geometry"],
-                              {"status": hazard["status"], "severity": hazard["severity"]}, current)
+    # ~20k permits: one bulk registration, not three round trips each (Cloud Run's 5 min limit).
+    await register_hazards(db, [{"id": h["id"], "kind": h["kind"], "geometry": h["geometry"], "properties": {
+        "status": h["status"], "severity": h["severity"], "title": h.get("title"), "place": h.get("place"),
+        "source_label": "City of Miami Public Works"}} for h in hazards], current)
     log.info("city GIS: registered %d construction/closure hazards", len(hazards))
     return len(hazards)
