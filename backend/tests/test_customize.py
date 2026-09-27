@@ -82,7 +82,8 @@ class Upstreams:
 
 class Db:
     def __init__(self):
-        self.intel_cache = SimpleNamespace(find=lambda q: SimpleNamespace(to_list=AsyncMock(return_value=[])))
+        self.intel_cache = SimpleNamespace(
+            find=lambda q, projection=None: SimpleNamespace(to_list=AsyncMock(return_value=[])))
         self.users = SimpleNamespace(find_one=AsyncMock(return_value=None))
         places = {"pl-a": {"_id": "pl-a", "name": "MMC", "location": {"coordinates": [-80.30, 25.80]}},
                   "pl-b": {"_id": "pl-b", "name": "BBC", "location": {"coordinates": [-80.20, 25.80]}}}

@@ -174,7 +174,7 @@ class EndpointTests(unittest.TestCase):
     def test_route_gets_detour_waypoints_links_and_briefing(self):
         docs = [CLOSURE]
         db = SimpleNamespace(
-            intel_cache=SimpleNamespace(find=lambda q: SimpleNamespace(to_list=_async(docs))),
+            intel_cache=SimpleNamespace(find=lambda q, projection=None: SimpleNamespace(to_list=_async(docs))),
             users=SimpleNamespace(find_one=_async(None)), routines=SimpleNamespace(find_one=_async(None)))
         bodies = []
 

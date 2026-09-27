@@ -144,7 +144,8 @@ class RouteEndpointTests(unittest.TestCase):
         async def no_user(query):
             return None
 
-        self.db = SimpleNamespace(intel_cache=SimpleNamespace(find=lambda q: FakeCursor()), routines=self.routines,
+        self.db = SimpleNamespace(intel_cache=SimpleNamespace(find=lambda q, projection=None: FakeCursor()),
+                                  routines=self.routines,
                                   places=SimpleNamespace(find_one=find_place), users=SimpleNamespace(find_one=no_user))
         app = FastAPI()
         app.include_router(routes.router)

@@ -25,6 +25,10 @@ async def init_indexes() -> None:
     await db.intel_cache.create_index("type")
     await db.intel_cache.create_index("hazard_id")
     await db.intel_cache.create_index([("location", "2dsphere")])
+    # A29: the /layers change marker sorts beliefs and evidence by their newest timestamp; without
+    # these the sort would scan the whole ~30k-doc collection on the throttled M0 cluster.
+    await db.intel_cache.create_index("last_updated")
+    await db.intel_cache.create_index("created_at")
 
     # hazard_reports — persistent, user-submitted, geo-queryable
     await db.hazard_reports.create_index([("location", "2dsphere")])

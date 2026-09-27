@@ -135,7 +135,7 @@ class Collection:
     def __init__(self, docs):
         self.docs = docs
 
-    def find(self, query):
+    def find(self, query, projection=None):
         return FakeCursor([d for d in self.docs if all(d.get(k) == v for k, v in query.items())])
 
     async def find_one(self, query):
