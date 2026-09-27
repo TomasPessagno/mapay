@@ -12,6 +12,7 @@ Example responses for every endpoint the app uses. They are the **API contract**
 | `routines-upcoming.json` | `GET /routines/upcoming` (the widget uses the same shape) |
 | `customize.json` | `POST /customize` |
 | `neighborhoods.json` | `GET /neighborhoods` |
+| `report.json` | `POST /report` (a new report, or "Still there" / "Cleared" on a hazard) |
 
 **Changing a shape:** update the mock here, `frontend/src/lib/types.ts` and `backend/app/db/models.py` in the same PR, and tell the other person.
 
