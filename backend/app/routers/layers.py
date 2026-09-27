@@ -44,9 +44,10 @@ RADAR_OVERLAY = {
 }
 # Stable id prefix → source key used in `sources[].kind` and `freshness` (longest prefix wins).
 SOURCE_PREFIXES = {
-    "incident:news-": "news", "flood:": "tides", "here-flow:": "here", "here:": "here", "nws:": "nws",
-    "city:": "city_gis", "osm:": "osm", "gfm:": "gfm", "s1:": "gfm", "s2:": "s2", "311:": "311",
-    "pothole:": "311", "event:": "ticketmaster", "typical:": "google_typical",
+    "incident:news-": "news", "news:": "news", "flood:": "tides", "here-flow:": "here",
+    "here:": "here", "nws:": "nws", "city:": "city_gis", "osm:": "osm", "gfm:": "gfm", "s1:": "gfm",
+    "s2:": "s2", "311:": "311", "pothole:": "311", "event:": "ticketmaster",
+    "typical:": "google_typical",
 }
 SOURCE_LABELS = {
     "tides": "NOAA tide prediction + FEMA flood zone", "here": "HERE live traffic", "nws": "NWS Miami alert",
@@ -123,6 +124,26 @@ def _parse(value) -> datetime | None:
     return None
 
 
+RUN_FIELDS = ("items_seen", "items_new", "hazards_added", "hazards_updated")
+
+
+def run_summary(doc: dict) -> dict:
+    """JSON-ready `ingest_runs` doc: one job's last successful run (A28)."""
+    job = doc.get("job") or str(doc.get("_id", "")).removeprefix("run:")
+    return {"job": job, "last_run_at": _iso(doc.get("last_run_at")),
+            **{field: doc[field] for field in RUN_FIELDS if isinstance(doc.get(field), int)}}
+
+
+async def latest_runs(db) -> dict[str, dict]:
+    """{job: run_summary} from `ingest_runs`, read separately from the last hazard change:
+    a job that runs on schedule without adding hazards still shows a fresh `last_run_at`."""
+    collection = getattr(db, "ingest_runs", None)
+    if collection is None:
+        return {}
+    docs = await collection.find({"job": {"$exists": True}}).to_list(length=None)
+    return {doc["job"]: run_summary(doc) for doc in docs if doc.get("job")}
+
+
 def feature_for(doc: dict, evidence_docs: list[dict], t: datetime) -> dict | None:
     kind = doc["hazard_type"]
     props = doc.get("properties") or {}
@@ -193,8 +214,9 @@ def _intersects(bounds: Bounds, area: Bounds) -> bool:
     return minx <= east and maxx >= west and miny <= north and maxy >= south
 
 
-async def collect_features(db, t: datetime) -> tuple[dict[str, list[Feature]], dict[str, datetime]]:
-    """Every belief at `t` as a map feature with its bounds, plus per-source freshness.
+async def collect_features(db, t: datetime) -> tuple[dict[str, list[Feature]], dict[str, object]]:
+    """Every belief at `t` as a map feature with its bounds, plus per-source freshness
+    (`<source>` = last hazard change, `<job>_run` = last successful ingest run).
 
     This is the expensive step (one Mongo read of beliefs + evidence, Shapely per geometry);
     the snapshot calls it once and reuses the result instead of running it per request.
@@ -226,17 +248,19 @@ async def collect_features(db, t: datetime) -> tuple[dict[str, list[Feature]], d
         kind = "news" if item.get("type") == "news" else item.get("type")
         if created and kind:
             freshness[kind] = max(freshness.get(kind, created), created)
+    for job, run in (await latest_runs(db)).items():
+        freshness[f"{job}_run"] = run
     return features, freshness
 
 
-def _render(t: datetime, features: dict[str, list[Feature]], freshness: dict[str, datetime],
+def _render(t: datetime, features: dict[str, list[Feature]], freshness: dict[str, object],
             area: Bounds | None = None) -> dict:
     layers = {key: {"type": "FeatureCollection",
                     "features": [feature for feature, bounds in entries
                                  if area is None or _intersects(bounds, area)]}
               for key, entries in features.items()}
-    return {"t": t.isoformat(), "freshness": {k: v.isoformat() for k, v in sorted(freshness.items())},
-            "radar": RADAR_OVERLAY, **layers}
+    rendered = {k: v.isoformat() if isinstance(v, datetime) else v for k, v in sorted(freshness.items())}
+    return {"t": t.isoformat(), "freshness": rendered, "radar": RADAR_OVERLAY, **layers}
 
 
 async def build_layers(db, t: datetime, area=None) -> dict:

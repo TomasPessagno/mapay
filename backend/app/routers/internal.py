@@ -38,6 +38,34 @@ router = APIRouter(prefix="/internal", tags=["internal"])
 
 Job = Callable[..., Awaitable[object]]
 
+# Ingest result keys → the run-metadata fields /layers exposes as `<job>_run` (A28). Jobs that
+# already return canonical names win; the others fall back to their own counter names.
+RUN_FIELDS = {
+    "items_seen": ("items_seen", "fetched"),
+    "items_new": ("items_new", "new"),
+    "hazards_added": ("hazards_added", "registered"),
+    "hazards_updated": ("hazards_updated", "evidence"),
+}
+
+
+def run_metadata(job: str, started: datetime, result) -> dict:
+    """The `{job, last_run_at, items_seen, items_new, hazards_added, hazards_updated}` document
+    `record_ingest_run` stores, whatever shape the job returned (missing counts are left out)."""
+    metadata: dict = {"job": job, "last_run_at": started}
+    values = result if isinstance(result, dict) else {}
+    for field, aliases in RUN_FIELDS.items():
+        value = next((values[alias] for alias in aliases if isinstance(values.get(alias), int)), None)
+        if value is not None:
+            metadata[field] = value
+    return metadata
+
+
+async def record_ingest_run(db, job: str, started: datetime, result) -> None:
+    """One meta doc per job, overwritten each successful run: a job that runs but changes no
+    hazards still moves `last_run_at`, so `/layers` freshness can tell "quiet" from "stalled"."""
+    await db.ingest_runs.update_one({"_id": f"run:{job}"}, {"$set": run_metadata(job, started, result)},
+                                    upsert=True)
+
 
 async def _here(db, now):
     return {"incidents": await here_incidents.run(db, now), "flow": await here_flow.run(db, now)}
@@ -121,6 +149,11 @@ async def ingest(job: str, _: Annotated[dict, Depends(require_scheduler)]):
         # A 5xx makes Cloud Scheduler retry per the job's retry config.
         log.exception("Ingestion job %s failed", job)
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"{job} failed: {type(exc).__name__}") from exc
+    else:
+        try:
+            await record_ingest_run(db, job, started, result)
+        except Exception:  # run metadata must never fail an otherwise good run
+            log.exception("Could not record the %s ingest run", job)
     finally:
         # /layers serves an in-process snapshot (A26): mark it stale and refresh it in the
         # background; the old snapshot keeps answering requests until the rebuild lands.

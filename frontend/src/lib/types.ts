@@ -152,9 +152,20 @@ export interface RadarOverlay {
   opacity?: number;
 }
 
+// Last successful run of one ingestion job, exposed in `freshness` as `<job>_run`
+// (e.g. `news_run`): separate from `<source>` (the last hazard change). Optional keys.
+export interface IngestRun {
+  job: string;
+  last_run_at: string;
+  items_seen?: number;
+  items_new?: number;
+  hazards_added?: number;
+  hazards_updated?: number;
+}
+
 export interface LayersResponse {
   t?: string;
-  freshness?: Record<string, string>;
+  freshness?: Record<string, string | IngestRun>;
   radar?: RadarOverlay;
   [layerName: string]: unknown; // GeoJSON FeatureCollections keyed by legend category
 }

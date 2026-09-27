@@ -45,9 +45,18 @@ class FakeIntelCache:
         return FakeCursor([d for d in self.docs if self._matches(d, query)])
 
 
+class FakeRuns:
+    def __init__(self, docs=()):
+        self.docs = list(docs)
+
+    def find(self, query):
+        return FakeCursor(self.docs)
+
+
 class FakeDb:
-    def __init__(self, docs):
+    def __init__(self, docs, runs=()):
         self.intel_cache = FakeIntelCache(docs)
+        self.ingest_runs = FakeRuns(runs)
 
     @property
     def evidence_queries(self):
@@ -185,6 +194,39 @@ class LayersTests(unittest.TestCase):
         self.assertEqual(freshness["news"], (NOW - timedelta(minutes=20)).isoformat())
         self.assertIn("tides", freshness)
         self.assertIn("osm", freshness)
+
+    def test_news_created_hazards_expire_after_their_windows(self):
+        docs = [
+            belief("news:fresh-closure", "closure", point(-80.19, 25.76), 0.67,
+                   updated=NOW - timedelta(hours=2)),
+            belief("news:stale-closure", "closure", point(-80.19, 25.76), 0.67,
+                   updated=NOW - timedelta(hours=25)),
+            belief("news:stale-construction", "construction", point(-80.19, 25.76), 0.62,
+                   updated=NOW - timedelta(days=31)),
+        ]
+        body = self.get(docs)
+        self.assertEqual(list(self.features(body, "closure")), ["news:fresh-closure"])
+        self.assertEqual(self.features(body, "construction"), {})
+
+    def test_freshness_reports_the_last_ingest_run(self):
+        runs = [{"_id": "run:news", "job": "news", "last_run_at": NOW - timedelta(minutes=5),
+                 "items_seen": 42, "items_new": 6, "hazards_added": 2, "hazards_updated": 3}]
+        with patch("app.routers.layers.get_db", return_value=FakeDb(seeded(), runs)):
+            response = self.client.get("/layers", params={"t": NOW.isoformat()})
+        self.assertEqual(response.status_code, 200, response.text)
+        freshness = response.json()["freshness"]
+        self.assertEqual(freshness["news_run"], {
+            "job": "news", "last_run_at": (NOW - timedelta(minutes=5)).isoformat(),
+            "items_seen": 42, "items_new": 6, "hazards_added": 2, "hazards_updated": 3})
+        # The job timestamp is separate from the last hazard change.
+        self.assertEqual(freshness["news"], (NOW - timedelta(minutes=20)).isoformat())
+
+    def test_run_metadata_is_optional_and_partial(self):
+        runs = [{"_id": "run:weather", "job": "weather", "last_run_at": NOW}]
+        with patch("app.routers.layers.get_db", return_value=FakeDb(seeded(), runs)):
+            response = self.client.get("/layers", params={"t": NOW.isoformat()})
+        self.assertEqual(response.json()["freshness"]["weather_run"],
+                         {"job": "weather", "last_run_at": NOW.isoformat()})
 
     def test_empty_store(self):
         body = self.get([])

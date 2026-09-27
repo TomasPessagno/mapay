@@ -19,6 +19,14 @@ BELIEF_CONFIG = {
     # Fixed prior for news-only `incident` hazards (crashes, police activity). Adding the
     # news evidence on top pushes p from 0.7 to ~0.79, above the 1.0 log-odds routing threshold.
     "incident_probability": 0.7,
+    # Fixed priors for unmatched news-only `closure` / `construction` hazards (A28), e.g. "fire
+    # shuts down roadway" with no City permit or HERE incident nearby. One report must show on the
+    # map but not reroute by itself: prior (log-odds 0.20 / 0.0) + the +0.5 news evidence stays at
+    # 0.70 / 0.50, under the 1.0 threshold (p ≈ 0.67 / 0.62). A second report or a crowd /
+    # satellite confirmation crosses it, and severity then drives the detour penalty. Construction
+    # starts lower because those stories are routinely longer-lived and less acute.
+    "news_closure_probability": 0.55,
+    "news_construction_probability": 0.5,
     # Fixed prior for a flood seen only by satellite (no hotspot there). Radar misses water between
     # buildings but rarely invents it; still below "certain" since each pass is hours to days old.
     "satellite_flood_probability": 0.75,

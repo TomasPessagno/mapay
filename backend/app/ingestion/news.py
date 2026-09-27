@@ -15,8 +15,10 @@ Pipeline per run (Cloud Scheduler calls it every 15 min via A15):
    skipped.
 6. Items within ~150 m of a registered belief of the same kind become ``news``
    evidence on it (``record_evidence``). Unmatched crashes / police activity
-   register a new ``incident`` hazard with the fixed ``incident_probability`` prior,
-   then record the same evidence so the article's link is kept.
+   register a new ``incident`` hazard, and unmatched closures / construction
+   register a new hazard too (A28), each with its fixed prior from
+   ``belief_config.py``; the article is then recorded as evidence so its link is
+   kept. A geocoded point is buffered to ~60 m so it overlaps route corridors.
 
 Expiry follows AGENTS.md: incident 3 h, flood 12 h, closure = stated end or 24 h,
 construction 30 days. Beliefs themselves never expire.
@@ -66,6 +68,15 @@ MIAMI_DADE_BBOX = (-80.45, 25.55, -80.10, 25.98)
 
 # News is placed where it is reported; beyond ~150 m from a belief it is a new event.
 MATCH_RADIUS_DEGREES = 0.0015
+
+# Unmatched news that creates a hazard, and the fixed prior each category reads (A28). Incidents
+# shipped first; closures and construction joined so a story like "fire shuts down roadway" is
+# not dropped just because no City/HERE hazard is registered nearby.
+NEWS_HAZARD_PRIORS = {"incident": "incident_probability", "closure": "news_closure_probability",
+                      "construction": "news_construction_probability"}
+# A geocoded street grows to a ~60 m polygon: only then does it overlap a route corridor, and it
+# renders as an area. Neighbourhood fallbacks are already polygons and pass through untouched.
+POINT_BUFFER_DEGREES = 0.0006
 
 SEEN_TTL_DAYS = 3
 
@@ -315,14 +326,31 @@ async def match_hazard(db, category: str, geometry: dict) -> dict | None:
     return best
 
 
-async def register_incident(db, item: dict, now: datetime) -> str:
-    """An unmatched crash / police item becomes a new ``incident`` hazard."""
-    hazard_id = f"incident:news-{item['_id']}"
-    await register_hazard(db, hazard_id, "incident", item["geometry"], {
-        "probability": C["incident_probability"],
+def buffered_geometry(geometry: dict) -> dict:
+    """A geocoded point becomes a ~60 m polygon so it overlaps corridors; polygons stay as they are."""
+    if geometry.get("type") != "Point":
+        return geometry
+    buffered = shape(geometry).buffer(POINT_BUFFER_DEGREES)
+    return json.loads(json.dumps(mapping(buffered)))
+
+
+async def register_news_hazard(db, item: dict, now: datetime) -> str:
+    """An unmatched news item becomes a new hazard: incident, closure or construction (A28).
+
+    Incident keeps its historical ``incident:news-`` id; closure/construction use the ``news:``
+    prefix so ``/layers`` treats them as news-only (article sources, news opacity, expiry windows).
+    The caller records the article as evidence right after, so the belief carries its source link.
+    """
+    category = item["category"]
+    hazard_id = (f"incident:news-{item['_id']}" if category == "incident"
+                 else f"news:{item['_id']}")
+    await register_hazard(db, hazard_id, category, buffered_geometry(item["geometry"]), {
+        "probability": C[NEWS_HAZARD_PRIORS[category]],
         "severity": item.get("severity") or 1,
         "title": item.get("title"),
         "source_url": item.get("url"),
+        # Closure: /layers shows the stated end and the evidence TTL follows it or 24 h.
+        "end_time": item.get("ends_at") or None,
     }, now)
     return hazard_id
 
@@ -368,7 +396,8 @@ async def run(db, now: datetime | None = None, *, client: httpx.AsyncClient | No
         extracted = outcome.items
         summary = {"fetched": len(fetched), "new": len(fresh), "triaged": len(kept),
                    "dropped": len(fresh) - len(kept), "extracted": len(extracted),
-                   "evidence": 0, "incidents": 0, "skipped": 0, "released": released}
+                   "evidence": 0, "incidents": 0, "hazards_added": 0, "skipped": 0,
+                   "released": released}
         for item in extracted:
             geometry = await geocode_location(item.get("location_text"), client=http,
                                               api_key=geocoding_api_key)
@@ -382,14 +411,17 @@ async def run(db, now: datetime | None = None, *, client: httpx.AsyncClient | No
             if linked is not None:
                 await record_evidence(db, linked["hazard_id"], evidence_item(item, moment), moment)
                 summary["evidence"] += 1
-            elif category == "incident":
-                hazard_id = await register_incident(db, item, moment)
+            elif category in NEWS_HAZARD_PRIORS:
+                hazard_id = await register_news_hazard(db, item, moment)
                 await record_evidence(db, hazard_id, evidence_item(item, moment), moment)
-                summary["incidents"] += 1
+                summary["hazards_added"] += 1
+                if category == "incident":
+                    summary["incidents"] += 1
             else:
                 logger.info("No registered %s hazard near %r; item skipped", category,
                             item.get("title"))
                 summary["skipped"] += 1
+        summary["hazards_updated"] = summary["evidence"]
         return summary
     finally:
         if owned:

@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime, timezone
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
@@ -64,6 +65,27 @@ class IngestTests(unittest.TestCase):
     def test_registry_has_the_merged_jobs(self):
         self.assertTrue({"news", "weather", "here", "tides", "city_gis", "sidewalks", "potholes"} <= set(internal.JOBS))
 
+    def test_successful_ingest_records_that_run(self):
+        db = SimpleNamespace(ingest_runs=AsyncMock())
+        with patch.dict(internal.JOBS, {"news": AsyncMock(return_value={"fetched": 0, "new": 0})}), \
+             patch("app.routers.internal.get_db", return_value=db), \
+             patch("app.routers.internal.invalidate_snapshot"):
+            response = make_client().post("/internal/ingest/news")
+        self.assertEqual(response.status_code, 200, response.text)
+        query, update = db.ingest_runs.update_one.await_args.args[:2]
+        self.assertEqual(query, {"_id": "run:news"})
+        self.assertEqual(update["$set"]["job"], "news")
+        self.assertEqual(update["$set"]["items_seen"], 0)
+
+    def test_failed_ingest_records_no_run(self):
+        db = SimpleNamespace(ingest_runs=AsyncMock())
+        with patch.dict(internal.JOBS, {"news": AsyncMock(side_effect=RuntimeError("boom"))}), \
+             patch("app.routers.internal.get_db", return_value=db), \
+             patch("app.routers.internal.invalidate_snapshot"):
+            response = make_client().post("/internal/ingest/news")
+        self.assertEqual(response.status_code, 502)
+        db.ingest_runs.update_one.assert_not_awaited()
+
     def test_here_job_runs_incidents_and_flow(self):
         async def check():
             with patch("app.ingestion.here_incidents.run", AsyncMock(return_value={"registered": 2})), \
@@ -119,3 +141,35 @@ class TokenTests(unittest.TestCase):
             response, fake = self.post({"Authorization": "Bearer t"}, {"email": SCHEDULER, "email_verified": True})
         self.assertEqual(response.status_code, 503)
         fake.assert_not_called()
+
+
+class RunMetadataTests(unittest.IsolatedAsyncioTestCase):
+    """A28: every successful run is recorded, even when it changed nothing."""
+
+    class FakeRuns:
+        def __init__(self):
+            self.ops = []
+
+        async def update_one(self, query, update, upsert=False):
+            self.ops.append((query, update, upsert))
+            return SimpleNamespace(matched_count=0, upserted_id=query.get("_id"))
+
+    async def test_nothing_new_still_writes_the_run(self):
+        runs = self.FakeRuns()
+        started = datetime(2026, 9, 28, 12, 0, tzinfo=timezone.utc)
+        await internal.record_ingest_run(SimpleNamespace(ingest_runs=runs), "news", started,
+                                         {"fetched": 0, "new": 0, "hazards_added": 0,
+                                          "hazards_updated": 0})
+        query, update, upsert = runs.ops[0]
+        self.assertEqual(query, {"_id": "run:news"})
+        self.assertTrue(upsert)
+        self.assertEqual(update["$set"], {"job": "news", "last_run_at": started,
+                                          "items_seen": 0, "items_new": 0,
+                                          "hazards_added": 0, "hazards_updated": 0})
+
+    def test_job_specific_counter_names_are_mapped(self):
+        started = datetime(2026, 9, 28, 12, 0, tzinfo=timezone.utc)
+        self.assertEqual(internal.run_metadata("weather", started, {"registered": 15}),
+                         {"job": "weather", "last_run_at": started, "hazards_added": 15})
+        self.assertEqual(internal.run_metadata("tides", started, None),
+                         {"job": "tides", "last_run_at": started})
