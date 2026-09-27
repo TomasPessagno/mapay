@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
 from fastapi import APIRouter, HTTPException, Query
-from shapely.geometry import box, shape
+from shapely.geometry import box, mapping, shape
 
 from app.db.mongo import get_db
 from app.routing.beliefs import belief_at, probability, utc
@@ -58,6 +58,27 @@ def source_kind(hazard_id: str) -> str:
         if hazard_id.startswith(prefix):
             return SOURCE_PREFIXES[prefix]
     return hazard_id.split(":", 1)[0]
+
+
+SIMPLIFY_DEG = 0.00003  # ~3 m: invisible on the map, halves long street geometries
+COORD_DECIMALS = 5  # ~1 m
+
+
+def slim_geometry(geometry: dict) -> dict:
+    """Simplified, rounded geometry for the map (the stored belief keeps the full one)."""
+    try:
+        simplified = mapping(shape(geometry).simplify(SIMPLIFY_DEG, preserve_topology=True))
+    except Exception:  # noqa: BLE001 - odd geometries are sent as they are
+        return geometry
+
+    def rounded(coords):
+        if coords and isinstance(coords[0], (int, float)):
+            return [round(coords[0], COORD_DECIMALS), round(coords[1], COORD_DECIMALS)]
+        return [rounded(c) for c in coords]
+
+    if "coordinates" not in simplified:
+        return geometry
+    return {"type": simplified["type"], "coordinates": rounded(simplified["coordinates"])}
 
 
 def parse_bbox(bbox: str | None):
@@ -123,7 +144,7 @@ def feature_for(doc: dict, evidence_docs: list[dict], t: datetime) -> dict | Non
     }
     if kind == "congestion":
         properties["level"] = level
-    return {"type": "Feature", "geometry": doc["geometry"], "properties": properties}
+    return {"type": "Feature", "geometry": slim_geometry(doc["geometry"]), "properties": properties}
 
 
 async def build_layers(db, t: datetime, area=None) -> dict:
