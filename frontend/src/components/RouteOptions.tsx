@@ -7,6 +7,7 @@ import { Haptics, NotificationType } from '@capacitor/haptics';
 import { closeOutline } from 'ionicons/icons';
 import TimeScrubber from './TimeScrubber';
 import { formatClockTime } from '../lib/departureTime';
+import RoutePreview from './RoutePreview';
 
 interface RouteOptionsProps {
   response: RouteResponse;
@@ -42,6 +43,7 @@ const RouteOptions: React.FC<RouteOptionsProps> = ({
   onDepartureChange,
   onAddToRoutine,
 }) => {
+  const [previewOpen, setPreviewOpen] = React.useState(false);
   // Handle case where API might return `alternatives` instead of `routes` in mock
   const routes: RouteOption[] = response.routes || (response as unknown as { alternatives?: RouteOption[] }).alternatives || [];
 
@@ -142,6 +144,14 @@ const RouteOptions: React.FC<RouteOptionsProps> = ({
           <IonButton
             expand="block"
             shape="round"
+            fill="outline"
+            onClick={() => setPreviewOpen(true)}
+          >
+            Preview
+          </IonButton>
+          <IonButton
+            expand="block"
+            shape="round"
             onClick={() => {
               const link = response.deep_links?.google_maps;
               if (link) void openLink(link).then(() => Haptics.notification({ type: NotificationType.Success }).catch(() => {}));
@@ -160,6 +170,16 @@ const RouteOptions: React.FC<RouteOptionsProps> = ({
           </IonButton>
         </div>
       </div>
+      {previewOpen && (
+        <RoutePreview
+          isOpen={previewOpen}
+          route={selectedRoute}
+          departureTime={departureTime}
+          selectedDeparture={selectedDeparture}
+          googleMapsUrl={response.deep_links?.google_maps}
+          onClose={() => setPreviewOpen(false)}
+        />
+      )}
     </div>
   );
 };
