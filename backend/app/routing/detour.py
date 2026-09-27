@@ -115,5 +115,6 @@ def briefing(route: dict, detoured: bool, unavoidable: list[str]) -> str:
     if unavoidable:
         text += f" No route avoids {', '.join(unavoidable[:3])}; this is the best available."
     elif route.get("hazards_on_route"):
-        text += " Watch for " + ", ".join(h["title"].lower() for h in route["hazards_on_route"][:2]) + "."
+        titles = list(dict.fromkeys(h["title"].lower() for h in route["hazards_on_route"]))[:2]
+        text += " Watch for " + ", ".join(titles) + "."
     return text
