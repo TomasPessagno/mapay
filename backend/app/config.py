@@ -30,6 +30,14 @@ class Settings(BaseSettings):
     ticketmaster_api_key: str = ""
     eia_api_key: str = ""
     here_api_key: str = ""
+    # Satellite floods (#9). GFM (Copernicus Global Flood Monitoring) account; the Miami AOI is
+    # found or created on first use unless GFM_AOI_ID pins one.
+    gfm_email: str = ""
+    gfm_password: str = ""
+    gfm_aoi_id: str = ""
+    # Earth Engine fallback: a registered Cloud project (defaults to GOOGLE_CLOUD_PROJECT); on Cloud Run
+    # the service account authenticates, locally `earthengine authenticate` or application-default login.
+    earth_engine_project: str = ""
     nws_user_agent: str = "MAPAY (contact@example.com)"
     # Comma-separated. Defaults cover the browser dev server and the iOS Capacitor web view
     # (capacitor://localhost); deployments append the Vercel domain via CORS_ORIGINS.

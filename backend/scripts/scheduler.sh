@@ -30,7 +30,8 @@ JOBS=(
   "city_gis|0 6 * * *|300s"
   "sidewalks|0 3 * * *|300s"
   "potholes|0 4 * * 1|300s"
-  # Add as they land: "gfm|15 * * * *|300s" (#9), "s2|0 5 * * 1|600s" (#16), "traffic|..." (#23)
+  "gfm|15 * * * *|300s"
+  # Add as they land: "s2|0 5 * * 1|600s" (#16), "traffic|..." (#23)
 )
 
 for entry in "${JOBS[@]}"; do

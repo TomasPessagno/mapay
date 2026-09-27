@@ -13,3 +13,5 @@ feedparser
 python-dotenv
 google-auth
 requests
+rasterio
+earthengine-api

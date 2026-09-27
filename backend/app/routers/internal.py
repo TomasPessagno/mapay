@@ -18,6 +18,8 @@ from app.config import get_settings
 from app.db.mongo import get_db
 from app.ingestion import (
     closures,
+    earth_engine_s1,
+    gfm,
     here_flow,
     here_incidents,
     news,
@@ -37,6 +39,16 @@ async def _here(db, now):
     return {"incidents": await here_incidents.run(db, now), "flow": await here_flow.run(db, now)}
 
 
+async def _satellite_floods(db, now):
+    """GFM when an account is configured; otherwise, or if GFM fails, our own Earth Engine run."""
+    if gfm.configured():
+        try:
+            return await gfm.run(db, now)
+        except Exception:
+            log.exception("GFM failed; falling back to Earth Engine")
+    return await earth_engine_s1.run(db, now)
+
+
 async def _sidewalks(db, now):
     return {"ways": len((await sidewalks.fetch(db=db, now=now))["features"])}
 
@@ -50,6 +62,8 @@ JOBS: dict[str, Job] = {
     "city_gis": closures.run,
     "sidewalks": _sidewalks,
     "potholes": potholes.run,
+    "gfm": _satellite_floods,
+    "s1": earth_engine_s1.run,
 }
 
 
