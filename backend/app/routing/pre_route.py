@@ -7,7 +7,7 @@ from shapely.ops import unary_union
 
 from app.agents.briefing import explain_recalculation
 from app.routing.belief_config import BELIEF_CONFIG as C
-from app.routing.beliefs import refresh_belief, snapshot, threshold_changes, utc
+from app.routing.beliefs import belief_at, snapshot, threshold_changes, utc
 from app.routing.engine import weighted_route
 
 
@@ -17,8 +17,9 @@ def on_route(route: dict, hazards: list[dict]) -> dict:
 
 
 async def current_hazards(db, now):
+    """Every belief evaluated at `now`: one query, decay computed in memory (see belief_at)."""
     docs = await db.intel_cache.find({"type": "hazard_belief"}).to_list(length=None)
-    return [await refresh_belief(db, h["hazard_id"], now) for h in docs]
+    return [belief_at(doc, now) for doc in docs]
 
 
 async def check_routine(db, routine: dict, departure: datetime, now: datetime) -> dict:
