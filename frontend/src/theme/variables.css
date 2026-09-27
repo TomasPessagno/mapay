@@ -191,6 +191,10 @@ ion-tab-bar.glass {
   box-shadow: var(--glass-shadow);
   margin: 0 12px max(8px, env(safe-area-inset-bottom));
   width: calc(100% - 24px);
+  /* The margin already clears the home indicator; Ionic's own safe-area padding would add it twice
+     on the iPhone. Fixed height so the map sheet below can stop right above it. */
+  padding-bottom: 0;
+  height: 56px;
 }
 
 ion-tab-bar.glass ion-tab-button {
@@ -340,7 +344,8 @@ ion-card {
 
 /* The map sheet stops above the tab bar, so the tabs stay visible and tappable. */
 ion-modal.map-sheet {
-  bottom: calc(50px + var(--ion-safe-area-bottom, 0px));
+  /* Above the floating tab bar: its 56 px height plus its bottom margin. */
+  bottom: calc(56px + max(8px, var(--ion-safe-area-bottom, 0px)));
   overflow: hidden;
 }
 
