@@ -9,6 +9,7 @@ import { closeOutline } from 'ionicons/icons';
 interface RouteOptionsProps {
   response: RouteResponse;
   selectedIndex: number;
+  breakpoint: number;
   onSelect: (index: number) => void;
   onClose: () => void;
 }
@@ -26,84 +27,96 @@ const formatDistance = (meters: number) => {
   return `${miles.toFixed(1)} mi`;
 };
 
-const RouteOptions: React.FC<RouteOptionsProps> = ({ response, selectedIndex, onSelect, onClose }) => {
+const RouteOptions: React.FC<RouteOptionsProps> = ({ response, selectedIndex, breakpoint, onSelect, onClose }) => {
   // Handle case where API might return `alternatives` instead of `routes` in mock
   const routes: RouteOption[] = response.routes || (response as unknown as { alternatives?: RouteOption[] }).alternatives || [];
 
   if (!routes.length) return null;
 
   return (
-    <div className="route-options">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+    <div className="route-options" style={{ flex: `0 0 ${breakpoint * 100}%`, height: `${breakpoint * 100}%` }}>
+      <div className="route-options-header">
         <IonText color="dark"><h2 className="dynamic-title2" style={{ fontWeight: 'bold', margin: 0 }}>Route Options</h2></IonText>
         <IonButton fill="clear" color="medium" onClick={onClose} aria-label="Close route options" style={{ margin: 0, height: '44px' }}>
           <IonIcon aria-hidden="true" slot="icon-only" icon={closeOutline} />
         </IonButton>
       </div>
-      {routes.map((route, i) => (
-        <IonCard 
-          key={i} 
-          button={true}
-          aria-label={`${route.recommended ? 'Recommended route. ' : ''}${formatTime(route.duration_s)}, ${formatDistance(route.distance_m)}${route.hazards_on_route?.length ? `, ${route.hazards_on_route.length} hazards` : ', no reported hazards'}`}
-          aria-pressed={selectedIndex === i}
-          onClick={() => onSelect(i)}
-          style={{ 
-            border: selectedIndex === i ? '2px solid var(--ion-color-primary)' : '2px solid transparent',
-            margin: '0 0 16px 0',
-            borderRadius: '22px',
-            boxShadow: 'none',
-            background: 'var(--secondary-system-background)'
-          }}
-        >
-          <IonCardContent>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-              <div>
-                <IonText color="dark">
-                  <h2 className="dynamic-title2" style={{ fontWeight: 'bold', margin: '0 0 4px 0' }}>{formatTime(route.duration_s)}</h2>
-                </IonText>
-                <IonText color="medium">
-                  <p style={{ margin: 0 }}>{formatDistance(route.distance_m)} · {route.summary}</p>
-                </IonText>
+      <div className="route-options-list">
+        {routes.map((route, i) => (
+          <IonCard
+            key={i}
+            button={true}
+            aria-label={`${route.recommended ? 'Recommended route. ' : ''}${formatTime(route.duration_s)}, ${formatDistance(route.distance_m)}${route.hazards_on_route?.length ? `, ${route.hazards_on_route.length} hazards` : ', no reported hazards'}`}
+            aria-pressed={selectedIndex === i}
+            onClick={() => onSelect(i)}
+            style={{
+              border: selectedIndex === i ? '2px solid var(--ion-color-primary)' : '2px solid transparent',
+              margin: '0 0 16px 0',
+              borderRadius: '22px',
+              boxShadow: 'none',
+              background: 'var(--secondary-system-background)'
+            }}
+          >
+            <IonCardContent>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div>
+                  <IonText color="dark">
+                    <h2 className="dynamic-title2" style={{ fontWeight: 'bold', margin: '0 0 4px 0' }}>{formatTime(route.duration_s)}</h2>
+                  </IonText>
+                  <IonText color="medium">
+                    <p style={{ margin: 0 }}>{formatDistance(route.distance_m)} · {route.summary}</p>
+                  </IonText>
+                </div>
+                {route.recommended && (
+                  <IonChip color="success" style={{ margin: 0 }}>
+                    Recommended
+                  </IonChip>
+                )}
               </div>
-              {route.recommended && (
-                <IonChip color="success" style={{ margin: 0 }}>
-                  Recommended
-                </IonChip>
+
+              {route.hazards_on_route && route.hazards_on_route.length > 0 && (
+                <div style={{ marginTop: '12px' }}>
+                  <HazardChips hazards={route.hazards_on_route} />
+                </div>
               )}
-            </div>
+            </IonCardContent>
+          </IonCard>
+        ))}
 
-            {route.hazards_on_route && route.hazards_on_route.length > 0 && (
-              <div style={{ marginTop: '12px' }}>
-                <HazardChips hazards={route.hazards_on_route} />
-              </div>
-            )}
-          </IonCardContent>
-        </IonCard>
-      ))}
+        {response.briefing && (
+          <div style={{ padding: '0 8px 16px' }}>
+            <IonText color="medium">
+              <p>{response.briefing}</p>
+            </IonText>
+          </div>
+        )}
 
-      {response.briefing && (
-        <div style={{ padding: '0 8px 16px' }}>
-          <IonText color="medium">
-            <p>{response.briefing}</p>
-          </IonText>
+      </div>
+      <div className="route-options-footer glass">
+        <div className="route-options-actions">
+          <IonButton
+            expand="block"
+            shape="round"
+            onClick={() => {
+              const link = response.deep_links?.google_maps;
+              if (link) void openLink(link).then(() => Haptics.notification({ type: NotificationType.Success }).catch(() => {}));
+            }}
+            disabled={!response.deep_links?.google_maps}
+          >
+            Start
+          </IonButton>
+          <IonButton
+            expand="block"
+            shape="round"
+            fill="clear"
+            onClick={() => window.dispatchEvent(new CustomEvent('open-customize'))}
+          >
+            Customize
+          </IonButton>
         </div>
-      )}
-
-      <div style={{ marginTop: '16px' }}>
-        <IonButton 
-          expand="block" 
-          shape="round" 
-          onClick={() => {
-            const link = response.deep_links?.google_maps;
-            if (link) void openLink(link).then(() => Haptics.notification({ type: NotificationType.Success }).catch(() => {}));
-          }}
-          disabled={!response.deep_links?.google_maps}
-        >
-          Open in Google Maps
-        </IonButton>
-        <IonButton 
-          expand="block" 
-          fill="clear" 
+        <IonButton
+          expand="block"
+          fill="clear"
           color="medium"
           onClick={() => {
             const link = response.deep_links?.apple_maps;

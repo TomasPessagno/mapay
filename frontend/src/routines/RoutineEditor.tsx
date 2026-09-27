@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import {
-  IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent,
+  IonHeader, IonToolbar, IonTitle, IonButtons, IonButton, IonContent, IonFooter,
   IonList, IonItem, IonLabel, IonInput, IonSelect, IonSelectOption,
   IonIcon, IonItemGroup, IonToggle
 } from '@ionic/react';
@@ -87,9 +87,6 @@ export default function RoutineEditor({ routine, places, onSave, onCancel }: Rou
             <IonButton onClick={onCancel}>Cancel</IonButton>
           </IonButtons>
           <IonTitle>Edit Routine</IonTitle>
-          <IonButtons slot="end" style={{ paddingRight: import.meta.env.VITE_USE_MOCKS ? '70px' : '0' }}>
-            <IonButton strong onClick={() => onSave(edited)}>Save</IonButton>
-          </IonButtons>
         </IonToolbar>
       </IonHeader>
       
@@ -201,7 +198,8 @@ export default function RoutineEditor({ routine, places, onSave, onCancel }: Rou
         <IonList inset>
           <IonItem>
             <IonLabel>Use my defaults</IonLabel>
-            <IonToggle 
+            <IonToggle
+              slot="end"
               checked={!edited.preferences} 
               onIonChange={e => {
                 if (e.detail.checked) {
@@ -226,6 +224,13 @@ export default function RoutineEditor({ routine, places, onSave, onCancel }: Rou
           />
         )}
       </IonContent>
+      <IonFooter className="routine-editor-footer">
+        <div className="ion-padding-horizontal">
+          <IonButton expand="block" shape="round" strong onClick={() => onSave(edited)}>
+            Save
+          </IonButton>
+        </div>
+      </IonFooter>
     </>
   );
 }

@@ -9,6 +9,7 @@ import type { Routine, Place } from '../lib/types';
 import { refreshHeadsUps } from '../headsup/refresh';
 import { headsUpToast } from '../headsup/schedule';
 import RoutineEditor from './RoutineEditor';
+import { savedPlaceLabel, shortPlaceLabel } from './placeLabels';
 
 export default function RoutinesTab() {
   const [routines, setRoutines] = useState<Routine[]>([]);
@@ -42,7 +43,14 @@ export default function RoutinesTab() {
 
   const getPlaceName = (id: string) => {
     const p = places.find(p => p._id === id);
-    return p ? p.name : id;
+    return p ? savedPlaceLabel(p) : 'Saved place';
+  };
+
+  const getRoutineName = (routine: Routine) => {
+    const name = routine.name.trim();
+    if (shortPlaceLabel(name) === name) return name;
+    const destination = places.find((place) => place._id === routine.legs[0]?.to_place);
+    return destination ? `To ${savedPlaceLabel(destination)}` : shortPlaceLabel(name);
   };
 
   // After a save, re-run the whole heads-up sync and say when the next heads-up lands (#126).
@@ -161,7 +169,7 @@ export default function RoutinesTab() {
       {routines.map(routine => (
         <IonList inset key={routine._id} style={{ marginBottom: '16px' }}>
           <IonItem lines="full">
-            <IonLabel><strong>{routine.name}</strong></IonLabel>
+            <IonLabel className="routine-title"><strong>{getRoutineName(routine)}</strong></IonLabel>
             <IonToggle
               slot="end"
               checked={routine.active}
@@ -171,11 +179,9 @@ export default function RoutinesTab() {
           <IonItem button onClick={() => openEditor(routine)} detail lines="none">
             <IonLabel className="ion-text-wrap">
               {routine.legs.map((leg, i) => (
-                <div key={i} style={{ marginBottom: '4px' }}>
-                  <span style={{ color: 'var(--ion-text-color)' }}>{getPlaceName(leg.from_place)} → {getPlaceName(leg.to_place)}</span>
-                  <span style={{ color: 'var(--ion-color-medium)' }}>
-                    {' · '}{formatWhen(leg.when)}
-                  </span>
+                <div className="routine-leg-row" key={i}>
+                  <span className="routine-leg-title">{getPlaceName(leg.from_place)} → {getPlaceName(leg.to_place)}</span>
+                  <span className="routine-leg-time">{formatWhen(leg.when)}</span>
                 </div>
               ))}
               <p style={{ marginTop: '8px', color: 'var(--ion-color-medium)' }}>{formatRepeat(routine.repeat)}</p>

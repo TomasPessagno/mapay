@@ -4,6 +4,7 @@ import { Haptics, NotificationType } from '@capacitor/haptics';
 import type { UpcomingLeg } from '../lib/types';
 import { openLink } from '../lib/deepLinks';
 import HazardChips from '../components/HazardChips';
+import { shortPlaceLabel } from '../routines/placeLabels';
 
 const formatTime = (seconds: number) => {
   const mins = Math.round(seconds / 60);
@@ -62,7 +63,7 @@ const HeadsUpCard: React.FC<HeadsUpCardProps> = ({ leg, timeOffsetMs = 0, onCust
         {/* Route (Title 2) and Trip time */}
         <IonText color="dark">
           <h2 className="heads-up-route-title dynamic-title2">
-            {leg.from.name} → {leg.to.name}
+            {shortPlaceLabel(leg.from.name)} → {shortPlaceLabel(leg.to.name)}
           </h2>
         </IonText>
         <IonText color="medium">

@@ -13,6 +13,28 @@ import ReportFab from "../components/ReportFab";
 import type { PlaceData } from "../components/PlaceCard";
 
 const MIAMI = { lat: 25.7617, lng: -80.1918 };
+const MEDIUM_SHEET_BREAKPOINT = 0.5;
+
+function mapSheetOcclusion(map: google.maps.Map): { top: number; bottom: number } {
+  const mapRect = map.getDiv().getBoundingClientRect();
+  const modal = document.querySelector('ion-modal.map-sheet') as HTMLIonModalElement | null;
+  const panel = modal?.shadowRoot?.querySelector<HTMLElement>('[part~="content"]');
+  const panelTop = panel?.getBoundingClientRect().top;
+
+  if (panelTop !== undefined && panelTop > mapRect.top) {
+    return {
+      top: Math.max(0, panelTop - mapRect.top),
+      bottom: Math.max(0, mapRect.bottom - panelTop),
+    };
+  }
+
+  const clearance = modal ? Number.parseFloat(getComputedStyle(modal).bottom) || 0 : 0;
+  const sheetTop = mapRect.bottom - clearance - mapRect.height * MEDIUM_SHEET_BREAKPOINT;
+  return {
+    top: Math.max(0, sheetTop - mapRect.top),
+    bottom: Math.max(0, mapRect.bottom - sheetTop),
+  };
+}
 
 type LayersStatus = "idle" | "loading" | "error";
 
@@ -156,6 +178,7 @@ function MapController({ userLocation }: { userLocation?: { lat: number; lng: nu
   const map = useMap();
   const [selectedPlace, setSelectedPlace] = useState<PlaceData | null>(null);
   const centredOnUser = useRef(false);
+  const recenterTimer = useRef<number | null>(null);
 
   // Centre on the user's first known position as soon as both the map and the position exist,
   // whichever comes last (a recenter event fired before the map loaded used to be lost).
@@ -171,9 +194,22 @@ function MapController({ userLocation }: { userLocation?: { lat: number; lng: nu
       if (!map) return;
       const customEvent = e as CustomEvent;
       if (customEvent.detail?.location) {
-        map.panTo(customEvent.detail.location);
-        if (customEvent.detail.zoom) {
-          map.setZoom(customEvent.detail.zoom);
+        const { location, zoom, place } = customEvent.detail;
+        if (recenterTimer.current !== null) window.clearTimeout(recenterTimer.current);
+        if (zoom) map.setZoom(zoom);
+
+        if (place) {
+          // Let the place card rise to its medium detent, then shift the point into the
+          // unobscured map area instead of leaving it behind the card.
+          recenterTimer.current = window.setTimeout(() => {
+            map.setCenter(location);
+            const mapRect = map.getDiv().getBoundingClientRect();
+            const { top: visibleBottom } = mapSheetOcclusion(map);
+            const targetY = Math.max(72, visibleBottom / 3);
+            map.panBy(0, Math.max(0, mapRect.height / 2 - targetY));
+          }, 850);
+        } else {
+          map.panTo(location);
         }
       }
       if (customEvent.detail?.place !== undefined) {
@@ -181,7 +217,10 @@ function MapController({ userLocation }: { userLocation?: { lat: number; lng: nu
       }
     };
     window.addEventListener('recenter-map', handleRecenter);
-    return () => window.removeEventListener('recenter-map', handleRecenter);
+    return () => {
+      window.removeEventListener('recenter-map', handleRecenter);
+      if (recenterTimer.current !== null) window.clearTimeout(recenterTimer.current);
+    };
   }, [map]);
 
   return (
@@ -344,17 +383,24 @@ function MapLayers({
       routeLayersRef.current.push(data);
     });
 
+    let fitTimer: number | undefined;
     if (routes[selectedRouteIndex]) {
        const selectedRoute = routes[selectedRouteIndex];
        const bounds = new google.maps.LatLngBounds();
        try {
            const coords = ((selectedRoute.route_geojson as unknown as GeoJSON.FeatureCollection).features[0].geometry as GeoJSON.LineString).coordinates as [number, number][];
            coords.forEach((c: [number, number]) => bounds.extend({ lat: c[1], lng: c[0] }));
-           map.fitBounds(bounds, { top: 100, bottom: 400, left: 40, right: 40 });
+           fitTimer = window.setTimeout(() => {
+             const { bottom } = mapSheetOcclusion(map);
+             map.fitBounds(bounds, { top: 100, bottom: Math.ceil(bottom + 16), left: 40, right: 40 });
+           }, 850);
        } catch (e) {
            console.error("Failed to fit bounds", e);
        }
-    }
+     }
+    return () => {
+      if (fitTimer !== undefined) window.clearTimeout(fitTimer);
+    };
   }, [map, mapId, routeResponse, selectedRouteIndex]);
 
   return null;
