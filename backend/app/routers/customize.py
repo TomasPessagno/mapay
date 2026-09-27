@@ -6,15 +6,19 @@ turns the prompt into constraints and explains the result; stops come from Place
 biased to the current route, roads from OpenStreetMap (Overpass), and the route choice from
 routing/scoring.py + detour.py.
 """
+import asyncio
+import json
 import logging
 import re
 from datetime import datetime, timedelta, timezone
+from functools import cache
+from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import httpx
 from fastapi import APIRouter, Header, HTTPException
 from pydantic import BaseModel, model_validator
-from shapely.geometry import LineString, MultiLineString, Point
+from shapely.geometry import LineString, MultiLineString, Point, shape
 
 from app.agents.customize import explain, extract_constraints
 from app.config import get_settings
@@ -37,7 +41,33 @@ USER_AGENT = "MAPAY/0.1 (https://github.com/TomasPessagno/mapay)"
 MIAMI_DADE_BBOX = (25.13, -80.87, 25.98, -80.10)  # south, west, north, east (Overpass order)
 MAX_STOPS = 3
 STOP_MAX_OFF_ROUTE_DEG = 0.03  # ~3 km: further than this isn't "on the way"
+ROADS_PATH = Path(__file__).resolve().parents[1] / "data" / "roads.geojson"  # scripts/build_roads.py
 _road_cache: dict[str, object] = {}
+
+
+@cache
+def road_snapshot() -> dict[str, tuple[str, object]]:
+    """alias / label (lower-case) → (label, geometry) for Miami's major roads."""
+    index = {}
+    for feature in json.loads(ROADS_PATH.read_text())["features"]:
+        label = feature["properties"]["label"]
+        geometry = shape(feature["geometry"])
+        for name in [label.lower(), *feature["properties"]["aliases"]]:
+            index[name] = (label, geometry)
+    return index
+
+
+def known_road(road: str) -> tuple[str, object] | None:
+    """The snapshot road a name refers to: exact alias first, then an alias inside the text
+    ("the Palmetto northbound" → SR 826). Bare numbers only match exactly."""
+    text = re.sub(r"^the\s+", "", road.strip().lower())
+    index = road_snapshot()
+    if text in index:
+        return index[text]
+    for alias in sorted(index, key=len, reverse=True):
+        if not alias.isdigit() and len(alias) > 3 and re.search(rf"\b{re.escape(alias)}\b", text):
+            return index[alias]
+    return None
 
 
 class LatLngBody(BaseModel):
@@ -97,13 +127,17 @@ def parse_road(payload: dict):
 
 
 async def resolve_road(road: str, client: httpx.AsyncClient):
+    """Geometry for a road name: the committed snapshot, else a live Overpass query (cached)."""
+    known = known_road(road)
+    if known:
+        return known[1]
     key = road.lower().strip()
     if key not in _road_cache:
         error = None
         for url in OVERPASS_URLS:
             try:
                 response = await client.post(url, data={"data": overpass_road_query(road)},
-                                             headers={"User-Agent": USER_AGENT}, timeout=12)
+                                             headers={"User-Agent": USER_AGENT}, timeout=8)
                 response.raise_for_status()
                 _road_cache[key] = parse_road(response.json())
                 break
@@ -213,34 +247,42 @@ async def customize(req: CustomizeRequest, x_device_id: str | None = Header(defa
         depart_at = local_departure(constraints["depart_at"], req.depart_at, tz, now)
 
     async with httpx.AsyncClient(timeout=25) as client:
-        roads = []
-        for road in constraints["avoid_roads"]:
+        async def lookup(road):
             try:
-                geometry = await resolve_road(road, client)
+                return road, await resolve_road(road, client)
             except httpx.HTTPError:
                 log.warning("Overpass lookup failed for %s", road, exc_info=True)
-                geometry = None
-            if geometry is None:
-                unmet.append(f"couldn't find {road}")
-            else:
-                roads.append({"id": f"road:{road}", "label": road, "kind": "road", "geometry": geometry})
-        hazards = await current_hazards(db, now)
-        try:
+                return road, None
+
+        async def old_route():
+            hazards = await current_hazards(db, now)
             # Old route: what Mapay would pick without the prompt.
-            old_alternatives = await route_alternatives(origin, destination, req.depart_at, base["avoid_tolls"],
-                                                        base["avoid_highways"], "drive")
-            old = rank(old_alternatives, hazards, base)[0]
-            stops = []
-            for stop in constraints["add_stops"][:MAX_STOPS]:
+            alternatives = await route_alternatives(origin, destination, req.depart_at, base["avoid_tolls"],
+                                                    base["avoid_highways"], "drive")
+            return hazards, rank(alternatives, hazards, base)[0]
+
+        try:
+            # Road lookups (maybe a live Overpass query) run while the old route is computed.
+            (hazards, old), *found_roads = await asyncio.gather(old_route(), *map(lookup, constraints["avoid_roads"]))
+            roads = []
+            for road, geometry in found_roads:
+                if geometry is None:
+                    unmet.append(f"couldn't find {road}")
+                else:
+                    roads.append({"id": f"road:{road}", "label": road, "kind": "road", "geometry": geometry})
+            async def find_stop(query):
                 try:
-                    found = await resolve_stop(stop["query"], old["route_geojson"], client)
+                    return query, await resolve_stop(query, old["route_geojson"], client)
                 except httpx.HTTPError:
-                    log.warning("Places lookup failed for %s", stop["query"], exc_info=True)
-                    found = None
+                    log.warning("Places lookup failed for %s", query, exc_info=True)
+                    return query, None
+
+            stops = []
+            for query, found in await asyncio.gather(*(find_stop(s["query"]) for s in constraints["add_stops"][:MAX_STOPS])):
                 if found:
                     stops.append(found)
                 else:
-                    unmet.append(f"no {stop['query']} near the route")
+                    unmet.append(f"no {query} near the route")
             areas = avoid_areas_for(prefs, roads)
             old_line, _ = corridor_for(old["route_geojson"])
             stop_points = [(s["location"]["coordinates"][1], s["location"]["coordinates"][0], False) for s in stops]

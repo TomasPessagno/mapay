@@ -107,6 +107,8 @@ class EndpointTests(unittest.TestCase):
         explain = AsyncMock(return_value="Gemini explanation.") if gemini else None
         patches = [
             patch("app.routers.customize.get_db", return_value=Db()),
+            # An empty road snapshot, so these tests exercise the live Overpass path.
+            patch("app.routers.customize.road_snapshot", return_value={}),
             patch("app.routing.google_routes.get_settings", return_value=SimpleNamespace(google_maps_api_key="k")),
             patch("app.routers.customize.get_settings", return_value=SimpleNamespace(google_maps_api_key="k")),
             patch("httpx.AsyncClient", lambda **kw: real(transport=httpx.MockTransport(upstreams))),
@@ -196,6 +198,29 @@ class ResolverTests(unittest.TestCase):
                          "2026-09-29T18:15:00-04:00")  # already past today → tomorrow
         self.assertEqual(local_departure("20:00", None, "America/New_York", now).isoformat(),
                          "2026-09-28T20:00:00-04:00")
+
+
+class RoadSnapshotTests(unittest.IsolatedAsyncioTestCase):
+    def test_nicknames_and_refs_resolve_from_the_snapshot(self):
+        for name in ("the Palmetto", "Palmetto Expressway", "SR 826", "sr-826", "the Palmetto northbound"):
+            self.assertEqual(customize.known_road(name)[0], "SR 826", name)
+        self.assertEqual(customize.known_road("the Dolphin")[0], "SR 836")
+        self.assertEqual(customize.known_road("I-95")[0], "I-95")
+        self.assertEqual(customize.known_road("Calle Ocho")[0], "US 41")
+        self.assertIsNone(customize.known_road("Coral Way"))
+        self.assertIsNone(customize.known_road("Route 950"))  # numbers only match exactly
+
+    def test_snapshot_geometry_is_miami(self):
+        for label, geometry in set(customize.road_snapshot().values()):
+            west, south, east, north = geometry.bounds
+            self.assertTrue(-80.9 < west < east < -80.0 and 25.1 < south < north < 26.0, label)
+
+    async def test_known_road_skips_overpass(self):
+        calls = []
+        client = httpx.AsyncClient(transport=httpx.MockTransport(lambda r: calls.append(r) or httpx.Response(504)))
+        geometry = await customize.resolve_road("the Palmetto", client)
+        self.assertEqual(calls, [])
+        self.assertGreater(geometry.length, 0.5)
 
 
 class AgentTests(unittest.IsolatedAsyncioTestCase):
