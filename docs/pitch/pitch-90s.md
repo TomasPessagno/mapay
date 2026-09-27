@@ -18,13 +18,13 @@ Our FIU routine: MMC to BBC at 9:30, back between five and seven. The heads-up s
 
 **On screen:** Open Customize, enter the prompt, then show the old and new routes.
 
-I ask, “Stop at a Starbucks and stay off the Palmetto.” Gemini reads the request; MAPAY’s deterministic router picks the road. Coffee is a real stop. When Google misses a flood or closure, MAPAY adds a visible, removable steering stop: “this keeps you off flooded NE 151st Street.” Customize sends it all in one Google Maps link.
+“Stop at a Starbucks and stay off the Palmetto.” Gemini reads the prompt; MAPAY’s deterministic router picks the road. Coffee is a real stop. If Google misses a flood or closure, MAPAY adds a visible, removable steering stop: “this keeps you off flooded NE 151st Street.” Customize sends both in one Google Maps link.
 
 ## 4. The map’s data
 
 **On screen:** Return to the map; tap a flood or construction feature to show its source and timestamp. Use a verified satellite pass if one is available.
 
-Now the map explains why. Cyan marks predicted flood risk from tides and flood zones; orange marks city construction. Traffic, closures, weather and local-news incidents get their own marks. Tap for sources and timestamps; satellite evidence appears when a pass covers Miami.
+Now the map explains why. Cyan marks predicted flood risk from tides and flood zones; orange marks city construction. Tap for sources and timestamps; satellite evidence appears when a pass covers Miami.
 
 ## 5. Close
 
