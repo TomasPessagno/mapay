@@ -1,0 +1,115 @@
+# Unsigned AltStore .ipa built on GitHub's macOS runners (free: the repo is public).
+#
+# Every push to `main` that touches frontend/ builds the app and publishes the .ipa to the
+# `latest-ipa` pre-release, so the orchestrator downloads it directly:
+#   gh release download latest-ipa -R TomasPessagno/mapay -p Mapay.ipa
+# A manual run on another branch (`gh workflow run ipa.yml --ref <branch>`) publishes to
+# `test-ipa` instead, so a branch test never clobbers the main build.
+#
+# Needs: the repo secret VITE_GOOGLE_MAPS_API_KEY (the Maps browser key; it ends up in the
+# public bundle by design) and workflow permissions "Read and write" (or the contents: write
+# below). The Mac only builds now for the Simulator and native fixes.
+name: ipa
+
+on:
+  push:
+    branches: [main]
+    paths: ["frontend/**", ".github/workflows/ipa.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write # publish the pre-release
+
+# A newer push for the same ref cancels the older build.
+concurrency:
+  group: ipa-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ipa:
+    # Capacitor 8 (Swift Package Manager) and iOS 17 need Xcode 16 or newer.
+    runs-on: macos-15
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        working-directory: .
+        run: |
+          # Use the newest preinstalled Xcode rather than the image default (which lags behind).
+          xcode="$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)"
+          if [ -n "$xcode" ]; then sudo xcode-select -s "$xcode"; fi
+          xcodebuild -version
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm # caches ~/.npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Cache Swift Package Manager
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/org.swift.swiftpm
+            ~/Library/org.swift.swiftpm
+            frontend/ios/App/build/SourcePackages
+          key: spm-${{ runner.os }}-${{ hashFiles('frontend/ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
+
+      - run: npm ci
+
+      - name: Write frontend/.env (same values as pages.yml; no VITE_BASE inside Capacitor)
+        env:
+          # Set here, never echoed: the heredoc writes the value into the file only.
+          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+        run: |
+          cat > .env <<EOF
+          VITE_API_BASE_URL=https://mapay-api-lgfe7q5oja-ue.a.run.app
+          VITE_GOOGLE_MAPS_API_KEY=$VITE_GOOGLE_MAPS_API_KEY
+          VITE_GOOGLE_MAPS_MAP_ID=3175b3df38b9e69a72a689c7
+          VITE_USE_MOCKS=false
+          EOF
+
+      - name: Build unsigned .ipa
+        run: bash scripts/build-ipa.sh
+
+      - name: Sanity check the .ipa
+        run: |
+          set -euo pipefail
+          ipa=build/Mapay.ipa
+          test -f "$ipa"
+          unzip -q "$ipa" -d "$RUNNER_TEMP/ipa"
+          app="$RUNNER_TEMP/ipa/Payload/App.app"
+          test -d "$app"
+          appex="$(ls "$app"/PlugIns/*.appex 2>/dev/null | head -1)"
+          test -n "$appex"
+          grep -rq "mapay-api-lgfe7q5oja-ue.a.run.app" "$app/public"
+          echo "OK: $(basename "$appex") embedded and backend URL in the bundled JS"
+          ls -lh "$ipa"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Mapay.ipa
+          path: frontend/build/Mapay.ipa
+          if-no-files-found: error
+
+      - name: Publish pre-release
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_REF_NAME" = "main" ]; then tag=latest-ipa; else tag=test-ipa; fi
+          gh release delete "$tag" --yes --cleanup-tag --repo "$GITHUB_REPOSITORY" || true
+          gh release create "$tag" frontend/build/Mapay.ipa \
+            --repo "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" \
+            --title "$tag" \
+            --prerelease \
+            --notes "$(git rev-parse --short HEAD) $(git log -1 --pretty=%s)"

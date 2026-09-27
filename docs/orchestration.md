@@ -44,6 +44,12 @@ How Tomas runs his queue from [`TASKS.md`](../TASKS.md) with two local coding ag
 
 ---
 
+## The unsigned `.ipa` from CI
+
+Every push to `main` that touches `frontend/` builds the unsigned AltStore `.ipa` on GitHub's macOS runners ([`.github/workflows/ipa.yml`](../.github/workflows/ipa.yml)) and publishes it to the `latest-ipa` pre-release, so the orchestrator downloads it directly with `gh release download latest-ipa -R TomasPessagno/mapay -p Mapay.ipa` (a manual `gh workflow run ipa.yml --ref <branch>` run publishes to `test-ipa` instead, so a branch test never clobbers the main build). The Mac session is now only needed for Simulator checks and native fixes: Swift changes, widget reloads in Xcode, and anything specific to AltStore or the iPhone.
+
+---
+
 ## Which tool does what
 
 | Tool | Strengths and limits | Gets |
