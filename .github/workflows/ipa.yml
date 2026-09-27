@@ -1,33 +1,29 @@
-# Unsigned AltStore .ipa built on GitHub's macOS runners (free: the repo is public).
+# Unsigned AltStore .ipa built on a GitHub macOS runner (free for public repos), so the
+# orchestrator downloads it instead of waiting on the Mac session (see docs/orchestration.md).
 #
-# Every push to `main` that touches frontend/ builds the app and publishes the .ipa to the
-# `latest-ipa` pre-release, so the orchestrator downloads it directly:
-#   gh release download latest-ipa -R TomasPessagno/mapay -p Mapay.ipa
-# A manual run on another branch (`gh workflow run ipa.yml --ref <branch>`) publishes to
-# `test-ipa` instead, so a branch test never clobbers the main build.
+#   push to main touching frontend/  -> pre-release tag latest-ipa
+#   workflow_dispatch on any branch   -> pre-release tag test-ipa
 #
-# Needs: the repo secret VITE_GOOGLE_MAPS_API_KEY (the Maps browser key; it ends up in the
-# public bundle by design) and workflow permissions "Read and write" (or the contents: write
-# below). The Mac only builds now for the Simulator and native fixes.
+# Needs: the repo secret VITE_GOOGLE_MAPS_API_KEY (the Maps browser key; it ships in the bundle
+# by design). The .ipa is unsigned (CODE_SIGNING_ALLOWED=NO); AltStore re-signs it on the iPhone.
 name: ipa
 
 on:
   push:
-    branches: [main, o1-ipa-ci]
+    branches: [main]
     paths: ["frontend/**", ".github/workflows/ipa.yml"]
   workflow_dispatch:
 
 permissions:
-  contents: write # publish the pre-release
+  contents: write # create/delete the latest-ipa / test-ipa pre-release
 
-# A newer push for the same ref cancels the older build.
+# A newer push cancels an older build of the same branch.
 concurrency:
   group: ipa-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  ipa:
-    # Capacitor 8 (Swift Package Manager) and iOS 17 need Xcode 16 or newer.
+  build:
     runs-on: macos-15
     timeout-minutes: 45
     defaults:
@@ -37,79 +33,203 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Select Xcode
-        working-directory: .
+        # The iOS project links the iPhoneOS26 SDK frameworks and Capacitor 8's SPM package,
+        # so use an Xcode 26 toolchain (the macOS-15 image's default is still Xcode 16.4).
         run: |
-          # Use the newest preinstalled Xcode rather than the image default (which lags behind).
-          xcode="$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)"
-          if [ -n "$xcode" ]; then sudo xcode-select -s "$xcode"; fi
+          for xcode in /Applications/Xcode_26.0.1.app /Applications/Xcode_26.0.app /Applications/Xcode.app; do
+            if [ -d "$xcode" ]; then sudo xcode-select -s "$xcode"; break; fi
+          done
           xcodebuild -version
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22 # Capacitor 8 requires Node >= 22; matches pages.yml
           cache: npm # caches ~/.npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Cache Swift Package Manager
+      - name: Cache SPM packages
         uses: actions/cache@v4
         with:
           path: |
             ~/Library/Caches/org.swift.swiftpm
-            ~/Library/org.swift.swiftpm
             frontend/ios/App/build/SourcePackages
-          key: spm-${{ runner.os }}-${{ hashFiles('frontend/ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
-          restore-keys: |
-            spm-${{ runner.os }}-
+          key: spm-${{ hashFiles('frontend/ios/App/App.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}
+          restore-keys: spm-
 
       - run: npm ci
 
-      - name: Write frontend/.env (same values as pages.yml; no VITE_BASE inside Capacitor)
-        env:
-          # Set here, never echoed: the heredoc writes the value into the file only.
-          VITE_GOOGLE_MAPS_API_KEY: ${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
+      - name: Write frontend/.env (the same values the Pages preview uses)
+        # Never printed. No VITE_BASE: inside Capacitor the app is served from the root.
         run: |
           cat > .env <<EOF
           VITE_API_BASE_URL=https://mapay-api-lgfe7q5oja-ue.a.run.app
-          VITE_GOOGLE_MAPS_API_KEY=$VITE_GOOGLE_MAPS_API_KEY
+          VITE_GOOGLE_MAPS_API_KEY=${{ secrets.VITE_GOOGLE_MAPS_API_KEY }}
           VITE_GOOGLE_MAPS_MAP_ID=3175b3df38b9e69a72a689c7
           VITE_USE_MOCKS=false
           EOF
 
-      - name: Build unsigned .ipa
-        run: bash scripts/build-ipa.sh
-
-      - name: Sanity check the .ipa
+      - name: Ensure a shared App scheme
+        # The repo has no shared scheme (Xcode created the Mac's privately), and xcodebuild
+        # can't auto-create one on CI. Generate a standard App scheme unless one was committed.
+        working-directory: frontend/ios/App
         run: |
-          set -euo pipefail
-          ipa=build/Mapay.ipa
-          test -f "$ipa"
-          unzip -q "$ipa" -d "$RUNNER_TEMP/ipa"
-          app="$RUNNER_TEMP/ipa/Payload/App.app"
-          test -d "$app"
-          appex="$(ls "$app"/PlugIns/*.appex 2>/dev/null | head -1)"
-          test -n "$appex"
-          grep -rq "mapay-api-lgfe7q5oja-ue.a.run.app" "$app/public"
-          echo "OK: $(basename "$appex") embedded and backend URL in the bundled JS"
-          ls -lh "$ipa"
+          python3 - <<'PY'
+          import pathlib
+          import re
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+          proj = pathlib.Path('App.xcodeproj')
+          out = proj / 'xcshareddata' / 'xcschemes' / 'App.xcscheme'
+          if out.exists():
+              print(f'{out} already exists, leaving it alone')
+              raise SystemExit(0)
+
+          pbx = (proj / 'project.pbxproj').read_text()
+
+          def target_uuid(name):
+              m = re.search(
+                  r'([0-9A-F]{24}) /\* ' + re.escape(name) + r' \*/ = \{\s*isa = PBXNativeTarget;',
+                  pbx,
+              )
+              if not m:
+                  raise SystemExit(f'no PBXNativeTarget named {name} in project.pbxproj')
+              return m.group(1)
+
+          scheme = '''<?xml version="1.0" encoding="UTF-8"?>
+          <Scheme
+             LastUpgradeVersion = "2600"
+             version = "1.7">
+             <BuildAction
+                parallelizeBuildables = "YES"
+                buildImplicitDependencies = "YES">
+                <BuildActionEntries>
+                   <BuildActionEntry
+                      buildForTesting = "YES"
+                      buildForRunning = "YES"
+                      buildForProfiling = "YES"
+                      buildForArchiving = "YES"
+                      buildForAnalyzing = "YES">
+                      <BuildableReference
+                         BuildableIdentifier = "primary"
+                         BlueprintIdentifier = "__APP_UUID__"
+                         BuildableName = "App.app"
+                         BlueprintName = "App"
+                         ReferencedContainer = "container:App.xcodeproj">
+                      </BuildableReference>
+                   </BuildActionEntry>
+                   <BuildActionEntry
+                      buildForTesting = "YES"
+                      buildForRunning = "YES"
+                      buildForProfiling = "YES"
+                      buildForArchiving = "YES"
+                      buildForAnalyzing = "YES">
+                      <BuildableReference
+                         BuildableIdentifier = "primary"
+                         BlueprintIdentifier = "__WIDGET_UUID__"
+                         BuildableName = "MapayWidgetExtension.appex"
+                         BlueprintName = "MapayWidgetExtension"
+                         ReferencedContainer = "container:App.xcodeproj">
+                      </BuildableReference>
+                   </BuildActionEntry>
+                </BuildActionEntries>
+             </BuildAction>
+             <TestAction
+                buildConfiguration = "Debug"
+                selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+                selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+                shouldUseLaunchSchemeArgsEnv = "YES">
+                <Testables>
+                </Testables>
+             </TestAction>
+             <LaunchAction
+                buildConfiguration = "Debug"
+                selectedDebuggerIdentifier = "Xcode.DebuggerFoundation.Debugger.LLDB"
+                selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
+                launchStyle = "0"
+                useCustomWorkingDirectory = "NO"
+                ignoresPersistentStateOnLaunch = "NO"
+                debugDocumentVersioning = "YES"
+                debugServiceExtension = "internal"
+                allowLocationSimulation = "YES">
+                <BuildableProductRunnable
+                   runnableDebuggingMode = "0">
+                   <BuildableReference
+                      BuildableIdentifier = "primary"
+                      BlueprintIdentifier = "__APP_UUID__"
+                      BuildableName = "App.app"
+                      BlueprintName = "App"
+                      ReferencedContainer = "container:App.xcodeproj">
+                   </BuildableReference>
+                </BuildableProductRunnable>
+             </LaunchAction>
+             <ProfileAction
+                buildConfiguration = "Release"
+                shouldUseLaunchSchemeArgsEnv = "YES"
+                savedToolIdentifier = ""
+                useCustomWorkingDirectory = "NO"
+                debugDocumentVersioning = "YES">
+                <BuildableProductRunnable
+                   runnableDebuggingMode = "0">
+                   <BuildableReference
+                      BuildableIdentifier = "primary"
+                      BlueprintIdentifier = "__APP_UUID__"
+                      BuildableName = "App.app"
+                      BlueprintName = "App"
+                      ReferencedContainer = "container:App.xcodeproj">
+                   </BuildableReference>
+                </BuildableProductRunnable>
+             </ProfileAction>
+             <AnalyzeAction
+                buildConfiguration = "Debug">
+             </AnalyzeAction>
+             <ArchiveAction
+                buildConfiguration = "Release"
+                revealArchiveInOrganizer = "YES">
+             </ArchiveAction>
+          </Scheme>
+          '''
+          import textwrap
+          scheme = textwrap.dedent(scheme).replace('__APP_UUID__', target_uuid('App')).replace(
+              '__WIDGET_UUID__', target_uuid('MapayWidgetExtension')
+          )
+          out.parent.mkdir(parents=True, exist_ok=True)
+          out.write_text(scheme)
+          print(f'wrote {out}')
+          PY
+
+      - name: Build the unsigned .ipa
+        # npm run build → npx cap sync ios → xcodebuild → frontend/build/Mapay.ipa.
+        run: scripts/build-ipa.sh
+
+      - name: Sanity-check the .ipa
+        run: |
+          test -s build/Mapay.ipa
+          work="$(mktemp -d)"
+          unzip -q build/Mapay.ipa -d "$work"
+          app="$work/Payload/App.app"
+          test -d "$app"
+          ls "$app"/PlugIns/*.appex >/dev/null # widget extension is bundled
+          grep -RqF "https://mapay-api-lgfe7q5oja-ue.a.run.app" "$app/public" # bundled with the Cloud Run URL
+          echo "Mapay.ipa: $(du -sh build/Mapay.ipa | cut -f1), app: $(du -sh "$app" | cut -f1), widget: $(ls "$app"/PlugIns)"
+
+      - uses: actions/upload-artifact@v4
         with:
           name: Mapay.ipa
           path: frontend/build/Mapay.ipa
           if-no-files-found: error
 
-      - name: Publish pre-release
-        working-directory: .
+      - name: Publish the pre-release
+        # main → latest-ipa (what the orchestrator downloads); any other branch → test-ipa.
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          set -euo pipefail
-          if [ "$GITHUB_REF_NAME" = "main" ]; then tag=latest-ipa; else tag=test-ipa; fi
-          gh release delete "$tag" --yes --cleanup-tag --repo "$GITHUB_REPOSITORY" || true
-          gh release create "$tag" frontend/build/Mapay.ipa \
-            --repo "$GITHUB_REPOSITORY" \
-            --target "$GITHUB_SHA" \
-            --title "$tag" \
-            --prerelease \
-            --notes "$(git rev-parse --short HEAD) $(git log -1 --pretty=%s)"
+          tag=latest-ipa
+          if [ "$GITHUB_REF_NAME" != main ]; then tag=test-ipa; fi
+          notes="$(git log -1 --format='%h %s')
+          $GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+          gh release delete "$tag" -R "$GITHUB_REPOSITORY" --cleanup-tag --yes || true
+          gh release create "$tag" -R "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" --prerelease \
+            --title "Mapay.ipa · $(git log -1 --format='%h')" \
+            --notes "$notes" \
+            "build/Mapay.ipa#Mapay.ipa"
+          echo "Published $tag: https://github.com/$GITHUB_REPOSITORY/releases/tag/$tag"
