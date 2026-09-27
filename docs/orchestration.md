@@ -255,6 +255,7 @@ Tomas can hand the backend queue to a local Claude Code session: "you're the orc
 ## Status and open items (as of Sept 26)
 
 - **T0 ([#2](https://github.com/TomasPessagno/mapay/issues/2)) is nearly closed (Sept 26):** decisions made (Routes API, mocks as contract, Jean's GCP project, `X-Device-Id`); secrets and variables are in and the first deploy succeeded; `mapay-api` (us-east1) is public; `frontend/.env` exists. Still open: the Map ID (until then the app falls back to Google's demo map), satellite accounts (Jean, for #9/#16), Apple bundle ids (after Tomas's macOS update).
+- **King-tide floods reroute (decided Sept 27):** Tomas said yes to Jean's question; tide-only hotspot floods above the minor-flood threshold should cross the 0.73 routing bar (Jean tunes `belief_config.py`, see #44).
 - **Web preview (#31):** https://mapay-blue.vercel.app/ (Vercel, root `frontend`, mocks on). Jean is adding the Vercel domain to the browser key restrictions and to `CORS_ORIGINS`; the refresh test on a tab route is still to do.
 - **Deploys work:** merges touching `backend/` deploy to Cloud Run, one at a time (`concurrency: deploy-backend`).
 - **Jean's queue hasn't produced a PR yet (Sept 26, late):** T1 waits on his #11, #13 and #26. If he wants help, OpenCode can take his unstarted `agent-ready` tasks (#3, #6, #14 first); reassign each issue before launching so two agents never do the same task.
