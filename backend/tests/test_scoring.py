@@ -67,13 +67,10 @@ class PenaltyTests(unittest.TestCase):
     def test_hazards_on_route_worst_first_with_titles(self):
         [scored] = self.score([
             hazard("c", "construction", -80.28, 25.80, 0.8, severity=1),
-            hazard("f", "flood", -80.25, 25.80, 0.876, properties={
-                "title": "Brickell Bay Dr flooding", "street_name": "Brickell Bay Dr"})])
+            hazard("f", "flood", -80.25, 25.80, 0.876, properties={"title": "Brickell Bay Dr flooding"})])
         self.assertEqual(scored["hazards_on_route"], [
-            {"hazard_id": "f", "hazard_type": "flood", "title": "Brickell Bay Dr flooding", "probability": 0.88,
-             "location_label": "Brickell Bay Dr", "route_progress_m": 5011},
-            {"hazard_id": "c", "hazard_type": "construction", "title": "Construction", "probability": 0.8,
-             "route_progress_m": 2004}])
+            {"hazard_id": "f", "hazard_type": "flood", "title": "Brickell Bay Dr flooding", "probability": 0.88},
+            {"hazard_id": "c", "hazard_type": "construction", "title": "Construction", "probability": 0.8}])
 
 
 class NeighborhoodTests(unittest.TestCase):

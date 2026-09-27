@@ -9,7 +9,7 @@ import math
 
 from shapely import STRtree
 from shapely.geometry import shape
-from shapely.ops import nearest_points, transform, unary_union
+from shapely.ops import transform, unary_union
 
 from app.deps import default_preferences
 from app.routers.neighborhoods import get_polygon
@@ -85,22 +85,10 @@ def corridor_for(route_geojson: dict):
     return lines, lines.buffer(C["route_buffer_degrees"])
 
 
-def hazard_entry(hazard: dict, p: float, route_line) -> dict:
-    properties = hazard.get("properties") or {}
-    title = properties.get("title") or TITLES.get(hazard["hazard_type"], hazard["hazard_type"])
-    entry = {"hazard_id": hazard["hazard_id"], "hazard_type": hazard["hazard_type"], "title": title,
-             "probability": round(p, 2)}
-    location_label = properties.get("location_label") or properties.get("street_name") or properties.get("road_name")
-    if location_label:
-        entry["location_label"] = location_label
-
-    # Keep call-out timing tied to distance along the route, rather than straight-line distance.
-    plane = LocalPlane(route_line.centroid.y)
-    route_m = plane.to_m(route_line)
-    hazard_m = plane.to_m(shape(hazard["geometry"]))
-    closest_route_point = nearest_points(route_m, hazard_m)[0]
-    entry["route_progress_m"] = round(route_m.project(closest_route_point))
-    return entry
+def hazard_entry(hazard: dict, p: float) -> dict:
+    title = (hazard.get("properties") or {}).get("title") or TITLES.get(hazard["hazard_type"], hazard["hazard_type"])
+    return {"hazard_id": hazard["hazard_id"], "hazard_type": hazard["hazard_type"], "title": title,
+            "probability": round(p, 2)}
 
 
 def neighborhood_areas(preferences: dict) -> list[dict]:
@@ -139,7 +127,7 @@ def score_alternative(alternative: dict, index: HazardIndex, preferences: dict,
     penalty += len(hits) * WEIGHTS["avoid"] * NEIGHBORHOOD_SEVERITY * 1.0 * PENALTY_MINUTES
     penalties.sort(key=lambda item: (item[0], item[1]), reverse=True)
     return {"score": round(alternative["duration_s"] / 60 + penalty, 1),
-            "hazards_on_route": [hazard_entry(h, p, line) for _, p, h in penalties],
+            "hazards_on_route": [hazard_entry(h, p) for _, p, h in penalties],
             "neighborhoods_crossed": [a["id"] for a in hits if a["kind"] == "neighborhood"],
             "avoid_hits": hits}
 
