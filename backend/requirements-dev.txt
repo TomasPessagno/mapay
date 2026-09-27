@@ -1,0 +1,5 @@
+# Tests, lint and the data-building scripts (not installed in the Docker image).
+-r requirements.txt
+pytest==9.1.1
+ruff==0.16.9
+geopandas==1.1.4  # scripts/build_neighborhoods.py only

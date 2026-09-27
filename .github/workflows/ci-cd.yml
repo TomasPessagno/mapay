@@ -38,12 +38,8 @@
 #   INTERNAL_AUDIENCE           Cloud Scheduler's OIDC audience; defaults to the service's own URL
 #   SCHEDULER_SERVICE_ACCOUNT   the account Scheduler signs tokens as; defaults to GEMINI_SERVICE_ACCOUNT
 #
-# RISK: backend/requirements.txt pins no versions (fastapi, motor, pydantic, geopandas, ...), and
-# pytest/ruff are not in it at all (installed unpinned below). Any upstream release can change CI
-# results or break the deployed service without a code change. Pinning is the backend owner's call.
-#
-# RISK: CI uses Python 3.14 (matches backend/.venv), but backend/Dockerfile builds on python:3.11-slim,
-# and `gcloud run deploy --source` uses that Dockerfile. CI is not testing the Python version that ships.
+# Backend dependencies are pinned in backend/requirements.txt (runtime) and requirements-dev.txt
+# (pytest, ruff, script-only packages), and CI uses the same Python as backend/Dockerfile (3.14).
 
 name: CI/CD
 
@@ -86,11 +82,10 @@ jobs:
         with:
           python-version: "3.14"
           cache: pip
-          cache-dependency-path: backend/requirements.txt
+          cache-dependency-path: backend/requirements*.txt
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
-          pip install pytest ruff
+          pip install -r requirements-dev.txt
       - name: Lint (ruff)
         run: ruff check .
       - name: Bayesian log-odds unit test (must exist and pass)

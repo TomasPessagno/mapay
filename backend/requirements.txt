@@ -1,17 +1,17 @@
-fastapi
-uvicorn[standard]
-pydantic
-pydantic-settings
-motor
-httpx
-geopandas
-shapely
-osmnx
-networkx
-google-genai
-feedparser
-python-dotenv
-google-auth
-requests
-rasterio
-earthengine-api
+# Runtime dependencies, pinned to the versions CI passes with (Python 3.14, same as the Dockerfile).
+# Upgrade deliberately: bump a pin, run `ruff check . && pytest`, and let CI confirm.
+fastapi==0.141.1
+uvicorn[standard]==0.54.0
+pydantic==2.13.5
+pydantic-settings==2.15.0
+motor==3.7.1
+pymongo==4.18.2
+httpx==0.28.1
+shapely==2.1.2
+google-genai==2.25.0
+google-auth==2.58.1
+requests==2.34.2
+feedparser==6.0.14
+python-dotenv==1.2.3
+rasterio==1.5.1
+earthengine-api==1.7.45

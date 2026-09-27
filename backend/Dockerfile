@@ -1,6 +1,7 @@
-FROM python:3.11-slim
+# Same Python as CI (.github/workflows/ci-cd.yml). Every dependency ships a manylinux wheel for it
+# (rasterio bundles GDAL), so no system packages or compilers are needed.
+FROM python:3.14-slim
 WORKDIR /srv
-RUN apt-get update && apt-get install -y --no-install-recommends gdal-bin libgdal-dev && rm -rf /var/lib/apt/lists/*
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 COPY app ./app
