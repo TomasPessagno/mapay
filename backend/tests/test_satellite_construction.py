@@ -162,6 +162,7 @@ class GeminiCheckTests(unittest.IsolatedAsyncioTestCase):
         client.aio.__aenter__ = AsyncMock(return_value=aio)
         client.aio.__aexit__ = AsyncMock(return_value=False)
         with patch("app.agents.satellite_check.gemini_configured", return_value=True), \
+             patch("app.agents.satellite_check.get_settings", return_value=SimpleNamespace(gemini_model="m")), \
              patch("app.agents.satellite_check.get_genai_client", return_value=client):
             result = await satellite_check.check_site(b"before", b"after", "Roadway project")
         self.assertEqual(result["description"], "Pad")
