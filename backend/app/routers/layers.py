@@ -34,7 +34,12 @@ from shapely.geometry import box, mapping, shape
 
 from app.db.mongo import get_db
 from app.routing.beliefs import belief_at, probability, utc
-from app.routing.pre_route import belief_docs, read_belief_docs, seed_belief_cache, touch_belief_cache
+from app.routing.pre_route import (
+    belief_docs,
+    read_belief_docs,
+    seed_belief_cache,
+    touch_belief_cache,
+)
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/layers", tags=["layers"])
