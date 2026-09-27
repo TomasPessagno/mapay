@@ -149,19 +149,25 @@
           "hazard_id": "congestion:palmetto-mmc",
           "hazard_type": "congestion",
           "title": "Heavy traffic",
-          "probability": 0.86
+          "probability": 0.86,
+          "location_label": "SR-826 N",
+          "route_progress_m": 5500
         },
         {
           "hazard_id": "construction:sr-826-nb-sw-8th",
           "hazard_type": "construction",
           "title": "Lane closures",
-          "probability": 0.82
+          "probability": 0.82,
+          "location_label": "SW 8th St",
+          "route_progress_m": 4200
         },
         {
           "hazard_id": "incident:news-i95-nb-125th",
           "hazard_type": "incident",
           "title": "Crash blocks two lanes on I-95 NB at NE 125th St",
-          "probability": 0.7
+          "probability": 0.7,
+          "location_label": "NE 125th St",
+          "route_progress_m": 19800
         },
         {
           "hazard_id": "flood:ne-151st-st",
@@ -272,19 +278,25 @@
       "hazard_id": "congestion:palmetto-mmc",
       "hazard_type": "congestion",
       "title": "Heavy traffic",
-      "probability": 0.86
+      "probability": 0.86,
+      "location_label": "SR-826 N",
+      "route_progress_m": 5500
     },
     {
       "hazard_id": "construction:sr-826-nb-sw-8th",
       "hazard_type": "construction",
       "title": "Lane closures",
-      "probability": 0.82
+      "probability": 0.82,
+      "location_label": "SW 8th St",
+      "route_progress_m": 4200
     },
     {
       "hazard_id": "incident:news-i95-nb-125th",
       "hazard_type": "incident",
       "title": "Crash blocks two lanes on I-95 NB at NE 125th St",
-      "probability": 0.7
+      "probability": 0.7,
+      "location_label": "NE 125th St",
+      "route_progress_m": 19800
     },
     {
       "hazard_id": "flood:ne-151st-st",
