@@ -57,7 +57,7 @@ const HeadsUpCard: React.FC<HeadsUpCardProps> = ({ leg, timeOffsetMs = 0, onCust
     : `Left ${Math.abs(diffMins)} min ago`;
 
   return (
-    <IonCard style={{ borderRadius: '26px', margin: '0 0 16px 0', boxShadow: 'none', background: 'var(--ion-color-step-50, #f2f2f7)' }}>
+    <IonCard style={{ borderRadius: '26px', margin: '0 0 16px 0', boxShadow: 'none', background: 'var(--secondary-system-background)' }}>
       <IonCardContent>
         {/* Countdown */}
         <h1 style={{ 

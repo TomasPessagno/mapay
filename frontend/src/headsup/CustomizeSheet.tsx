@@ -66,7 +66,7 @@ const CustomizeSheet: React.FC<CustomizeSheetProps> = ({ isOpen, onClose, routin
   };
 
   const renderRouteCard = (title: string, route: RouteOption) => (
-    <IonCard style={{ margin: '0 0 12px 0', borderRadius: '16px', background: 'var(--ion-color-step-50, #f2f2f7)', boxShadow: 'none' }}>
+    <IonCard style={{ margin: '0 0 12px 0', borderRadius: '16px', background: 'var(--secondary-system-background)', boxShadow: 'none' }}>
       <IonCardContent>
         <IonText color="dark">
           <h3 style={{ fontSize: '17px', fontWeight: 'bold', margin: '0 0 4px 0' }}>{title}</h3>
@@ -103,7 +103,9 @@ const CustomizeSheet: React.FC<CustomizeSheetProps> = ({ isOpen, onClose, routin
           onIonInput={e => setPrompt(e.detail.value!)}
           rows={3}
           style={{ 
-            background: 'var(--ion-color-step-50, #f2f2f7)', 
+            '--background': 'var(--secondary-system-background)', 
+            '--color': 'var(--label)',
+            '--placeholder-color': 'var(--secondary-label)',
             borderRadius: '12px', 
             padding: '8px 12px',
             marginBottom: '12px',

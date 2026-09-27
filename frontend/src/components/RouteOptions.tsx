@@ -58,7 +58,7 @@ const RouteOptions: React.FC<RouteOptionsProps> = ({ response, selectedIndex, on
             margin: '0 0 16px 0',
             borderRadius: '22px',
             boxShadow: 'none',
-            background: 'var(--ion-color-step-50, #f2f2f7)'
+            background: 'var(--secondary-system-background)'
           }}
         >
           <IonCardContent>

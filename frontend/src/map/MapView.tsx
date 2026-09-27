@@ -1,9 +1,11 @@
 import { useEffect, useState, useRef } from "react";
 import { Map, useMap, AdvancedMarker } from "@vis.gl/react-google-maps";
-import { IonFab, IonFabButton, IonIcon } from "@ionic/react";
+import { IonFab, IonFabButton, IonIcon, IonSpinner } from "@ionic/react";
 import { layersOutline, locateOutline } from "ionicons/icons";
-import type { RouteResponse, RouteOption } from "../lib/types";
+import type { RouteResponse, RouteOption, LayersResponse } from "../lib/types";
 import { api } from "../lib/api";
+import { isDemo } from "../lib/dataSource";
+import { getCachedLayers, putCachedLayers } from "../lib/layersCache";
 import { upsertGeoJsonLayer, toggleLayer, setOnHazardClick } from "./layers";
 import LegendSheet from "../components/LegendSheet";
 import HazardSheet, { type HazardProperties } from "../components/HazardSheet";
@@ -11,6 +13,8 @@ import ReportFab from "../components/ReportFab";
 import type { PlaceData } from "../components/PlaceCard";
 
 const MIAMI = { lat: 25.7617, lng: -80.1918 };
+
+type LayersStatus = "idle" | "loading" | "error";
 
 interface Props {
   departAt: Date;
@@ -25,6 +29,8 @@ export default function MapView(props: Props) {
   const [layersToggled, setLayersToggled] = useState<Record<string, boolean>>({});
   const [showLegend, setShowLegend] = useState(false);
   const [selectedHazard, setSelectedHazard] = useState<HazardProperties | null>(null);
+  const [layersStatus, setLayersStatus] = useState<LayersStatus>("idle");
+  const [retryToken, setRetryToken] = useState(0);
 
   useEffect(() => {
     setOnHazardClick((hazard) => {
@@ -57,8 +63,21 @@ export default function MapView(props: Props) {
         )}
         <MapController />
       </Map>
-      <MapLayers {...props} layersToggled={layersToggled} />
-      
+      <MapLayers
+        {...props}
+        layersToggled={layersToggled}
+        onLayersStatus={setLayersStatus}
+        retryToken={retryToken}
+      />
+
+      <HazardsStatusPill
+        status={layersStatus}
+        onRetry={() => {
+          setLayersStatus("loading");
+          setRetryToken((token) => token + 1);
+        }}
+      />
+
       {/* Floating buttons sit under the toolbar, 52 px apart: Layers, Locate Me, then Report (ReportFab). */}
       <IonFab slot="fixed" vertical="top" horizontal="end" style={{ top: 'calc(var(--ion-safe-area-top, 0px) + 60px)', right: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <IonFabButton aria-label="Legend and Layers" className="glass" onClick={() => setShowLegend(true)} style={{ width: '44px', height: '44px', borderRadius: '50%' }}>
@@ -83,6 +102,53 @@ export default function MapView(props: Props) {
       />
       <ReportFab />
     </>
+  );
+}
+
+// Quiet status for the first Live load: only shown while the map has no hazards to draw yet.
+function HazardsStatusPill({ status, onRetry }: { status: LayersStatus; onRetry: () => void }) {
+  if (status === "idle") return null;
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        position: "absolute",
+        top: "calc(var(--ion-safe-area-top, 0px) + 60px)",
+        left: "50%",
+        transform: "translateX(-50%)",
+        zIndex: 20,
+        pointerEvents: status === "error" ? "auto" : "none",
+      }}
+    >
+      <div
+        className="glass"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+          padding: "6px 14px",
+          borderRadius: "22px",
+          boxShadow: "0 2px 10px rgba(0, 0, 0, 0.18)",
+          color: "var(--label)",
+          fontSize: "13px",
+          lineHeight: "18px",
+          fontWeight: 500,
+          whiteSpace: "nowrap",
+        }}
+      >
+        {status === "loading" ? (
+          <>
+            <IonSpinner name="dots" style={{ width: "14px", height: "14px", color: "var(--label)" }} />
+            <span>Loading hazards…</span>
+          </>
+        ) : (
+          <button type="button" onClick={onRetry} style={{ all: "unset", cursor: "pointer" }}>
+            Couldn't load hazards · Retry
+          </button>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -117,17 +183,42 @@ function MapController() {
   );
 }
 
-function MapLayers({ departAt, routeResponse, selectedRouteIndex, layersToggled }: Props & { layersToggled: Record<string, boolean> }) {
+function MapLayers({
+  departAt,
+  routeResponse,
+  selectedRouteIndex,
+  layersToggled,
+  onLayersStatus,
+  retryToken,
+}: Props & {
+  layersToggled: Record<string, boolean>;
+  onLayersStatus: (status: LayersStatus) => void;
+  retryToken: number;
+}) {
   const map = useMap();
   const routeLayersRef = useRef<google.maps.Data[]>([]);
+  const cacheReadRef = useRef(false);
+  const drawnOnceRef = useRef(false);
 
   // Fetch only the visible area (padded) whenever the map settles, and skip the request while the
   // view stays inside the last area fetched. Rounded so nearby views share the backend's 60 s cache.
+  // In Live mode the last cached response paints first (stale-while-revalidate): only the first
+  // view of a mount reads the cache, so changing the time scrubber never shows another time's data.
   useEffect(() => {
     if (!map) return;
     let fetched: [number, number, number, number] | null = null;
     let fetchedZoom = 0;
     let request = 0;
+    let fresh = 0;
+    const live = !isDemo();
+
+    const drawLayers = (layersResponse: LayersResponse) => {
+      Object.entries(layersResponse).forEach(([layerId, data]) => {
+        if (layerId !== 't' && layerId !== 'freshness' && layerId !== 'radar') {
+          upsertGeoJsonLayer(map, layerId, data as unknown as GeoJSON.FeatureCollection);
+        }
+      });
+    };
 
     const load = () => {
       const bounds = map.getBounds();
@@ -148,22 +239,38 @@ function MapLayers({ departAt, routeResponse, selectedRouteIndex, layersToggled 
         round(view[2] + padX, true), round(view[3] + padY, true),
       ];
       const id = ++request;
+
+      if (live && !cacheReadRef.current) {
+        cacheReadRef.current = true;
+        getCachedLayers(bbox).then((cached) => {
+          if (!cached || id !== request || fresh === id) return;
+          drawnOnceRef.current = true;
+          drawLayers(cached.data);
+          onLayersStatus("idle");
+        }).catch(() => {});
+      }
+
+      if (live && !drawnOnceRef.current) onLayersStatus("loading");
       api.layers(departAt, bbox).then((layersResponse) => {
         if (id !== request) return; // a newer view won
         fetched = bbox;
         fetchedZoom = zoom;
-        Object.entries(layersResponse).forEach(([layerId, data]) => {
-          if (layerId !== 't' && layerId !== 'freshness' && layerId !== 'radar') {
-            upsertGeoJsonLayer(map, layerId, data as unknown as GeoJSON.FeatureCollection);
-          }
-        });
-      }).catch(err => console.error("Failed to load layers", err));
+        fresh = id;
+        drawnOnceRef.current = true;
+        drawLayers(layersResponse);
+        onLayersStatus("idle");
+        if (live) void putCachedLayers(bbox, layersResponse);
+      }).catch(err => {
+        console.error("Failed to load layers", err);
+        if (id !== request || drawnOnceRef.current) return;
+        if (live) onLayersStatus("error");
+      });
     };
 
     const listener = map.addListener('idle', load);
     load();
     return () => listener.remove();
-  }, [map, departAt]);
+  }, [map, departAt, retryToken, onLayersStatus]);
 
   useEffect(() => {
     if (!map) return;
