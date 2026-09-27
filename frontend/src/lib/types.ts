@@ -76,6 +76,7 @@ export interface RouteOption {
 }
 
 export interface RouteResponse {
+  depart_at?: string | null;
   routes: RouteOption[];
   waypoints?: [number, number][];
   hazards_on_route: HazardOnRoute[];

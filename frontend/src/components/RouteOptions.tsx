@@ -5,13 +5,18 @@ import { openLink } from '../lib/deepLinks';
 import HazardChips from './HazardChips';
 import { Haptics, NotificationType } from '@capacitor/haptics';
 import { closeOutline } from 'ionicons/icons';
+import TimeScrubber from './TimeScrubber';
+import { formatClockTime } from '../lib/departureTime';
 
 interface RouteOptionsProps {
   response: RouteResponse;
   selectedIndex: number;
-  breakpoint: number;
   onSelect: (index: number) => void;
   onClose: () => void;
+  departureTime: Date;
+  selectedDeparture: Date | null;
+  onDepartureChange: (departure: Date | null) => void;
+  onAddToRoutine: () => void;
 }
 
 const formatTime = (seconds: number) => {
@@ -27,21 +32,61 @@ const formatDistance = (meters: number) => {
   return `${miles.toFixed(1)} mi`;
 };
 
-const RouteOptions: React.FC<RouteOptionsProps> = ({ response, selectedIndex, breakpoint, onSelect, onClose }) => {
+const RouteOptions: React.FC<RouteOptionsProps> = ({
+  response,
+  selectedIndex,
+  onSelect,
+  onClose,
+  departureTime,
+  selectedDeparture,
+  onDepartureChange,
+  onAddToRoutine,
+}) => {
   // Handle case where API might return `alternatives` instead of `routes` in mock
   const routes: RouteOption[] = response.routes || (response as unknown as { alternatives?: RouteOption[] }).alternatives || [];
 
   if (!routes.length) return null;
 
+  const selectedRoute = routes[selectedIndex] ?? routes[0];
+  const arrivalTime = new Date(departureTime.getTime() + selectedRoute.duration_s * 1000);
+  const departureSummary = `${selectedDeparture ? `Leave at ${formatClockTime(selectedDeparture)}` : 'Leave now'} · arrive ${formatClockTime(arrivalTime)}`;
+
   return (
-    <div className="route-options" style={{ flex: `0 0 ${breakpoint * 100}%`, height: `${breakpoint * 100}%` }}>
+    <div className="route-options">
       <div className="route-options-header">
-        <IonText color="dark"><h2 className="dynamic-title2" style={{ fontWeight: 'bold', margin: 0 }}>Route Options</h2></IonText>
+        <div>
+          <IonText color="dark"><h2 className="dynamic-title2" style={{ fontWeight: 'bold', margin: 0 }}>Route Options</h2></IonText>
+        </div>
         <IonButton fill="clear" color="medium" onClick={onClose} aria-label="Close route options" style={{ margin: 0, height: '44px' }}>
           <IonIcon aria-hidden="true" slot="icon-only" icon={closeOutline} />
         </IonButton>
       </div>
+      <div className="route-time-control">
+        <TimeScrubber
+          compact
+          compactLabel={departureSummary}
+          value={selectedDeparture}
+          onChange={onDepartureChange}
+        />
+      </div>
       <div className="route-options-list">
+        <div className="route-options-secondary-actions">
+          <IonButton
+            expand="block"
+            fill="clear"
+            color="medium"
+            onClick={() => {
+              const link = response.deep_links?.apple_maps;
+              if (link) void openLink(link).then(() => Haptics.notification({ type: NotificationType.Success }).catch(() => {}));
+            }}
+            disabled={!response.deep_links?.apple_maps}
+          >
+            Apple Maps
+          </IonButton>
+          <IonButton expand="block" fill="clear" color="primary" onClick={onAddToRoutine}>
+            Add to routine
+          </IonButton>
+        </div>
         {routes.map((route, i) => (
           <IonCard
             key={i}
@@ -114,18 +159,6 @@ const RouteOptions: React.FC<RouteOptionsProps> = ({ response, selectedIndex, br
             Customize
           </IonButton>
         </div>
-        <IonButton
-          expand="block"
-          fill="clear"
-          color="medium"
-          onClick={() => {
-            const link = response.deep_links?.apple_maps;
-            if (link) void openLink(link).then(() => Haptics.notification({ type: NotificationType.Success }).catch(() => {}));
-          }}
-          disabled={!response.deep_links?.apple_maps}
-        >
-          Apple Maps
-        </IonButton>
       </div>
     </div>
   );

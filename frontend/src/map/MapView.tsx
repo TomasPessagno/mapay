@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { Map, useMap, AdvancedMarker } from "@vis.gl/react-google-maps";
 import { IonFab, IonFabButton, IonIcon, IonSpinner } from "@ionic/react";
-import { layersOutline, locateOutline } from "ionicons/icons";
+import { closeOutline, layersOutline, locateOutline } from "ionicons/icons";
 import type { RouteResponse, RouteOption, LayersResponse } from "../lib/types";
 import { api } from "../lib/api";
 import { isDemo } from "../lib/dataSource";
@@ -40,6 +40,8 @@ type LayersStatus = "idle" | "loading" | "error";
 
 interface Props {
   departAt: Date;
+  isScheduledDeparture: boolean;
+  onReturnToNow: () => void;
   routeResponse: RouteResponse | null;
   selectedRouteIndex: number;
   mapId: string;
@@ -91,6 +93,15 @@ export default function MapView(props: Props) {
         onLayersStatus={setLayersStatus}
         retryToken={retryToken}
       />
+
+      {props.isScheduledDeparture && (
+        <div className="departure-map-chip glass" role="group" aria-label={`Showing hazards for ${props.departAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`}>
+          <span>Showing {props.departAt.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</span>
+          <button type="button" onClick={props.onReturnToNow} aria-label="Show hazards for now">
+            <IonIcon aria-hidden="true" icon={closeOutline} />
+          </button>
+        </div>
+      )}
 
       <HazardsStatusPill
         status={layersStatus}
@@ -234,6 +245,7 @@ function MapController({ userLocation }: { userLocation?: { lat: number; lng: nu
 
 function MapLayers({
   departAt,
+  isScheduledDeparture,
   routeResponse,
   selectedRouteIndex,
   mapId,
@@ -256,6 +268,7 @@ function MapLayers({
   // view of a mount reads the cache, so changing the time scrubber never shows another time's data.
   useEffect(() => {
     if (!map) return;
+    let active = true;
     let fetched: [number, number, number, number] | null = null;
     let fetchedZoom = 0;
     let request = 0;
@@ -290,10 +303,10 @@ function MapLayers({
       ];
       const id = ++request;
 
-      if (live && !cacheReadRef.current) {
+      if (live && !isScheduledDeparture && !cacheReadRef.current) {
         cacheReadRef.current = true;
         getCachedLayers(bbox).then((cached) => {
-          if (!cached || id !== request || fresh === id) return;
+          if (!active || !cached || id !== request || fresh === id) return;
           drawnOnceRef.current = true;
           drawLayers(cached.data);
           onLayersStatus("idle");
@@ -302,25 +315,28 @@ function MapLayers({
 
       if (live && !drawnOnceRef.current) onLayersStatus("loading");
       api.layers(departAt, bbox).then((layersResponse) => {
-        if (id !== request) return; // a newer view won
+        if (!active || id !== request) return; // a newer view won
         fetched = bbox;
         fetchedZoom = zoom;
         fresh = id;
         drawnOnceRef.current = true;
         drawLayers(layersResponse);
         onLayersStatus("idle");
-        if (live) void putCachedLayers(bbox, layersResponse);
+        if (live && !isScheduledDeparture) void putCachedLayers(bbox, layersResponse);
       }).catch(err => {
         console.error("Failed to load layers", err);
-        if (id !== request || drawnOnceRef.current) return;
+        if (!active || id !== request || drawnOnceRef.current) return;
         if (live) onLayersStatus("error");
       });
     };
 
     const listener = map.addListener('idle', load);
     load();
-    return () => listener.remove();
-  }, [map, departAt, retryToken, onLayersStatus]);
+    return () => {
+      active = false;
+      listener.remove();
+    };
+  }, [map, departAt, isScheduledDeparture, retryToken, onLayersStatus]);
 
   useEffect(() => {
     if (!map) return;
