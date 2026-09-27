@@ -11,7 +11,7 @@ from fastapi import APIRouter, HTTPException, Query
 from shapely.geometry import box, shape
 
 from app.db.mongo import get_db
-from app.routing.beliefs import contribution, probability, utc
+from app.routing.beliefs import belief_at, probability, utc
 
 log = logging.getLogger(__name__)
 router = APIRouter(prefix="/layers", tags=["layers"])
@@ -49,14 +49,6 @@ def source_kind(hazard_id: str) -> str:
     return hazard_id.split(":", 1)[0]
 
 
-def log_odds_at(doc: dict, t: datetime) -> float:
-    """The belief's log-odds at `t`: decaying evidence re-evaluated, nothing persisted."""
-    value = doc["log_odds"]
-    for evidence in doc.get("evidence", {}).values():
-        value += contribution(evidence["source"], evidence["observed_at"], t) - evidence["applied"]
-    return value
-
-
 def parse_bbox(bbox: str | None):
     if not bbox:
         return None
@@ -90,7 +82,7 @@ def feature_for(doc: dict, evidence_docs: list[dict], t: datetime) -> dict | Non
     news_only = source == "news"
     if news_only and kind in NEWS_WINDOWS and last_updated and utc(t) - utc(last_updated) > NEWS_WINDOWS[kind]:
         return None
-    p = probability(log_odds_at(doc, t))
+    p = probability(belief_at(doc, t)["log_odds"])
     if p < MIN_PROBABILITY:
         return None
     evidence = doc.get("evidence", {})

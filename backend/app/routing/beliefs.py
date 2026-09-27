@@ -98,6 +98,22 @@ async def add_evidence(db, hazard_id: str, evidence_id: str, source: str,
     return bool(result.matched_count)
 
 
+def belief_at(doc: dict, now: datetime) -> dict:
+    """Read-only copy of a belief with decaying evidence re-evaluated at `now`.
+
+    Same numbers refresh_belief would persist, without the per-belief round trips, so a
+    request can evaluate thousands of beliefs from one query. Nothing is written back.
+    """
+    evidence, value = {}, doc["log_odds"]
+    for token, entry in doc.get("evidence", {}).items():
+        applied = entry["applied"]
+        if utc(now) > utc(entry["evaluated_at"]):
+            applied = contribution(entry["source"], entry["observed_at"], now)
+        value += applied - entry["applied"]
+        evidence[token] = {**entry, "applied": applied}
+    return {**doc, "log_odds": value, "evidence": evidence}
+
+
 async def refresh_belief(db, hazard_id: str, now: datetime) -> dict:
     """Apply only the decay delta. CAS retries prevent double decay across workers."""
     key = f"belief:{hazard_id}"
