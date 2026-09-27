@@ -14,7 +14,7 @@ import { markDemoNotified, scheduleDemoHeadsUp } from './notifications';
 export const DEMO_HEADS_UP = 'mapay:demo-heads-up';
 export interface DemoHeadsUpDetail { leg: UpcomingLeg }
 
-const NOTIFY_IN_MS = 10_000;
+export const NOTIFY_IN_MS = 10_000; // the notification lands this far out, so there's time to lock the phone
 
 // The last fired leg, for a map sheet that mounts after the event (switching to the Map tab remounts it).
 let lastFired: UpcomingLeg | null = null;

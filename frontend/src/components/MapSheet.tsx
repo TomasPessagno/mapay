@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { IonModal, IonContent, IonButton } from '@ionic/react';
+import { IonModal, IonContent } from '@ionic/react';
 import SearchField from './SearchField';
 import RouteOptions from './RouteOptions';
 import PlaceCard from './PlaceCard';
@@ -29,7 +29,6 @@ const MapSheet: React.FC<MapSheetProps> = ({
   const modal = useRef<HTMLIonModalElement>(null);
   const [upcomingLegs, setUpcomingLegs] = useState<UpcomingLeg[]>([]);
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [timeOffsetMs, setTimeOffsetMs] = useState(0);
 
   useEffect(() => {
     const t = setInterval(() => setNowMs(Date.now()), 60000);
@@ -55,7 +54,7 @@ const MapSheet: React.FC<MapSheetProps> = ({
     return () => window.removeEventListener(DEMO_HEADS_UP, onDemo);
   }, []);
 
-  const nowTime = nowMs + timeOffsetMs;
+  const nowTime = nowMs;
   const demoActive = demoLeg && nowTime <= new Date(demoLeg.best_departure_at ?? demoLeg.departure_at).getTime();
   const activeLeg = demoActive ? demoLeg : upcomingLegs.find(leg => {
     const headsUp = new Date(leg.heads_up_at).getTime();
@@ -83,23 +82,8 @@ const MapSheet: React.FC<MapSheetProps> = ({
       className="map-sheet"
     >
       <IonContent className="ion-padding">
-        {import.meta.env.DEV && (
-          <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 999 }}>
-            <IonButton 
-              size="small" 
-              fill="outline" 
-              onClick={() => {
-                const target = new Date("2026-09-28T09:05:00-04:00").getTime();
-                setTimeOffsetMs(target - Date.now());
-              }}
-            >
-              Debug Heads-Up
-            </IonButton>
-          </div>
-        )}
-
         {activeLeg && !routeResponse && !selectedPlace ? (
-          <HeadsUpCard leg={activeLeg} timeOffsetMs={timeOffsetMs} />
+          <HeadsUpCard leg={activeLeg} />
         ) : null}
 
         {selectedPlace && !routeResponse ? (
