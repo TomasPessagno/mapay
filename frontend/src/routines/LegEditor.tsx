@@ -34,9 +34,10 @@ export default function LegEditor({ leg, index, places, onChange }: LegEditorPro
     onChange({ ...leg, when: { ...leg.when, [field]: timeString } });
   };
 
-  // Helper to convert HH:mm to a local ISO string (no 'Z') for IonDatetime
+  // Helper to convert HH:mm to a local ISO string (no 'Z') for IonDatetime.
+  // No time set (a new leg starts empty) → null value; the picker keeps its own default.
   const getIso = (timeStr?: string) => {
-    if (!timeStr) return '2024-01-01T09:00:00';
+    if (!timeStr) return null;
     return `2024-01-01T${timeStr}:00`;
   };
 
@@ -78,7 +79,30 @@ export default function LegEditor({ leg, index, places, onChange }: LegEditorPro
       {leg.when.kind === 'at' && (
         <IonItem>
           <IonLabel>Time</IonLabel>
-          <IonDatetimeButton datetime={`datetime-at-${index}`} />
+          <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
+            {/* IonDatetimeButton falls back to "now" when the datetime has no value, so a new
+                leg hides it under a "Set time" placeholder until the user picks one. */}
+            <IonDatetimeButton
+              datetime={`datetime-at-${index}`}
+              style={leg.when.time ? undefined : { opacity: 0 }}
+            />
+            {!leg.when.time && (
+              <span
+                style={{
+                  position: 'absolute',
+                  inset: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--ion-color-medium)',
+                  fontSize: '15px',
+                  pointerEvents: 'none',
+                }}
+              >
+                Set time
+              </span>
+            )}
+          </div>
           <IonModal keepContentsMounted={true}>
             <IonDatetime 
               id={`datetime-at-${index}`}

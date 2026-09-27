@@ -37,16 +37,19 @@ export default function RoutineEditor({ routine, places, onSave, onCancel }: Rou
   };
 
   const addLeg = () => {
-    setEdited(prev => ({
-      ...prev,
-      legs: [...prev.legs, {
-        from_place: '',
-        to_place: '',
-        when: { kind: 'at', time: '09:00' },
+    setEdited(prev => {
+      // Second leg and the first already has both places: assume the way back (To → From).
+      const first = prev.legs[0];
+      const reversed = prev.legs.length === 1 && !!first?.from_place && !!first?.to_place;
+      const newLeg: RoutineLeg = {
+        from_place: reversed ? first.to_place : '',
+        to_place: reversed ? first.from_place : '',
+        when: { kind: 'at' },
         anchor: 'depart',
         days: null
-      }]
-    }));
+      };
+      return { ...prev, legs: [...prev.legs, newLeg] };
+    });
   };
 
   const addReturnLeg = (leg: RoutineLeg) => {

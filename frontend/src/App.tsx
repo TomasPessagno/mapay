@@ -22,6 +22,7 @@ import MapPage from './pages/MapPage';
 import RoutinesPage from './pages/RoutinesPage';
 import PreferencesPage from './pages/PreferencesPage';
 import CustomizeSheet from './headsup/CustomizeSheet';
+import ErrorBoundary from './components/ErrorBoundary';
 import { isDemo } from './lib/dataSource';
 
 const App: React.FC = () => {
@@ -65,7 +66,7 @@ const App: React.FC = () => {
       <IonReactRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || undefined}>
         <IonTabs>
           <IonRouterOutlet>
-            <Route path="/map" element={<MapPage />} />
+            <Route path="/map" element={<ErrorBoundary><MapPage /></ErrorBoundary>} />
             <Route path="/routines" element={<RoutinesPage />} />
             <Route path="/preferences" element={<PreferencesPage />} />
             <Route path="/" element={<Navigate to="/map" replace />} />
