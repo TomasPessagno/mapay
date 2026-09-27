@@ -27,14 +27,6 @@ class RouteRequest(BaseModel):
     mode: Literal["drive", "walk"] = "drive"
 
 
-class RouteStep(BaseModel):
-    instruction: str
-    maneuver: str
-    distance_m: int
-    duration_s: int
-    polyline: str | None = None
-
-
 class RouteAlternative(BaseModel):
     summary: str = ""
     route_geojson: dict
@@ -45,7 +37,6 @@ class RouteAlternative(BaseModel):
     recommended: bool = False
     hazards_on_route: list[dict] = []
     neighborhoods_crossed: list[str] = []  # avoided neighbourhood ids this route still enters
-    steps: list[RouteStep] | None = None
 
 
 class RouteResponse(BaseModel):

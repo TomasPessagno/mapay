@@ -11,13 +11,11 @@ from fastapi.testclient import TestClient
 from app.routers import routes
 from app.routing.google_routes import (
     COMPUTE_ROUTES_URL,
-    FIELD_MASK,
     NoRouteFound,
     RoutesApiError,
     build_request,
     compute_routes,
     decode_polyline,
-    parse_routes,
 )
 
 # Google's documented example: (38.5, -120.2), (40.7, -120.95), (43.252, -126.453)
@@ -26,15 +24,9 @@ MMC, BBC = (25.7574, -80.3733), (25.9104, -80.1392)
 
 
 def payload(*routes_):
-    return {"routes": [{
-        "description": d, "duration": f"{dur}s", "staticDuration": f"{static}s", "distanceMeters": dist,
-        "polyline": {"encodedPolyline": EXAMPLE_POLYLINE},
-        "legs": [{"steps": [{
-            "navigationInstruction": {"instructions": "Turn right onto SW 8th St", "maneuver": "TURN_RIGHT"},
-            "distanceMeters": dist, "staticDuration": f"{static}s",
-            "polyline": {"encodedPolyline": EXAMPLE_POLYLINE},
-        }]}],
-    } for d, dur, static, dist in routes_]}
+    return {"routes": [{"description": d, "duration": f"{dur}s", "staticDuration": f"{static}s",
+                        "distanceMeters": dist, "polyline": {"encodedPolyline": EXAMPLE_POLYLINE}}
+                       for d, dur, static, dist in routes_]}
 
 
 def mock_client(handler):
@@ -52,31 +44,6 @@ class PolylineTests(unittest.TestCase):
 
     def test_empty(self):
         self.assertEqual(decode_polyline(""), [])
-
-    def test_parse_navigation_steps_without_network(self):
-        parsed = parse_routes({"routes": [{
-            "duration": "120s",
-            "distanceMeters": 900,
-            "polyline": {"encodedPolyline": EXAMPLE_POLYLINE},
-            "legs": [{"steps": [{
-                "navigationInstruction": {"instructions": "Turn right onto SW 8th St", "maneuver": "TURN_RIGHT"},
-                "distanceMeters": 300,
-                "staticDuration": "45s",
-                "polyline": {"encodedPolyline": EXAMPLE_POLYLINE},
-            }, {
-                "navigationInstruction": {"instructions": "Merge onto SR-826 N", "maneuver": "MERGE"},
-                "distanceMeters": 600,
-                "staticDuration": "75s",
-                "polyline": {"encodedPolyline": ""},
-            }]}],
-        }]})
-
-        self.assertEqual(parsed[0]["steps"], [
-            {"instruction": "Turn right onto SW 8th St", "maneuver": "TURN_RIGHT", "distance_m": 300,
-             "duration_s": 45, "polyline": EXAMPLE_POLYLINE},
-            {"instruction": "Merge onto SR-826 N", "maneuver": "MERGE", "distance_m": 600,
-             "duration_s": 75, "polyline": ""},
-        ])
 
 
 class BuildRequestTests(unittest.TestCase):
@@ -122,9 +89,6 @@ class ComputeRoutesTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(str(request.url), COMPUTE_ROUTES_URL)
         self.assertEqual(request.headers["X-Goog-Api-Key"], "server-key")
         self.assertIn("routes.polyline.encodedPolyline", request.headers["X-Goog-FieldMask"])
-        for path in ("routes.legs.steps.navigationInstruction", "routes.legs.steps.distanceMeters",
-                     "routes.legs.steps.staticDuration", "routes.legs.steps.polyline.encodedPolyline"):
-            self.assertIn(path, FIELD_MASK)
         self.assertTrue(json.loads(request.content)["computeAlternativeRoutes"])
         self.assertEqual(len(alts), 2)
         self.assertEqual(alts[0]["summary"], "via SR-826 and I-95")
@@ -205,8 +169,6 @@ class RouteEndpointTests(unittest.TestCase):
         self.assertEqual(body["route_geojson"], body["alternatives"][0]["route_geojson"])
         self.assertEqual([a["recommended"] for a in body["alternatives"]], [True, False])
         self.assertEqual(body["alternatives"][1]["static_duration_s"], 2100)
-        self.assertEqual(body["alternatives"][0]["steps"][0]["instruction"], "Turn right onto SW 8th St")
-        self.assertEqual(body["alternatives"][0]["steps"][0]["maneuver"], "TURN_RIGHT")
 
     def test_routine_route_saves_route_state(self):
         ok = lambda r: httpx.Response(200, json=payload(("SR-826", 2460, 1980, 31800)))

@@ -61,16 +61,6 @@ export interface HazardOnRoute {
   title: string;
   probability: number;
   status?: string; // e.g. "observed"
-  location_label?: string;
-  route_progress_m?: number;
-}
-
-export interface RouteStep {
-  instruction: string;
-  maneuver: string;
-  distance_m: number;
-  duration_s: number;
-  polyline?: string | null;
 }
 
 export interface RouteOption {
@@ -83,7 +73,6 @@ export interface RouteOption {
   recommended: boolean;
   hazards_on_route: HazardOnRoute[];
   neighborhoods_crossed?: string[]; // avoided neighbourhood ids this route still enters
-  steps?: RouteStep[] | null;
 }
 
 export interface RouteResponse {

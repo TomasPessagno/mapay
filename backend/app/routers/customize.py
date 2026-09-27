@@ -185,8 +185,6 @@ def local_departure(clock: str, base: datetime | None, tz: str, now: datetime) -
 def summarize(route: dict, stops: list[dict] | None = None) -> dict:
     out = {"summary": route.get("summary") or "", "duration_s": route["duration_s"],
            "distance_m": route["distance_m"], "route_geojson": route["route_geojson"]}
-    if route.get("steps") is not None:
-        out["steps"] = route["steps"]
     if stops is not None:
         out["stops"] = [{k: s[k] for k in ("name", "place_id", "location")} for s in stops]
         out["hazards_on_route"] = route.get("hazards_on_route", [])

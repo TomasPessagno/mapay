@@ -128,12 +128,6 @@
       "duration_s": 2460,
       "static_duration_s": 1980,
       "distance_m": 31800,
-      "steps": [
-        { "instruction": "Head east on SW 8th St", "maneuver": "STRAIGHT", "distance_m": 3800, "duration_s": 420, "polyline": "wve|Cb|piNoUkuE" },
-        { "instruction": "Merge onto SR-826 N toward Palmetto Expressway", "maneuver": "MERGE", "distance_m": 9200, "duration_s": 690, "polyline": "gmf|CvejiNomM_q@" },
-        { "instruction": "Take the ramp to I-95 N", "maneuver": "RAMP_RIGHT", "distance_m": 11100, "duration_s": 780, "polyline": "w{t|CvshiNotLw`Ew|AoqP" },
-        { "instruction": "Take the exit toward NE 151st St", "maneuver": "RAMP_RIGHT", "distance_m": 7700, "duration_s": 570, "polyline": "_oe}Cn_qhNf^ozDv[_~F" }
-      ],
       "score": 47.0,
       "recommended": true,
       "hazards_on_route": [
@@ -141,41 +135,31 @@
           "hazard_id": "congestion:sr-826-nb-flagler",
           "hazard_type": "congestion",
           "title": "Heavy traffic",
-          "probability": 0.9,
-          "location_label": "SR-826 N",
-          "route_progress_m": 17800
+          "probability": 0.9
         },
         {
           "hazard_id": "congestion:palmetto-mmc",
           "hazard_type": "congestion",
           "title": "Heavy traffic",
-          "probability": 0.86,
-          "location_label": "SR-826 N",
-          "route_progress_m": 5500
+          "probability": 0.86
         },
         {
           "hazard_id": "construction:sr-826-nb-sw-8th",
           "hazard_type": "construction",
           "title": "Lane closures",
-          "probability": 0.82,
-          "location_label": "SW 8th St",
-          "route_progress_m": 4200
+          "probability": 0.82
         },
         {
           "hazard_id": "incident:news-i95-nb-125th",
           "hazard_type": "incident",
           "title": "Crash blocks two lanes on I-95 NB at NE 125th St",
-          "probability": 0.7,
-          "location_label": "NE 125th St",
-          "route_progress_m": 19800
+          "probability": 0.7
         },
         {
           "hazard_id": "flood:ne-151st-st",
           "hazard_type": "flood",
           "title": "Flooded street",
-          "probability": 0.88,
-          "location_label": "NE 151st St",
-          "route_progress_m": 30900
+          "probability": 0.88
         }
       ],
       "neighborhoods_crossed": []
@@ -223,11 +207,6 @@
       "duration_s": 2700,
       "static_duration_s": 2100,
       "distance_m": 29900,
-      "steps": [
-        { "instruction": "Continue east on SW 8th St", "maneuver": "STRAIGHT", "distance_m": 10000, "duration_s": 900, "polyline": "wve|Cb|piNon@ccU" },
-        { "instruction": "Turn left onto Biscayne Blvd", "maneuver": "TURN_LEFT", "distance_m": 9000, "duration_s": 810, "polyline": "gfg|C~wzhNg^otL" },
-        { "instruction": "Continue north toward NE 151st St", "maneuver": "STRAIGHT", "distance_m": 10900, "duration_s": 990, "polyline": "oyw|C~ulhNgxG_nDg_B_aC" }
-      ],
       "score": 131.0,
       "recommended": false,
       "hazards_on_route": [
@@ -235,25 +214,19 @@
           "hazard_id": "closure:sw-8th-st-17th-ave",
           "hazard_type": "closure",
           "title": "Road closed",
-          "probability": 0.95,
-          "location_label": "SW 8th St",
-          "route_progress_m": 2600
+          "probability": 0.95
         },
         {
           "hazard_id": "flood:brickell-bay-dr",
           "hazard_type": "flood",
           "title": "Flooding expected",
-          "probability": 0.81,
-          "location_label": "Brickell Bay Dr",
-          "route_progress_m": 13500
+          "probability": 0.81
         },
         {
           "hazard_id": "construction:ne-135th-st",
           "hazard_type": "construction",
           "title": "Construction",
-          "probability": 0.8,
-          "location_label": "NE 135th St",
-          "route_progress_m": 25600
+          "probability": 0.8
         }
       ],
       "neighborhoods_crossed": []
@@ -270,41 +243,31 @@
       "hazard_id": "congestion:sr-826-nb-flagler",
       "hazard_type": "congestion",
       "title": "Heavy traffic",
-      "probability": 0.9,
-      "location_label": "SR-826 N",
-      "route_progress_m": 17800
+      "probability": 0.9
     },
     {
       "hazard_id": "congestion:palmetto-mmc",
       "hazard_type": "congestion",
       "title": "Heavy traffic",
-      "probability": 0.86,
-      "location_label": "SR-826 N",
-      "route_progress_m": 5500
+      "probability": 0.86
     },
     {
       "hazard_id": "construction:sr-826-nb-sw-8th",
       "hazard_type": "construction",
       "title": "Lane closures",
-      "probability": 0.82,
-      "location_label": "SW 8th St",
-      "route_progress_m": 4200
+      "probability": 0.82
     },
     {
       "hazard_id": "incident:news-i95-nb-125th",
       "hazard_type": "incident",
       "title": "Crash blocks two lanes on I-95 NB at NE 125th St",
-      "probability": 0.7,
-      "location_label": "NE 125th St",
-      "route_progress_m": 19800
+      "probability": 0.7
     },
     {
       "hazard_id": "flood:ne-151st-st",
       "hazard_type": "flood",
       "title": "Flooded street",
-      "probability": 0.88,
-      "location_label": "NE 151st St",
-      "route_progress_m": 30900
+      "probability": 0.88
     }
   ],
   "deep_links": {

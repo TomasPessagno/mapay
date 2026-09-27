@@ -22,12 +22,6 @@
     "summary": "via SR-826 and I-95",
     "duration_s": 2460,
     "distance_m": 31800,
-    "steps": [
-      { "instruction": "Head east on SW 8th St", "maneuver": "STRAIGHT", "distance_m": 3800, "duration_s": 420, "polyline": "wve|Cb|piNoUkuE" },
-      { "instruction": "Merge onto SR-826 N toward Palmetto Expressway", "maneuver": "MERGE", "distance_m": 9200, "duration_s": 690, "polyline": "gmf|CvejiNomM_q@" },
-      { "instruction": "Take the ramp to I-95 N", "maneuver": "RAMP_RIGHT", "distance_m": 11100, "duration_s": 780, "polyline": "w{t|CvshiNotLw`Ew|AoqP" },
-      { "instruction": "Take the exit toward NE 151st St", "maneuver": "RAMP_RIGHT", "distance_m": 7700, "duration_s": 570, "polyline": "_oe}Cn_qhNf^ozDv[_~F" }
-    ],
     "route_geojson": {
       "type": "FeatureCollection",
       "features": [
@@ -75,12 +69,6 @@
     "summary": "via SW 8th St, I-95 and Biscayne Blvd, stopping at Starbucks (NE 125th St)",
     "duration_s": 2820,
     "distance_m": 30400,
-    "steps": [
-      { "instruction": "Continue east on SW 8th St", "maneuver": "STRAIGHT", "distance_m": 6500, "duration_s": 600, "polyline": "wve|Cb|piNon@ccU" },
-      { "instruction": "Take the ramp to I-95 N", "maneuver": "RAMP_RIGHT", "distance_m": 11100, "duration_s": 750, "polyline": "gfg|C~wzhNw|AwvIoqPgE" },
-      { "instruction": "Turn right onto NE 125th St", "maneuver": "TURN_RIGHT", "distance_m": 4200, "duration_s": 570, "polyline": "ov{|C~yohNgbC_gE" },
-      { "instruction": "Continue north on Biscayne Blvd toward NE 151st St", "maneuver": "STRAIGHT", "distance_m": 8600, "duration_s": 900, "polyline": "wy_}C~qihN_q@_jAgfA_aC" }
-    ],
     "route_geojson": {
       "type": "FeatureCollection",
       "features": [
@@ -141,9 +129,7 @@
         "hazard_id": "incident:news-i95-nb-125th",
         "hazard_type": "incident",
         "title": "Crash blocks two lanes on I-95 NB at NE 125th St",
-        "probability": 0.7,
-        "location_label": "I-95 N",
-        "route_progress_m": 19800
+        "probability": 0.7
       }
     ]
   },
