@@ -10,7 +10,7 @@ name: ipa
 
 on:
   push:
-    branches: [main, o1-ipa-ci] # temp: test on this branch, reverted before the PR
+    branches: [main]
     paths: ["frontend/**", ".github/workflows/ipa.yml"]
   workflow_dispatch:
 
