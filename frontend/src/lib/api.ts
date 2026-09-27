@@ -7,7 +7,7 @@ const BASE = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000").repl
 
 let deviceIdCache: string | null = null;
 
-async function getDeviceId(): Promise<string> {
+export async function getDeviceId(): Promise<string> {
   if (deviceIdCache) return deviceIdCache;
   try {
     const info = await Device.getId();
