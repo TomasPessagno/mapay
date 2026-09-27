@@ -3,6 +3,7 @@ import {
   IonModal,
   IonContent,
   IonButton,
+  IonIcon,
   IonItem,
   IonLabel,
   IonList,
@@ -127,8 +128,10 @@ export default function HazardSheet({ isOpen, hazard, onDidDismiss }: HazardShee
               marginRight: '12px',
             }}
             aria-hidden="true"
-            dangerouslySetInnerHTML={{ __html: typeof token.icon === 'string' ? token.icon.replace(/currentColor/g, color) : '' }}
-          />
+          >
+            {/* token.icon is an Ionicons data URL, not markup */}
+            <IonIcon icon={token.icon} style={{ fontSize: '22px', color }} />
+          </div>
           <div>
             <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 'bold' }}>{hazard.title}</h2>
             <p style={{ margin: 0, color: 'var(--ion-color-step-600)', fontSize: '17px' }}>{hazard.place}</p>
