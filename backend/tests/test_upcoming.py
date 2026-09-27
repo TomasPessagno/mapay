@@ -133,7 +133,7 @@ class UpcomingEndpointTests(unittest.TestCase):
             places=Collection([
                 {"_id": "pl-mmc", "name": "MMC", "location": {"type": "Point", "coordinates": [-80.3733, 25.7574]}},
                 {"_id": "pl-bbc", "name": "BBC", "location": {"type": "Point", "coordinates": [-80.1392, 25.9104]}}]),
-            demo_overrides=Collection(), users=Collection(),
+            demo_overrides=Collection(), users=Collection(), briefings=Collection(),
             intel_cache=Collection([{"_id": "belief:flood:x", "type": "hazard_belief", "hazard_id": "flood:x",
                                      "hazard_type": "flood", "severity": 2, "log_odds": 2.0, "prior_log_odds": 2.0,
                                      "evidence": {}, "geometry": {"type": "Point", "coordinates": [-80.25, 25.85]}}]))

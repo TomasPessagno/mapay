@@ -32,6 +32,7 @@ JOBS=(
   "potholes|0 4 * * 1|300s"
   "gfm|15 * * * *|300s"
   "s2|0 5 * * 1|300s"
+  "briefings|*/10 * * * *|240s"
   # Add as they land: "traffic|..." (#23)
 )
 

@@ -36,6 +36,9 @@ async def init_indexes() -> None:
     # places — saved places per device
     await db.places.create_index("user_id")
 
+    # briefings — precomputed heads-up items per leg occurrence (A20), kept a day
+    await db.briefings.create_index("computed_at", expireAfterSeconds=86400)
+
     # demo_overrides — "fire heads-up now"; each doc expires at its own expires_at
     await db.demo_overrides.create_index("expires_at", expireAfterSeconds=0)
     await db.demo_overrides.create_index("user_id")

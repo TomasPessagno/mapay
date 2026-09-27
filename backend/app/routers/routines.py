@@ -8,6 +8,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 
 from app.briefings.builder import build_items
+from app.briefings.precompute import (
+    compact_item,
+    fresh_briefings,
+    item_id,
+    occurrence_id,
+)
 from app.db.models import Routine
 from app.db.mongo import get_db
 from app.deps import current_user
@@ -88,8 +94,19 @@ async def upcoming_legs(user: Annotated[dict, Depends(current_user)],
     occurrences = upcoming(docs, overrides, now, days)
     if limit:
         occurrences = occurrences[:limit]
-    hazards = await current_hazards(db, now) if occurrences else []
-    items = await build_items(db, occurrences, routines, user, hazards, compact, now)
+    # Legs departing soon usually have a precomputed briefing (A20); only the rest are built here.
+    ready = await fresh_briefings(db, occurrences, now)
+    to_build = [o for o in occurrences if o.demo or occurrence_id(o) not in ready]
+    hazards = await current_hazards(db, now) if to_build else []
+    built = await build_items(db, to_build, routines, user, hazards, compact, now)
+    by_id = {(item_id(i), bool(i.get("demo"))): i for i in built}
+    items = []
+    for occ in occurrences:
+        item = by_id.get((occurrence_id(occ), occ.demo))
+        if item is None and not occ.demo and occurrence_id(occ) in ready:
+            item = compact_item(ready[occurrence_id(occ)]) if compact else ready[occurrence_id(occ)]
+        if item is not None:
+            items.append(item)
     return {"generated_at": now.astimezone(timezone.utc).isoformat(), "items": items}
 
 

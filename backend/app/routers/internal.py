@@ -14,6 +14,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from fastapi.concurrency import run_in_threadpool
 
+from app.briefings import precompute
 from app.config import get_settings
 from app.db.mongo import get_db
 from app.ingestion import (
@@ -75,6 +76,7 @@ JOBS: dict[str, Job] = {
     "gfm": _satellite_floods,
     "s1": earth_engine_s1.run,
     "s2": _satellite_construction,
+    "briefings": precompute.run,
 }
 
 
