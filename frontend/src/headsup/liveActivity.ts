@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { registerPlugin, Capacitor } from '@capacitor/core';
 import { App as CapacitorApp } from '@capacitor/app';
 import { api } from '../lib/api';
+import { isDemo } from '../lib/dataSource';
 import { openLink } from '../lib/deepLinks';
 import type { UpcomingLeg } from '../lib/types';
 
@@ -29,7 +30,6 @@ interface MapayNativePlugin {
 
 const MapayNative = registerPlugin<MapayNativePlugin>('MapayNative');
 
-const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true';
 const WINDOW_MS = 8 * 60 * 60 * 1000; // ActivityKit keeps one up for at most 8 h
 const LINGER_MS = 10 * 60 * 1000; // it stays up until departure + 10 min
 // Debug path for mock data (its fixed times are days away): the first leg departs 30 min after the app
@@ -93,7 +93,8 @@ export async function syncLiveActivity() {
   if (!isAvailable()) return;
   const { items } = await api.upcomingRoutines(1);
   const now = Date.now();
-  if (USE_MOCKS) {
+  // Demo data (Preferences › Data): the mock's fixed times are days away, so use the debug departure.
+  if (isDemo()) {
     const mock = mockDeparture(now);
     return items.length && !mock.started ? startLiveActivity(items[0], mock.departure) : endLiveActivity();
   }
@@ -110,7 +111,7 @@ async function handleStart(url: URL) {
   const leg = url.searchParams.has('leg') ? Number(url.searchParams.get('leg')) : undefined;
   const { items } = await api.upcomingRoutines(1);
   const match = items.find(i => i.routine_id === routineId && i.leg === leg);
-  if (USE_MOCKS) markMockStarted();
+  if (isDemo()) markMockStarted();
   else markStarted(legKey(routineId, leg, match?.local_date));
   await endLiveActivity(routineId, leg);
   const nav = match?.deep_links.google_maps ?? match?.deep_links.apple_maps;
