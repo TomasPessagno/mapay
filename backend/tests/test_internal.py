@@ -47,19 +47,19 @@ class IngestTests(unittest.TestCase):
 
     def test_successful_ingest_invalidates_the_layers_snapshot(self):
         with patch.dict(internal.JOBS, {"tides": AsyncMock(return_value={})}), \
-             patch("app.routers.internal.get_db"), \
+             patch("app.routers.internal.get_db") as get_db, \
              patch("app.routers.internal.invalidate_snapshot") as invalidate:
             response = make_client().post("/internal/ingest/tides")
         self.assertEqual(response.status_code, 200, response.text)
-        invalidate.assert_called_once_with()
+        invalidate.assert_called_once_with(get_db.return_value)
 
     def test_failed_ingest_still_invalidates_the_layers_snapshot(self):
         with patch.dict(internal.JOBS, {"tides": AsyncMock(side_effect=RuntimeError("NOAA down"))}), \
-             patch("app.routers.internal.get_db"), \
+             patch("app.routers.internal.get_db") as get_db, \
              patch("app.routers.internal.invalidate_snapshot") as invalidate:
             response = make_client().post("/internal/ingest/tides")
         self.assertEqual(response.status_code, 502)
-        invalidate.assert_called_once_with()
+        invalidate.assert_called_once_with(get_db.return_value)
 
     def test_registry_has_the_merged_jobs(self):
         self.assertTrue({"news", "weather", "here", "tides", "city_gis", "sidewalks", "potholes"} <= set(internal.JOBS))

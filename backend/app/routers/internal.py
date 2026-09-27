@@ -115,15 +115,17 @@ async def ingest(job: str, _: Annotated[dict, Depends(require_scheduler)]):
     if run is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, f"Unknown job: {job}")
     started = datetime.now(timezone.utc)
+    db = get_db()
     try:
-        result = await run(get_db(), started)
+        result = await run(db, started)
     except Exception as exc:
         # A 5xx makes Cloud Scheduler retry per the job's retry config.
         log.exception("Ingestion job %s failed", job)
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, f"{job} failed: {type(exc).__name__}") from exc
     finally:
-        # /layers serves an in-process snapshot (A26): the next map load must rebuild it.
-        invalidate_snapshot()
+        # /layers serves an in-process snapshot (A26): mark it stale and refresh it in the
+        # background; the old snapshot keeps answering requests until the rebuild lands.
+        invalidate_snapshot(db)
     seconds = round((datetime.now(timezone.utc) - started).total_seconds(), 1)
     log.info("Ingestion job %s finished in %ss: %s", job, seconds, result)
     return {"job": job, "started_at": started.isoformat(), "seconds": seconds, "result": result}

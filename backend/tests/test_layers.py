@@ -1,5 +1,7 @@
+import asyncio
 import json
 import re
+import time
 import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -197,7 +199,7 @@ class SnapshotTests(unittest.TestCase):
         app = FastAPI()
         app.include_router(layers.router)
         self.client = TestClient(app)
-        layers.invalidate_snapshot()
+        layers.clear_snapshot()
 
     @staticmethod
     def seeded_now():
@@ -238,14 +240,32 @@ class SnapshotTests(unittest.TestCase):
         self.assertEqual(self.ids(boxed, "weather"), [])
         self.assertNotIn("flood:far", self.ids(boxed, "flood"))
 
-    def test_invalidation_forces_a_rebuild(self):
-        db = FakeDb(self.seeded_now())
-        self.get(db)
-        self.assertIsNotNone(layers._snapshot)
-        layers.invalidate_snapshot()
-        self.assertIsNone(layers._snapshot)
-        self.get(db)
-        self.assertEqual(db.evidence_queries, 2)
+    def wait_for_rebuild(self, previous, timeout=5.0):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            current = layers._snapshot
+            if current is not None and current is not previous:
+                return
+            time.sleep(0.01)
+        self.fail("the background rebuild never replaced the snapshot")
+
+    def test_invalidation_keeps_serving_until_the_rebuild_lands(self):
+        old_db = FakeDb(self.seeded_now())
+        self.get(old_db)
+        old_snapshot = layers._snapshot
+        self.assertIsNotNone(old_snapshot)
+
+        # Ingest writes a new hazard; invalidation marks the snapshot stale but leaves it serving.
+        added = belief("flood:new", "flood", point(-80.18, 25.76), 0.9, updated=datetime.now(timezone.utc))
+        new_db = FakeDb(self.seeded_now() + [added])
+        layers.invalidate_snapshot(new_db)
+
+        served = self.get(new_db).json()
+        self.assertNotIn("flood:new", self.ids(served, "flood"))  # old snapshot, no rebuild wait
+
+        self.wait_for_rebuild(old_snapshot)
+        updated = self.get(new_db).json()
+        self.assertIn("flood:new", self.ids(updated, "flood"))
 
     def test_far_t_keeps_the_slow_path(self):
         db = FakeDb(self.seeded_now())
@@ -259,6 +279,36 @@ class SnapshotTests(unittest.TestCase):
     def test_cache_control_header(self):
         response = self.get(FakeDb(self.seeded_now()))
         self.assertEqual(response.headers["cache-control"], "public, max-age=60")
+
+
+class RebuildRetryTests(unittest.TestCase):
+    """A build discarded by an ingest mid-flight must start over instead of vanishing."""
+
+    def test_discarded_rebuild_starts_another(self):
+        async def scenario():
+            layers.clear_snapshot()
+            generation = layers._generation
+            started, release = asyncio.Event(), asyncio.Event()
+            databases = []
+
+            async def fake_collect(db, t):
+                databases.append(db)
+                if len(databases) == 1:
+                    started.set()
+                    await release.wait()
+                return {"flood": []}, {}
+
+            with patch.object(layers, "collect_features", fake_collect):
+                task = asyncio.get_running_loop().create_task(layers._rebuild("db", generation))
+                await started.wait()
+                layers.invalidate_snapshot()  # ingest lands while the first build is running
+                release.set()
+                await task
+                self.assertEqual(databases, ["db", "db"])  # discarded build started a retry
+                await layers._rebuild_task
+            self.assertIsNotNone(layers._snapshot)
+
+        asyncio.run(scenario())
 
 
 class PayloadTests(unittest.TestCase):

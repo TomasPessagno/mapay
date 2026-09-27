@@ -11,5 +11,5 @@ def _fresh_caches():
     pre_route.clear_belief_cache()
     best_time.clear_cache()
     builder._route_cache.clear()
-    layers.invalidate_snapshot()
+    layers.clear_snapshot()
     yield

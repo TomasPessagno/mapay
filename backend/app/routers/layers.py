@@ -8,7 +8,8 @@ keeps the result with bounds precomputed per feature. A request whose `t` is wit
 SNAPSHOT_FRESH_SECONDS of now filters that in-process snapshot (a plain bounds check, no Mongo
 round-trip, no per-request Shapely parsing); once the snapshot is older than SNAPSHOT_TTL_SECONDS
 it is rebuilt in the background while the stale copy keeps serving (stale-while-revalidate), and
-`/internal/ingest/*` invalidates it when a job finishes. `t` further away keeps the exact slow
+`/internal/ingest/*` marks it stale and rebuilds it in the background when a job finishes. Only a
+request that finds no snapshot at all waits for a build. `t` further away keeps the exact slow
 path, since only time-dependent predictions (crowd decay, news windows) care about it.
 """
 import asyncio
@@ -256,6 +257,10 @@ class Snapshot:
         self.freshness = freshness
         self.count = sum(len(entries) for entries in features.values())
 
+    def mark_stale(self) -> None:
+        """Force the age past SNAPSHOT_TTL_SECONDS: requests serve it once more and rebuild."""
+        self.built_monotonic = time.monotonic() - SNAPSHOT_TTL_SECONDS - 1
+
 
 LAYERS_CACHE_SECONDS = 60
 _layers_cache: dict[tuple, tuple[float, bytes]] = {}
@@ -265,8 +270,24 @@ _rebuild_task: asyncio.Task | None = None
 _generation = 0
 
 
-def invalidate_snapshot() -> None:
-    """Ingestion finished: the next request rebuilds instead of serving pre-ingest features."""
+def invalidate_snapshot(db=None) -> None:
+    """Ingestion finished: mark the snapshot stale and rebuild it in the background.
+
+    The old snapshot keeps serving requests while the rebuild runs (stale-while-revalidate);
+    only a request that finds no snapshot at all waits for a build.
+    """
+    global _generation
+    _generation += 1
+    _layers_cache.clear()
+    if _snapshot is None:
+        return
+    _snapshot.mark_stale()
+    if db is not None:
+        _kick_rebuild(db)
+
+
+def clear_snapshot() -> None:
+    """Drop the snapshot entirely (tests need each fake database to build its own)."""
     global _snapshot, _generation
     _snapshot = None
     _generation += 1
@@ -282,26 +303,35 @@ async def _rebuild(db, generation: int) -> None:
     except Exception:
         log.exception("Layers snapshot rebuild failed")
         return
-    if generation != _generation:  # an ingest invalidated us mid-build; the next request retries
+    if generation != _generation:
+        # Ingest invalidated this build mid-flight: drop it and start over on the newer data.
+        log.info("Layers snapshot rebuild discarded (invalidated mid-build); retrying")
+        _start_rebuild(db)
         return
     _snapshot = Snapshot(built_at, features, freshness)
     log.info("Layers snapshot rebuilt in %.0f ms: %d features", (time.monotonic() - started) * 1000, _snapshot.count)
 
 
-def _kick_rebuild(db) -> asyncio.Task | None:
+def _start_rebuild(db) -> asyncio.Task | None:
+    """Always start a fresh build task (or return None without a running event loop)."""
     global _rebuild_task
-    if _rebuild_task is not None and not _rebuild_task.done():
-        return _rebuild_task
     try:
-        _rebuild_task = asyncio.get_running_loop().create_task(_rebuild(db, _generation))
+        loop = asyncio.get_running_loop()
     except RuntimeError:  # no running loop; callers fall back to the slow path
         return None
+    _rebuild_task = loop.create_task(_rebuild(db, _generation))
     return _rebuild_task
 
 
+def _kick_rebuild(db) -> asyncio.Task | None:
+    if _rebuild_task is not None and not _rebuild_task.done():
+        return _rebuild_task
+    return _start_rebuild(db)
+
+
 async def get_snapshot(db) -> Snapshot | None:
-    """The snapshot, rebuilding it in the background when stale. A request never waits for a
-    rebuild while a snapshot exists; when none has ever been built it waits for the first one."""
+    """The snapshot, rebuilding it in the background when stale. A request only waits when no
+    snapshot has ever been built; otherwise it is served the current one immediately."""
     snapshot = _snapshot
     if snapshot is None:
         task = _kick_rebuild(db)
