@@ -5,9 +5,11 @@ alternative's ~30 m corridor, where penalty = weight(preference) × severity × 
 An avoided neighbourhood the route enters counts as a severity-5 hazard with p = 1 and the
 `avoid` weight. See AGENTS.md › Routing (step 2) and › Preferences. No LLM on this path.
 """
+import math
+
 from shapely import STRtree
 from shapely.geometry import shape
-from shapely.ops import unary_union
+from shapely.ops import transform, unary_union
 
 from app.deps import default_preferences
 from app.routers.neighborhoods import get_polygon
@@ -17,6 +19,23 @@ from app.routing.beliefs import probability
 WEIGHTS = {"avoid": 10, "prefer_avoid": 2, "ignore": 0}
 PENALTY_MINUTES = 3
 NEIGHBORHOOD_SEVERITY = 5
+# An avoided road counts only when the route drives along it, not when it crosses over or under.
+ROAD_MIN_OVERLAP_M = 300
+ROAD_BUFFER_M = 25
+M_PER_DEG = 111_320
+
+
+class LocalPlane:
+    """Equirectangular metres around a reference latitude: fine at city scale."""
+
+    def __init__(self, lat: float):
+        self.kx = M_PER_DEG * math.cos(math.radians(lat))
+
+    def to_m(self, geom):
+        return transform(lambda x, y, z=None: (x * self.kx, y * M_PER_DEG), geom)
+
+    def to_deg(self, geom):
+        return transform(lambda x, y, z=None: (x / self.kx, y / M_PER_DEG), geom)
 TITLES = {"flood": "Flooded street", "weather": "Weather alert", "construction": "Construction",
           "closure": "Road closed", "congestion": "Heavy traffic", "no_sidewalk": "No sidewalk",
           "pothole": "Potholes", "incident": "Incident", "event": "Event"}
@@ -72,8 +91,29 @@ def hazard_entry(hazard: dict, p: float) -> dict:
             "probability": round(p, 2)}
 
 
-def score_alternative(alternative: dict, index: HazardIndex, preferences: dict) -> dict:
-    """Cost, the hazards on the route (worst first) and the avoided neighbourhoods it enters."""
+def neighborhood_areas(preferences: dict) -> list[dict]:
+    areas = []
+    for neighborhood_id in preferences.get("avoid_neighborhoods") or []:
+        polygon = get_polygon(neighborhood_id)
+        if polygon is not None:
+            areas.append({"id": neighborhood_id, "label": neighborhood_id, "kind": "neighborhood",
+                          "geometry": polygon})
+    return areas
+
+
+def hits_area(line, area: dict) -> bool:
+    if area["kind"] != "road":
+        return line.intersects(area["geometry"])
+    plane = LocalPlane(line.centroid.y)
+    overlap = plane.to_m(line).intersection(plane.to_m(area["geometry"]).buffer(ROAD_BUFFER_M))
+    return overlap.length >= ROAD_MIN_OVERLAP_M
+
+
+def score_alternative(alternative: dict, index: HazardIndex, preferences: dict,
+                      avoid_areas: list[dict] | None = None) -> dict:
+    """Cost, the hazards on the route (worst first), the avoided neighbourhoods it enters, and
+    (internal, for the detour) every avoided area it hits. `avoid_areas` adds areas beyond the
+    preference's neighbourhoods, e.g. roads from a Customize prompt: {id, label, kind, geometry}."""
     line, corridor = corridor_for(alternative["route_geojson"])
     categories = preferences["categories"]
     penalties = []
@@ -81,24 +121,28 @@ def score_alternative(alternative: dict, index: HazardIndex, preferences: dict) 
         p = probability(hazard["log_odds"])
         weight = WEIGHTS.get(categories.get(hazard["hazard_type"], "ignore"), 0)
         penalties.append((weight * hazard.get("severity", 1) * p * PENALTY_MINUTES, p, hazard))
-    crossed = []
-    for neighborhood_id in preferences.get("avoid_neighborhoods") or []:
-        polygon = get_polygon(neighborhood_id)
-        if polygon is not None and line.intersects(polygon):
-            crossed.append(neighborhood_id)
+    areas = neighborhood_areas(preferences) if avoid_areas is None else avoid_areas
+    hits = [area for area in areas if hits_area(line, area)]
     penalty = sum(p for p, _, _ in penalties)
-    penalty += len(crossed) * WEIGHTS["avoid"] * NEIGHBORHOOD_SEVERITY * 1.0 * PENALTY_MINUTES
+    penalty += len(hits) * WEIGHTS["avoid"] * NEIGHBORHOOD_SEVERITY * 1.0 * PENALTY_MINUTES
     penalties.sort(key=lambda item: (item[0], item[1]), reverse=True)
     return {"score": round(alternative["duration_s"] / 60 + penalty, 1),
             "hazards_on_route": [hazard_entry(h, p) for _, p, h in penalties],
-            "neighborhoods_crossed": crossed}
+            "neighborhoods_crossed": [a["id"] for a in hits if a["kind"] == "neighborhood"],
+            "avoid_hits": hits}
 
 
-def rank(alternatives: list[dict], hazards, preferences: dict) -> list[dict]:
+def avoid_areas_for(preferences: dict, extra: list[dict] | None = None) -> list[dict]:
+    """The preference's neighbourhoods plus any extra areas (resolved once per request)."""
+    return neighborhood_areas(preferences) + list(extra or [])
+
+
+def rank(alternatives: list[dict], hazards, preferences: dict, avoid_areas: list[dict] | None = None) -> list[dict]:
     """Alternatives with score / recommended / hazards_on_route filled, cheapest first.
     Ties keep Google's order, so with nothing on any route Google's first route wins."""
     index = HazardIndex(hazards)
-    scored = [{**alt, **score_alternative(alt, index, preferences)} for alt in alternatives]
+    areas = neighborhood_areas(preferences) if avoid_areas is None else avoid_areas
+    scored = [{**alt, **score_alternative(alt, index, preferences, areas)} for alt in alternatives]
     scored.sort(key=lambda alt: alt["score"])
     for position, alt in enumerate(scored):
         alt["recommended"] = position == 0

@@ -7,6 +7,7 @@ from app.config import get_settings
 from app.db.mongo import close_client, init_indexes
 from app.routers import (
     alerts,
+    customize,
     internal,
     layers,
     me,
@@ -45,6 +46,7 @@ app.include_router(neighborhoods.router)
 app.include_router(internal.router)
 app.include_router(places.router)
 app.include_router(me.router)
+app.include_router(customize.router)
 
 
 @app.get("/health")

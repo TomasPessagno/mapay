@@ -56,8 +56,9 @@ def _waypoint(point, via: bool = False) -> dict:
 def build_request(origin, destination, depart_at: datetime | None = None, avoid_tolls: bool = False,
                   avoid_highways: bool = False, mode: str = "drive", intermediates=(),
                   now: datetime | None = None) -> dict:
-    """computeRoutes body. `intermediates` are (lat, lng) via points; Google returns no
-    alternatives when any are set, so alternatives are only requested without them."""
+    """computeRoutes body. `intermediates` are (lat, lng) pass-through `via` points, or
+    (lat, lng, False) for a real stop. Google returns no alternatives when any are set, so
+    alternatives are only requested without them."""
     body = {
         "origin": _waypoint(origin),
         "destination": _waypoint(destination),
@@ -66,7 +67,7 @@ def build_request(origin, destination, depart_at: datetime | None = None, avoid_
         "polylineEncoding": "ENCODED_POLYLINE",
     }
     if intermediates:
-        body["intermediates"] = [_waypoint(p, via=True) for p in intermediates]
+        body["intermediates"] = [_waypoint(p[:2], via=p[2] if len(p) > 2 else True) for p in intermediates]
     if mode == "drive":
         # routingPreference is only valid for DRIVE; route modifiers only matter there.
         body["routingPreference"] = "TRAFFIC_AWARE_OPTIMAL"
