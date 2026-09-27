@@ -10,17 +10,17 @@ At FIU, the commute is part of the school day. A drive between MMC and BBC can m
 
 MAPAY is an iPhone-first map and routine-trip assistant for Miami. Its map separates floods, construction, closures, traffic, weather, incidents, sidewalk gaps and other street issues by colour, icon and line style. Tap a feature to see where its information came from and when it was observed or updated.
 
-Save routine trips such as MMC → BBC in the morning and BBC → MMC in an evening time window. MAPAY can suggest a time inside a window, then puts the upcoming trip on a local notification, home-screen widget and in-app heads-up card. Start opens the route in Google Maps. Customize accepts a prompt such as “stop at a Starbucks and stay off the Palmetto,” then shows the revised route and an explanation.
+Save routine trips such as MMC → BBC in the morning and BBC → MMC in an evening time window. MAPAY can suggest a time inside a window, then puts the upcoming trip on a local notification, home-screen widget and in-app heads-up card. The in-app route preview (#135) shows the route and why it changed before you go. Start hands off to Google Maps. Customize accepts a prompt such as “stop at a Starbucks and stay off the Palmetto”: the coffee becomes a real stop, while a steering waypoint bends the route around a hazard Google doesn’t know about. Those stops are visible and removable, and Google Maps gets them in one link.
 
 ## How we built it
 
-The app uses React, Ionic and Capacitor, with native SwiftUI widgets and a Live Activity. FastAPI and MongoDB power the backend. Google Maps supplies the map, traffic, places and route alternatives; MAPAY scores those alternatives against the hazards on each route and the driver’s preferences, then can add a detour waypoint. Google Maps handles turn-by-turn navigation.
+The app uses React, Ionic and Capacitor, with native SwiftUI widgets and a Live Activity. FastAPI and MongoDB power the backend. Google Maps supplies the map, traffic, places and route alternatives; MAPAY deterministically scores those alternatives against hazards and driver preferences, then adds a steering waypoint when a route crosses a serious hazard. Google Maps handles the drive—live traffic, voice, lane guidance, CarPlay and rerouting—while MAPAY previews the route and explains its choices. Google Maps links preserve the steering stops; Apple Maps and Waze links currently pass only the origin and destination.
 
 Data comes from sources including NOAA tides and FEMA flood zones, NWS weather, City of Miami projects and permits, HERE road incidents, OpenStreetMap sidewalk tags, local-news feeds, user reports and Copernicus satellite products. A hazard gets a plain-language confidence level that can change as evidence arrives. Gemini extracts useful details from news, translates a Customize prompt into explicit route constraints, and explains route changes. The route ranking itself is deterministic.
 
 ## Challenges
 
-Google’s routing service can’t be asked to avoid an arbitrary flooded street or neighborhood. We request route alternatives, compare them with the hazards and preferences, and add a waypoint when a route still crosses something the driver wants to avoid.
+Google’s routing service can’t be asked to avoid an arbitrary flooded street or neighborhood. We request route alternatives, compare them with hazards and preferences, and add a visible, removable waypoint when a route still crosses something the driver wants to avoid. Turning that extra stop into a strength meant making its purpose clear: it’s MAPAY steering Google around a local problem, not an unexplained detour. The in-app route preview (#135) makes that choice clear before the handoff. Customize can combine a real stop, like coffee, with a steering point in one Google Maps link; other navigation links currently keep only the origin and destination.
 
 Miami data is uneven: a missing sidewalk tag doesn’t prove a sidewalk is absent, and satellite images don’t arrive street by street in real time. We show sources, timestamps and whether a hazard is predicted or observed, instead of presenting every mark as ground truth. The flood-confidence settings are hand-tuned heuristics, not calibrated forecasts.
 
@@ -40,7 +40,7 @@ The free Apple ID used for the demo also shapes the experience: the phone schedu
 
 ## What’s next
 
-Finish rehearsing the seeded demo with verified source timestamps; validate satellite detections when Miami is covered; improve how heavy rain changes flood risk; and check sidewalk coverage around both campuses. A paid Apple Developer account would unlock server push and TestFlight. Longer term, we want stronger ground truth and routines that get smarter as conditions change.
+Finish rehearsing the seeded demo with verified source timestamps; validate satellite detections when Miami is covered; improve how heavy rain changes flood risk; and check sidewalk coverage around both campuses. A paid Apple Developer account would unlock server push and TestFlight. Longer term, we want stronger ground truth, routines that get smarter as conditions change, and in-app turn-by-turn navigation. For now, MAPAY previews and steers the route, then hands the drive to Google Maps; Google's Navigation SDK is the route to live turn-by-turn inside our own app.
 
 Satellite is not minute-by-minute street surveillance: Sentinel passes are typically days apart, products can arrive hours to a couple of days later, and clouds or buildings limit what each sensor sees. At the latest check, GFM had no recent pass that observed Miami, and Earth Engine registration was still needed to run the Sentinel-2 construction pipeline. The ingestion code is implemented; a current satellite detection still depends on a pass and a successful run.
 
