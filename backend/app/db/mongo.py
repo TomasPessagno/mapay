@@ -36,6 +36,11 @@ async def init_indexes() -> None:
     # places — saved places per device
     await db.places.create_index("user_id")
 
+    # traffic_samples — Google typical durations per corridor and hour of week (A21), kept 8 days
+    await db.traffic_samples.create_index("expires_at", expireAfterSeconds=0)
+    await db.traffic_samples.create_index([("corridor_id", 1), ("hour_of_week", 1)])
+    await db.traffic_samples.create_index("hour_of_week")
+
     # briefings — precomputed heads-up items per leg occurrence (A20), kept a day
     await db.briefings.create_index("computed_at", expireAfterSeconds=86400)
 
