@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from 'react';
-import { IonModal, IonContent, IonButton } from '@ionic/react';
+import { IonModal, IonContent } from '@ionic/react';
 import SearchField from './SearchField';
 import RouteOptions from './RouteOptions';
 import PlaceCard from './PlaceCard';
@@ -7,6 +7,7 @@ import type { PlaceData } from './PlaceCard';
 import type { RouteResponse, UpcomingLeg } from '../lib/types';
 import { api } from '../lib/api';
 import HeadsUpCard from '../headsup/HeadsUpCard';
+import { DEMO_HEADS_UP, lastFiredHeadsUp, type DemoHeadsUpDetail } from '../headsup/demo';
 
 interface MapSheetProps {
   isOpen: boolean;
@@ -28,7 +29,6 @@ const MapSheet: React.FC<MapSheetProps> = ({
   const modal = useRef<HTMLIonModalElement>(null);
   const [upcomingLegs, setUpcomingLegs] = useState<UpcomingLeg[]>([]);
   const [nowMs, setNowMs] = useState(() => Date.now());
-  const [timeOffsetMs, setTimeOffsetMs] = useState(0);
 
   useEffect(() => {
     const t = setInterval(() => setNowMs(Date.now()), 60000);
@@ -43,8 +43,20 @@ const MapSheet: React.FC<MapSheetProps> = ({
     }).catch(console.error);
   }, []);
 
-  const nowTime = nowMs + timeOffsetMs;
-  const activeLeg = upcomingLegs.find(leg => {
+  // "Fire heads-up now" (#36): show that leg's card right away, until its departure.
+  const [demoLeg, setDemoLeg] = useState<UpcomingLeg | null>(lastFiredHeadsUp);
+  useEffect(() => {
+    const onDemo = (e: Event) => {
+      setDemoLeg((e as CustomEvent<DemoHeadsUpDetail>).detail.leg);
+      setNowMs(Date.now());
+    };
+    window.addEventListener(DEMO_HEADS_UP, onDemo);
+    return () => window.removeEventListener(DEMO_HEADS_UP, onDemo);
+  }, []);
+
+  const nowTime = nowMs;
+  const demoActive = demoLeg && nowTime <= new Date(demoLeg.best_departure_at ?? demoLeg.departure_at).getTime();
+  const activeLeg = demoActive ? demoLeg : upcomingLegs.find(leg => {
     const headsUp = new Date(leg.heads_up_at).getTime();
     const end = leg.window ? new Date(leg.window.end).getTime() : new Date(leg.departure_at).getTime();
     return nowTime >= headsUp && nowTime <= end;
@@ -70,23 +82,8 @@ const MapSheet: React.FC<MapSheetProps> = ({
       className="map-sheet"
     >
       <IonContent className="ion-padding">
-        {import.meta.env.DEV && (
-          <div style={{ position: 'absolute', top: 8, right: 8, zIndex: 999 }}>
-            <IonButton 
-              size="small" 
-              fill="outline" 
-              onClick={() => {
-                const target = new Date("2026-09-28T09:05:00-04:00").getTime();
-                setTimeOffsetMs(target - Date.now());
-              }}
-            >
-              Debug Heads-Up
-            </IonButton>
-          </div>
-        )}
-
         {activeLeg && !routeResponse && !selectedPlace ? (
-          <HeadsUpCard leg={activeLeg} timeOffsetMs={timeOffsetMs} />
+          <HeadsUpCard leg={activeLeg} />
         ) : null}
 
         {selectedPlace && !routeResponse ? (

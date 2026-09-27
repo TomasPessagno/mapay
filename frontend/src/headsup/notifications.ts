@@ -103,7 +103,12 @@ async function scheduleDemoHeadsUpForBanner() {
   try { notified = localStorage.getItem(DEMO_NOTIFIED_KEY); } catch { /* private mode */ }
   if (notified === String(departure)) return;
   await scheduleDemoHeadsUp();
-  try { localStorage.setItem(DEMO_NOTIFIED_KEY, String(departure)); } catch { /* private mode */ }
+  markDemoNotified(departure);
+}
+
+/** This demo countdown already has its notification (so the next resume doesn't send another). */
+export function markDemoNotified(departureMs: number) {
+  try { localStorage.setItem(DEMO_NOTIFIED_KEY, String(departureMs)); } catch { /* private mode */ }
 }
 
 /** Replaces the pending heads-ups with one per upcoming leg (by id); drops ones that no longer exist. */
@@ -127,13 +132,13 @@ export async function scheduleHeadsUps() {
   if (scheduled.length) await LocalNotifications.schedule({ notifications: scheduled });
 }
 
-/** Demo / testing (mapay://demo/heads-up): the next leg's heads-up, delivered 5 s from now. */
-export async function scheduleDemoHeadsUp(delayMs = 5000) {
+/** Demo ("Fire heads-up now", mapay://demo/heads-up): a leg's heads-up (default: the next), delivered `delayMs` from now. */
+export async function scheduleDemoHeadsUp(delayMs = 5000, leg?: UpcomingLeg) {
   if (!(await notificationsAllowed()) && !(await enableHeadsUpNotifications())) return;
   await registerActionTypes();
-  const { items } = await api.upcomingRoutines(DAYS);
-  if (!items.length) return;
-  const notification = await toNotification(items[0], new Date(Date.now() + delayMs));
+  const target = leg ?? (await api.upcomingRoutines(DAYS)).items[0];
+  if (!target) return;
+  const notification = await toNotification(target, new Date(Date.now() + delayMs));
   await LocalNotifications.schedule({
     notifications: [{ ...notification, id: notification.id ^ 1, extra: { ...notification.extra, demo: true } }],
   });

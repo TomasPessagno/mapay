@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { Capacitor } from '@capacitor/core';
-import { IonContent, IonHeader, IonItem, IonList, IonNote, IonPage, IonTitle, IonToggle, IonToolbar } from '@ionic/react';
+import { IonContent, IonHeader, IonIcon, IonItem, IonLabel, IonList, IonNote, IonPage, IonTitle, IonToast, IonToggle, IonToolbar } from '@ionic/react';
+import { notificationsOutline } from 'ionicons/icons';
+import { Haptics, NotificationType } from '@capacitor/haptics';
 import { enableHeadsUpNotifications, notificationsAllowed } from '../headsup/notifications';
+import { NOTIFY_IN_MS, fireHeadsUpNow } from '../headsup/demo';
 import PreferencesTab from '../routines/PreferencesTab';
 import { getDeviceId } from '../lib/api';
 import { MapayNative, isNativeIOS } from '../lib/native';
@@ -44,28 +47,70 @@ const LiveActivitiesOffNote: React.FC = () => {
   );
 };
 
+// #36: the visible demo entry point. Fires the whole heads-up on cue. The native calls no-op
+// safely on web, where the row is still handy to check the flow.
+const FireHeadsUpItem: React.FC = () => {
+  const [busy, setBusy] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+
+  const fire = async () => {
+    if (busy) return;
+    setBusy(true);
+    try {
+      const leg = await fireHeadsUpNow();
+      if (!leg) {
+        setToast('No upcoming trip to fire');
+        return;
+      }
+      Haptics.notification({ type: NotificationType.Success }).catch(() => {});
+      setToast(`Heads-up fired for ${leg.from.name} → ${leg.to.name} · notification in ${NOTIFY_IN_MS / 1000} s — lock the phone`);
+    } catch (err) {
+      console.warn('[mapay] fire heads-up', err);
+      setToast('Could not fire the heads-up');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <IonItem button detail={false} disabled={busy} onClick={fire}>
+        <IonIcon icon={notificationsOutline} slot="start" color="primary" />
+        <IonLabel className="ion-text-wrap">
+          <h2>Fire heads-up now</h2>
+          <p>Notification + widget + in-app card, on cue for the demo.</p>
+        </IonLabel>
+      </IonItem>
+      <IonToast isOpen={!!toast} message={toast ?? ''} duration={3000} onDidDismiss={() => setToast(null)} position="top" />
+    </>
+  );
+};
+
 // Heads-up notifications (#28): permission is asked from this toggle, a user gesture. Native only.
 const NotificationsRow: React.FC = () => {
+  const native = Capacitor.isNativePlatform();
   const [allowed, setAllowed] = useState<boolean | null>(null);
   useEffect(() => {
-    if (Capacitor.isNativePlatform()) notificationsAllowed().then(setAllowed);
-  }, []);
-  if (allowed === null) return null;
+    if (native) notificationsAllowed().then(setAllowed);
+  }, [native]);
   return (
     <>
       <h2 style={{ marginLeft: 16, marginTop: 24, marginBottom: 8, fontSize: 14, textTransform: 'uppercase', color: 'var(--ion-color-medium)' }}>
         Heads-up
       </h2>
       <IonList inset>
-        <IonItem>
-          <IonToggle
-            checked={allowed}
-            disabled={allowed}
-            onIonChange={e => { if (e.detail.checked) enableHeadsUpNotifications().then(setAllowed); }}
-          >
-            Notify me before each trip
-          </IonToggle>
-        </IonItem>
+        {native && allowed !== null && (
+          <IonItem>
+            <IonToggle
+              checked={allowed}
+              disabled={allowed}
+              onIonChange={e => { if (e.detail.checked) enableHeadsUpNotifications().then(setAllowed); }}
+            >
+              Notify me before each trip
+            </IonToggle>
+          </IonItem>
+        )}
+        <FireHeadsUpItem />
       </IonList>
       {allowed && <IonNote style={{ display: 'block', margin: '0 32px', fontSize: 13 }}>To turn them off, use Settings › Notifications › Mapay.</IonNote>}
       <LiveActivitiesOffNote />
