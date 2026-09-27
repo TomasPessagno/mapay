@@ -1,0 +1,87 @@
+{
+  "nws": [
+    {
+      "id": "urn:oid:2.49.0.1.840.0.mock-coastal-flood",
+      "event": "Coastal Flood Advisory",
+      "headline": "Coastal Flood Advisory until 1 PM EDT: king tide flooding possible along Biscayne Bay",
+      "severity": "Moderate",
+      "certainty": "Likely",
+      "area": "Coastal Miami-Dade County",
+      "expires": "2026-09-28T13:00:00-04:00",
+      "ends": "2026-09-28T13:00:00-04:00",
+      "source_url": "https://api.weather.gov/alerts/active?point=25.7617,-80.1918"
+    },
+    {
+      "id": "urn:oid:2.49.0.1.840.0.mock-flash-flood-watch",
+      "event": "Flash Flood Watch",
+      "headline": "Flash Flood Watch until 8 PM EDT: heavy rain on saturated ground in southwest Miami-Dade",
+      "severity": "Severe",
+      "certainty": "Possible",
+      "area": "Southwest Miami-Dade County",
+      "expires": "2026-09-28T20:00:00-04:00",
+      "ends": "2026-09-28T20:00:00-04:00",
+      "source_url": "https://api.weather.gov/alerts/active?point=25.7617,-80.1918"
+    },
+    {
+      "id": "urn:oid:2.49.0.1.840.0.mock-high-surf",
+      "event": "High Surf Advisory",
+      "headline": "High Surf Advisory until 7 PM EDT: dangerous rip currents at Miami Beach and Key Biscayne",
+      "severity": "Moderate",
+      "certainty": "Likely",
+      "area": "Miami Beach and Key Biscayne",
+      "expires": "2026-09-28T19:00:00-04:00",
+      "ends": "2026-09-28T19:00:00-04:00",
+      "source_url": "https://api.weather.gov/alerts/active?point=25.7617,-80.1918"
+    }
+  ],
+  "news": [
+    {
+      "hazard_id": "incident:news-i95-nb-125th",
+      "title": "Crash blocks two lanes on I-95 NB at NE 125th St",
+      "outlet": "NBC6",
+      "summary": "Two right lanes are blocked and traffic is backed up past NW 95th St while crews clear the scene.",
+      "published_at": "2026-09-28T08:40:00-04:00",
+      "source_url": "https://www.nbcmiami.com/"
+    },
+    {
+      "hazard_id": "incident:news-sr826-nb-bird",
+      "title": "Crash blocks two lanes on SR-826 NB at Bird Rd",
+      "outlet": "Local 10",
+      "summary": "The Palmetto is slow northbound after a two-lane crash at the Bird Rd interchange.",
+      "published_at": "2026-09-28T08:32:00-04:00",
+      "source_url": "https://www.local10.com/"
+    },
+    {
+      "hazard_id": "closure:ne-151st-biscayne",
+      "title": "NE 151st St closed at Biscayne Blvd because of flooding",
+      "outlet": "Local 10",
+      "summary": "High tide flooding has closed both directions at the Biscayne Blvd intersection near the FIU BBC campus.",
+      "published_at": "2026-09-28T08:25:00-04:00",
+      "source_url": "https://www.local10.com/"
+    },
+    {
+      "hazard_id": "incident:news-okeechobee",
+      "title": "Multi-car crash delays Okeechobee Rd near W 12th Ave",
+      "outlet": "NBC6",
+      "summary": "One lane is open while Hialeah police work a multi-car crash on Okeechobee Rd.",
+      "published_at": "2026-09-28T08:20:00-04:00",
+      "source_url": "https://www.nbcmiami.com/"
+    },
+    {
+      "hazard_id": "flood:homestead",
+      "title": "Heavy rain floods US-1 south of Homestead",
+      "outlet": "CBS",
+      "summary": "Southbound lanes near SW 344th St are covered with water after an overnight storm.",
+      "published_at": "2026-09-28T07:55:00-04:00",
+      "source_url": "https://www.cbsnews.com/miami/"
+    },
+    {
+      "hazard_id": "incident:news-brickell-ave",
+      "title": "Police activity closes one lane on Brickell Ave",
+      "outlet": "NBC6",
+      "summary": "One southbound lane is closed at SE 8th St while police respond; expect delays through the morning.",
+      "published_at": "2026-09-28T08:10:00-04:00",
+      "source_url": "https://www.nbcmiami.com/"
+    }
+  ]
+}

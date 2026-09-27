@@ -138,6 +138,24 @@
           "probability": 0.9
         },
         {
+          "hazard_id": "congestion:palmetto-mmc",
+          "hazard_type": "congestion",
+          "title": "Heavy traffic",
+          "probability": 0.86
+        },
+        {
+          "hazard_id": "construction:sr-826-nb-sw-8th",
+          "hazard_type": "construction",
+          "title": "Lane closures",
+          "probability": 0.82
+        },
+        {
+          "hazard_id": "incident:news-i95-nb-125th",
+          "hazard_type": "incident",
+          "title": "Crash blocks two lanes on I-95 NB at NE 125th St",
+          "probability": 0.7
+        },
+        {
           "hazard_id": "flood:ne-151st-st",
           "hazard_type": "flood",
           "title": "Flooded street",
@@ -228,6 +246,24 @@
       "probability": 0.9
     },
     {
+      "hazard_id": "congestion:palmetto-mmc",
+      "hazard_type": "congestion",
+      "title": "Heavy traffic",
+      "probability": 0.86
+    },
+    {
+      "hazard_id": "construction:sr-826-nb-sw-8th",
+      "hazard_type": "construction",
+      "title": "Lane closures",
+      "probability": 0.82
+    },
+    {
+      "hazard_id": "incident:news-i95-nb-125th",
+      "hazard_type": "incident",
+      "title": "Crash blocks two lanes on I-95 NB at NE 125th St",
+      "probability": 0.7
+    },
+    {
       "hazard_id": "flood:ne-151st-st",
       "hazard_type": "flood",
       "title": "Flooded street",
@@ -239,5 +275,5 @@
     "apple_maps": "https://maps.apple.com/?saddr=25.7574,-80.3733&daddr=25.9104,-80.1392",
     "waze": "https://waze.com/ul?ll=25.9104,-80.1392&navigate=yes"
   },
-  "briefing": "Taking SR-826 and I-95: it skips the closure on SW 8th St and the construction on Biscayne Blvd. Expect heavy traffic on the Palmetto and flooding on NE 151st St by BBC."
+  "briefing": "Taking SR-826 and I-95: it skips the closure on SW 8th St and the construction on Biscayne Blvd. Expect heavy traffic on the Palmetto, lane closures near SW 8th St, a crash on I-95 at NE 125th St and flooding on NE 151st St by BBC."
 }
