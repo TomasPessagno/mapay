@@ -16,6 +16,7 @@
     "@capacitor/device": "^8.0.3",
     "@capacitor/geolocation": "^8.2.2",
     "@capacitor/haptics": "^8.0.2",
+    "@capacitor/ios": "^8.5.2",
     "@ionic/react": "^9.0.5",
     "@ionic/react-router": "^9.0.5",
     "@vis.gl/react-google-maps": "^1.10.1",
@@ -26,6 +27,7 @@
     "react-router-dom": "^6.30.6"
   },
   "devDependencies": {
+    "@capacitor/cli": "^8.5.2",
     "@eslint/js": "^10.0.1",
     "@types/geojson": "^7946.0.16",
     "@types/google.maps": "^3.66.4",
