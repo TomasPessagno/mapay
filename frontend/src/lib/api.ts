@@ -43,7 +43,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     else if (mockFile.startsWith('/me/preferences')) mockFile = '/preferences';
     else if (mockFile.startsWith('/customize')) mockFile = '/customize';
 
-    const mockUrl = `/mocks${mockFile}.json`;
+    const mockUrl = `${import.meta.env.BASE_URL}mocks${mockFile}.json`;
     if (init?.method === 'POST' && path.startsWith('/places')) {
       return { _id: crypto.randomUUID(), ...JSON.parse(init.body as string) } as T;
     }

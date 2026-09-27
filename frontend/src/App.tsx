@@ -56,7 +56,7 @@ const App: React.FC = () => {
 
   return (
     <IonApp>
-      <IonReactRouter>
+      <IonReactRouter basename={import.meta.env.BASE_URL.replace(/\/$/, '') || undefined}>
         <IonTabs>
           <IonRouterOutlet>
             <Route path="/map" element={<MapPage />} />
