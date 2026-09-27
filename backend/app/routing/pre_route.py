@@ -67,7 +67,10 @@ async def check_routine(db, routine: dict, leg_index: int, departure: datetime, 
         leg = check_departure(routine, leg_index, departure)
     minutes = (utc(departure) - utc(now)).total_seconds() / 60
     low, high = C["check_window_minutes"]
-    if not low <= minutes <= high:
+    # A demo departure is set exactly heads_up_minutes (30) ahead, and the app checks right after
+    # firing it, i.e. at 29.9 min: for demos any departure still ahead is in the window.
+    in_window = 0 < minutes <= high if demo else low <= minutes <= high
+    if not in_window:
         return {"recalculated": False, "reason": "outside_pre_route_window"}
     hazards = await current_hazards(db, now)
     previous = leg.get("route_state")
