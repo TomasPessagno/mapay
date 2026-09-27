@@ -14,7 +14,6 @@
 #   GEMINI_API_KEY
 #   GOOGLE_MAPS_API_KEY
 #   GOOGLE_MAPS_SIGNING_SECRET  Static Maps URL-signing secret (heads-up images; optional, unset = no image)
-#   GFM_EMAIL / GFM_PASSWORD    Copernicus GFM account for satellite floods (optional; unset = Earth Engine only)
 #   LAYA_URL / LAYA_API_KEY     Laya news first pass on Jean's laptop (services/laya; optional; unset = Gemini-only)
 #   HERE_API_KEY
 #   TICKETMASTER_API_KEY
@@ -33,8 +32,8 @@
 #   GOOGLE_CLOUD_LOCATION       defaults to "global"
 #   GEMINI_SERVICE_ACCOUNT      e.g. gemini-runner@PROJECT.iam.gserviceaccount.com; Cloud Run runs as it, so
 #                               no key file is needed. The GCP_SA_KEY account needs Service Account User on it.
-#   Satellite (optional): GFM_AOI_ID pins the GFM area of interest; EARTH_ENGINE_PROJECT is the
-#   Earth Engine project (defaults to GOOGLE_CLOUD_PROJECT).
+#   Satellite (optional): EARTH_ENGINE_PROJECT is the Earth Engine project (defaults to
+#   GOOGLE_CLOUD_PROJECT). GFM floods come from EODC's open STAC catalog and need no settings.
 #   Internal jobs (optional; POST /internal/ingest/*, see backend/scripts/scheduler.sh):
 #   INTERNAL_AUDIENCE           Cloud Scheduler's OIDC audience; defaults to the service's own URL
 #   SCHEDULER_SERVICE_ACCOUNT   the account Scheduler signs tokens as; defaults to GEMINI_SERVICE_ACCOUNT
@@ -143,11 +142,8 @@ jobs:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
           GOOGLE_MAPS_SIGNING_SECRET: ${{ secrets.GOOGLE_MAPS_SIGNING_SECRET }}
-          GFM_EMAIL: ${{ secrets.GFM_EMAIL }}
           LAYA_URL: ${{ secrets.LAYA_URL }}
           LAYA_API_KEY: ${{ secrets.LAYA_API_KEY }}
-          GFM_PASSWORD: ${{ secrets.GFM_PASSWORD }}
-          GFM_AOI_ID: ${{ vars.GFM_AOI_ID }}
           EARTH_ENGINE_PROJECT: ${{ vars.EARTH_ENGINE_PROJECT }}
           HERE_API_KEY: ${{ secrets.HERE_API_KEY }}
           TICKETMASTER_API_KEY: ${{ secrets.TICKETMASTER_API_KEY }}
@@ -179,7 +175,7 @@ jobs:
                       VAPID_PUBLIC_KEY VAPID_PRIVATE_KEY VAPID_SUBJECT \
                       GOOGLE_GENAI_USE_VERTEXAI GOOGLE_CLOUD_PROJECT GOOGLE_CLOUD_LOCATION \
                       INTERNAL_AUDIENCE SCHEDULER_SERVICE_ACCOUNT \
-                      GFM_EMAIL GFM_PASSWORD GFM_AOI_ID EARTH_ENGINE_PROJECT LAYA_URL LAYA_API_KEY; do
+                      EARTH_ENGINE_PROJECT LAYA_URL LAYA_API_KEY; do
             vars+="##${name}=${!name}"
           done
           sa_flag=()
