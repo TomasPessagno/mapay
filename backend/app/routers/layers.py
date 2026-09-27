@@ -3,12 +3,13 @@
 Read-only: probabilities for time `t` are computed from each belief's evidence without writing
 decay back (refresh_belief persists decay only for "now"). Shape: frontend/public/mocks/layers.json.
 """
+import json
 import logging
 import time
 from datetime import datetime, timedelta, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Response
 from shapely.geometry import box, mapping, shape
 
 from app.db.mongo import get_db
@@ -184,7 +185,7 @@ async def build_layers(db, t: datetime, area=None) -> dict:
 
 
 LAYERS_CACHE_SECONDS = 60
-_layers_cache: dict[tuple, tuple[float, dict]] = {}
+_layers_cache: dict[tuple, tuple[float, bytes]] = {}
 
 
 @router.get("")
@@ -192,14 +193,15 @@ async def get_layers(t: Annotated[datetime | None, Query(description="Departure 
                      bbox: Annotated[str | None, Query(description="west,south,east,north")] = None):
     when = utc(t) if t and t.tzinfo else (t.replace(tzinfo=timezone.utc) if t else datetime.now(timezone.utc))
     area = parse_bbox(bbox)
-    # Every map load asks for "now": answers for the same minute and bbox are shared for 60 s.
+    # Every map load asks for "now": answers for the same minute and bbox are shared for 60 s, as
+    # finished JSON (re-encoding ~30k features took seconds per request).
     key = (when.replace(second=0, microsecond=0), bbox)
     cached = _layers_cache.get(key)
     if cached and time.monotonic() - cached[0] < LAYERS_CACHE_SECONDS:
-        return cached[1]
-    body = await build_layers(get_db(), when, area)
+        return Response(content=cached[1], media_type="application/json")
+    body = json.dumps(await build_layers(get_db(), when, area), separators=(",", ":"), default=str).encode()
     now = time.monotonic()
     for stale in [k for k, (at, _) in _layers_cache.items() if now - at >= LAYERS_CACHE_SECONDS]:
         del _layers_cache[stale]
     _layers_cache[key] = (now, body)
-    return body
+    return Response(content=body, media_type="application/json")
