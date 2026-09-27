@@ -19,10 +19,10 @@ import MapPage from './pages/MapPage';
 import RoutinesPage from './pages/RoutinesPage';
 import PreferencesPage from './pages/PreferencesPage';
 import CustomizeSheet from './headsup/CustomizeSheet';
-
-const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true';
+import { isDemo } from './lib/dataSource';
 
 const App: React.FC = () => {
+  const [demo] = useState(() => isDemo());
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [customizeRoutine, setCustomizeRoutine] = useState<string | undefined>();
   const [customizeLeg, setCustomizeLeg] = useState<number | undefined>();
@@ -82,7 +82,7 @@ const App: React.FC = () => {
         </IonTabs>
       </IonReactRouter>
       
-      {USE_MOCKS && (
+      {demo && (
         <IonBadge 
           color="warning" 
           style={{ position: 'fixed', top: 'var(--ion-safe-area-top, 40px)', right: '16px', zIndex: 99999, pointerEvents: 'none' }}

@@ -14,6 +14,7 @@ import {
   IonButton
 } from '@ionic/react';
 import { HAZARD_TOKENS } from '../map/legend';
+import { getShowUnconfirmed, setShowUnconfirmed } from '../map/layers';
 import type { HazardType } from '../lib/types';
 import { closeOutline } from 'ionicons/icons';
 
@@ -28,6 +29,7 @@ const LegendSheet: React.FC<Props> = ({ isOpen, onDidDismiss, toggled, onToggle 
   const [isDark, setIsDark] = React.useState(
     window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
   );
+  const [unconfirmed, setUnconfirmed] = React.useState(() => getShowUnconfirmed());
 
   React.useEffect(() => {
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
@@ -84,6 +86,24 @@ const LegendSheet: React.FC<Props> = ({ isOpen, onDidDismiss, toggled, onToggle 
               </IonItem>
             );
           })}
+        </IonList>
+
+        <IonList inset>
+          <IonItem>
+            <IonLabel className="ion-text-wrap">
+              <h2>Show unconfirmed</h2>
+              <p>Hazards below 50% confidence, shown faintly</p>
+            </IonLabel>
+            <IonToggle
+              slot="end"
+              checked={unconfirmed}
+              aria-label="Show unconfirmed hazards"
+              onIonChange={(e) => {
+                setUnconfirmed(e.detail.checked);
+                setShowUnconfirmed(e.detail.checked);
+              }}
+            />
+          </IonItem>
         </IonList>
       </IonContent>
     </IonModal>

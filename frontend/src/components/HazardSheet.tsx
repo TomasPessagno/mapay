@@ -41,6 +41,18 @@ interface HazardSheetProps {
   onDidDismiss: () => void;
 }
 
+const DIRECTIONS = new Set(['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw']);
+
+// "NW 24TH ST" → "NW 24th St"; already mixed-case names are left alone.
+function titleCaseStreetName(value: string): string {
+  if (!value || /[a-z]/.test(value)) return value;
+  return value.toLowerCase().replace(/\S+/g, (word) => {
+    if (/^\d+(st|nd|rd|th)$/.test(word)) return word;
+    if (DIRECTIONS.has(word)) return word.toUpperCase();
+    return word.charAt(0).toUpperCase() + word.slice(1);
+  });
+}
+
 export default function HazardSheet({ isOpen, hazard, onDidDismiss }: HazardSheetProps) {
   const [reporting, setReporting] = useState(false);
 
@@ -55,6 +67,11 @@ export default function HazardSheet({ isOpen, hazard, onDidDismiss }: HazardShee
   const token = HAZARD_TOKENS[hazard.hazard_type as keyof typeof HAZARD_TOKENS] || HAZARD_TOKENS.incident;
   const isDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
   const color = isDark ? token.colorDark : token.colorLight;
+
+  const title = titleCaseStreetName(hazard.title);
+  const place = titleCaseStreetName(hazard.place);
+  // City GIS repeats the street as title and place; don't show the same line twice.
+  const showPlace = place.trim().toLowerCase() !== title.trim().toLowerCase();
 
   let confidence = 'High';
   if (hazard.probability < 0.73) confidence = 'Unconfirmed';
@@ -111,7 +128,7 @@ export default function HazardSheet({ isOpen, hazard, onDidDismiss }: HazardShee
       onDidDismiss={onDidDismiss}
       initialBreakpoint={0.5}
       breakpoints={[0, 0.5, 0.75, 1]}
-      aria-label={`Hazard Details: ${hazard.title}`}
+      aria-label={`Hazard Details: ${title}`}
     >
       <IonContent className="ion-padding">
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
@@ -133,8 +150,10 @@ export default function HazardSheet({ isOpen, hazard, onDidDismiss }: HazardShee
             <IonIcon icon={token.icon} style={{ fontSize: '22px', color }} />
           </div>
           <div>
-            <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 'bold' }}>{hazard.title}</h2>
-            <p style={{ margin: 0, color: 'var(--ion-color-step-600)', fontSize: '17px' }}>{hazard.place}</p>
+            <h2 style={{ margin: 0, fontSize: '22px', fontWeight: 'bold' }}>{title}</h2>
+            {showPlace && (
+              <p style={{ margin: 0, color: 'var(--ion-color-step-600)', fontSize: '17px' }}>{place}</p>
+            )}
           </div>
         </div>
 

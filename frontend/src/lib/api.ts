@@ -1,11 +1,8 @@
 import { Device } from '@capacitor/device';
 import type { RouteResponse, Routine, UpcomingRoutinesResponse, Neighborhood, Preferences, LayersResponse, Place } from "./types";
+import { apiBaseUrl, isDemo } from "./dataSource";
 
 type LatLngObj = { lat: number; lng: number };
-
-const USE_MOCKS = import.meta.env.VITE_USE_MOCKS === 'true';
-// Paths start with "/", so drop any trailing slash ("http://localhost:8000/" would call "//route").
-const BASE = (import.meta.env.VITE_API_BASE_URL || "http://localhost:8000").replace(/\/+$/, "");
 
 let deviceIdCache: string | null = null;
 
@@ -27,7 +24,8 @@ export async function getDeviceId(): Promise<string> {
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  if (USE_MOCKS) {
+  // Read at request time: the Demo/Live switch in Preferences takes effect after a reload.
+  if (isDemo()) {
     // map /route -> /mocks/route.json
     let mockFile = path.split('?')[0];
     if (mockFile === '/') mockFile = '/index';
@@ -53,7 +51,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 
   const deviceId = await getDeviceId();
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await fetch(`${apiBaseUrl()}${path}`, {
     ...init,
     headers: { 
       "Content-Type": "application/json",
@@ -90,12 +88,12 @@ export const api = {
       google_place_id: p.google_place_id,
       location: { type: 'Point' as const, coordinates: [p.lng, p.lat] as [number, number] },
     };
-    if (USE_MOCKS) return { _id: `pl-${Date.now()}`, user_id: 'device-demo', address: p.address, ...body } as Place;
+    if (isDemo()) return { _id: `pl-${Date.now()}`, user_id: 'device-demo', address: p.address, ...body } as Place;
     return request<Place>("/places", { method: "POST", body: JSON.stringify(body) });
   },
   neighborhoods: async (q?: string) => {
     let res = await request<Neighborhood[]>(`/neighborhoods${q ? `?q=${encodeURIComponent(q)}` : ''}`);
-    if (USE_MOCKS && q) {
+    if (isDemo() && q) {
       res = res.filter(n => n.name.toLowerCase().includes(q.toLowerCase()));
     }
     return res;
