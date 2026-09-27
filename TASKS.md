@@ -105,6 +105,27 @@ start, reopen or re-implement any of them** or edit the files named here for the
 | **Earth Engine** (#9 fallback, #16) | Code merged; project not registered. | Jean: register `vibrant-grammar-509821-f5` for noncommercial Earth Engine and give `gemini-runner` the Earth Engine roles. |
 | **Scheduler jobs** (#14) | ✅ All 11 jobs in Cloud Scheduler (Sept 27): news, weather, HERE, tides, City GIS, sidewalks, potholes, gfm, s2, briefings, traffic. | `s2` fails until Earth Engine is registered (see above); it's harmless and can be paused. |
 
+#### Ops note: Cloud Run memory (Sept 27): for Tomas
+
+**What happened:** from ~05:15 UTC the `mapay-api` instance was **killed for exceeding 512 MiB** about every 5 minutes (Cloud Run log:
+"Memory limit of 512 MiB exceeded with 514–566 MiB used"). Every request in flight got a **503**, so the first attempt of `/internal/ingest/news`
+(and the other jobs) usually failed and only Scheduler's retry got through. That's why news looked stuck after 02:45 UTC. It wasn't Laya (not
+configured) or Gemini quota (every article got an answer in a replay).
+
+**Fixed (Jean, [#120](https://github.com/TomasPessagno/mapay/pull/120), live 07:20 UTC):** the deploy sets `--memory 1Gi`, and a change to
+`ci-cd.yml` now redeploys by itself.
+
+**Why memory ran out:** with ~29.6k beliefs (City permits), one request path uses ~310 MiB (app ~104 + cached beliefs ~110 + `/layers` build
+~80). Jobs on the same minute overlap with the `/layers` snapshot rebuild that runs after every job.
+
+| For Tomas | Why |
+| --- | --- |
+| **#108 snapshot:** rebuild only when the finished job actually changed hazards, and don't hold two full copies during a rebuild | Weather and HERE finish every 5 min, so a rebuild overlaps most job runs; this is the main memory spike |
+| **#108 snapshot:** don't rely on background tasks between requests | Cloud Run gives CPU only while requests are served, so a background rebuild can stall mid-way while holding its memory |
+| **#15 news:** let unmatched `closure` / `construction` news create a hazard, as `incident` does | E.g. "Junkyard fire shuts down roadway in Opa-locka" was skipped: no registered closure within ~150 m |
+| **#15 news:** record a "last run" time separate from "last hazard added" | `/layers` freshness `news` only moves when a hazard changes, so a quiet night looks like a stalled job |
+| **Check after a heavy change:** the Cloud Run memory log | `gcloud logging read 'resource.type="cloud_run_revision" AND resource.labels.service_name="mapay-api" AND textPayload:"Memory limit"' --project vibrant-grammar-509821-f5 --freshness=6h --limit=10` |
+
 **Both:** [#2](https://github.com/TomasPessagno/mapay/issues/2) T0 kickoff → [#38](https://github.com/TomasPessagno/mapay/issues/38) T1 → [#42](https://github.com/TomasPessagno/mapay/issues/42) T2 → [#43](https://github.com/TomasPessagno/mapay/issues/43) T3 → [#44](https://github.com/TomasPessagno/mapay/issues/44) T4 demo prep.
 
 **Where one of you waits on the other:** Jean's [#17](https://github.com/TomasPessagno/mapay/issues/17) needs Tomas's [#4](https://github.com/TomasPessagno/mapay/issues/4), [#18](https://github.com/TomasPessagno/mapay/issues/18) needs [#10](https://github.com/TomasPessagno/mapay/issues/10), and [#16](https://github.com/TomasPessagno/mapay/issues/16) needs [#5](https://github.com/TomasPessagno/mapay/issues/5), so Tomas hands those three to agents first thing. Tomas's [#15](https://github.com/TomasPessagno/mapay/issues/15) uses Jean's [#46](https://github.com/TomasPessagno/mapay/issues/46) (the Laya service) once it's live, but doesn't wait for it: without `LAYA_URL` the news pipeline runs Gemini-only. Everything else meets through the mocks and the checkpoints. One shared file: `backend/app/routing/belief_config.py` is edited by [#7](https://github.com/TomasPessagno/mapay/issues/7) and [#15](https://github.com/TomasPessagno/mapay/issues/15) (Tomas) and [#9](https://github.com/TomasPessagno/mapay/issues/9) (Jean). Keep those edits additive (new keys only) and merge `main` before opening the PR.
