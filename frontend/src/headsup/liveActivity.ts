@@ -1,18 +1,18 @@
-import { useEffect } from 'react';
-import { App as CapacitorApp } from '@capacitor/app';
 import { api } from '../lib/api';
 import { isDemo } from '../lib/dataSource';
+import { isDemoRoutine } from '../lib/demoRoutines';
 import { MapayNative, isNativeIOS } from '../lib/native';
 import type { UpcomingLeg } from '../lib/types';
+import { departureMs, planHeadsUp, soonestLiveActivity, type HeadsUpCandidate } from './schedule';
 
 // The heads-up Live Activity (#37). ActivityKit only starts one while the app is in the foreground
-// (no push with a free Apple ID), so it's (re)started whenever the app opens within 8 h of a leg.
+// (no push with a free Apple ID), so it's (re)started whenever the app opens within 8 h of a leg —
+// and right after a routine is saved (#126, refreshHeadsUps).
 
-const WINDOW_MS = 8 * 60 * 60 * 1000; // ActivityKit keeps one up for at most 8 h
 const LINGER_MS = 10 * 60 * 1000; // it stays up until departure + 10 min
-// Demo data (its fixed times are days away): the first leg departs 30 min after the banner starts.
-// The countdown is kept across foregrounds, but nothing is remembered as "started": the demo banner
-// comes back on every launch and foreground (Start just resets the countdown for the next one).
+// Demo data (its fixed times are days away): the countdown owner departs 30 min after the banner
+// starts. The countdown is kept across foregrounds, but nothing is remembered as "started": the demo
+// banner comes back on every launch and foreground (Start just resets the countdown for the next one).
 const MOCK_DEPARTS_IN_MS = 30 * 60 * 1000;
 const MOCK_KEY = 'mapay_mock_departure';
 function mockDeparture(now: number): number {
@@ -37,31 +37,43 @@ const DEMO_LEG_KEY = 'mapay_demo_leg';
 export function setDemoLeg(leg: UpcomingLeg) {
   try { localStorage.setItem(DEMO_LEG_KEY, `${leg.routine_id}:${leg.leg}`); } catch { /* private mode */ }
 }
+/** The fired demo leg, if it's still upcoming. */
 function demoLeg(items: UpcomingLeg[]) {
   let key: string | null = null;
   try { key = localStorage.getItem(DEMO_LEG_KEY); } catch { /* private mode */ }
-  return items.find(leg => `${leg.routine_id}:${leg.leg}` === key) ?? items[0];
+  return items.find(leg => `${leg.routine_id}:${leg.leg}` === key);
 }
 function resetMockDeparture() {
   try { localStorage.removeItem(MOCK_KEY); } catch { /* private mode */ }
 }
 
+/** The leg the fresh demo countdown runs on: the one "Fire heads-up now" picked, else the mock leg. */
+export function demoCountdownLeg(items: UpcomingLeg[]): UpcomingLeg | undefined {
+  return demoLeg(items) ?? items.find(leg => !isDemoRoutine(leg.routine_id));
+}
+
+/**
+ * Demo mode's banner candidates: the countdown owner departs at the fresh 30-min countdown, while a
+ * routine the user created in Demo mode departs at its own time. The soonest one wins the banner,
+ * so the built-in mock leg can't fight a user routine over the one Live Activity.
+ */
+export function demoWinner(items: UpcomingLeg[], countdownMs: number, now = Date.now()): HeadsUpCandidate | undefined {
+  const owner = demoCountdownLeg(items);
+  const candidates: HeadsUpCandidate[] = [];
+  for (const leg of items) {
+    if (owner && leg === owner) {
+      candidates.push({ leg, departureMs: countdownMs });
+      continue;
+    }
+    if (!isDemoRoutine(leg.routine_id)) continue;
+    if (planHeadsUp(leg, now).liveActivity) candidates.push({ leg, departureMs: departureMs(leg) });
+  }
+  return soonestLiveActivity(candidates, now);
+}
+
 const isAvailable = isNativeIOS;
 
-const departureOf = (leg: UpcomingLeg) => new Date(leg.best_departure_at ?? leg.departure_at).getTime();
-
-// Legs the user already pressed Start on, so the next foreground sync doesn't bring the banner back.
-const STARTED_KEY = 'mapay_started_legs';
-const legKey = (routineId?: string, leg?: number, localDate?: string) => `${routineId}:${leg}:${localDate ?? ''}`;
-function startedLegs(): string[] {
-  try { return JSON.parse(localStorage.getItem(STARTED_KEY) ?? '[]'); } catch { return []; }
-}
-function markStarted(key: string) {
-  try { localStorage.setItem(STARTED_KEY, JSON.stringify([...startedLegs(), key].slice(-20))); } catch { /* private mode */ }
-}
-const wasStarted = (leg: UpcomingLeg) => startedLegs().includes(legKey(leg.routine_id, leg.leg, leg.local_date));
-
-export function startLiveActivity(leg: UpcomingLeg, departureMs = departureOf(leg)) {
+export function startLiveActivity(leg: UpcomingLeg, departure = departureMs(leg)) {
   if (!isAvailable()) return Promise.resolve();
   const top = leg.top_hazards[0];
   return MapayNative.startLiveActivity({
@@ -69,7 +81,7 @@ export function startLiveActivity(leg: UpcomingLeg, departureMs = departureOf(le
     leg: leg.leg,
     fromName: leg.from.name,
     toName: leg.to.name,
-    departureMs,
+    departureMs: departure,
     durationMin: Math.round(leg.duration_s / 60),
     summary: leg.summary,
     hazardCount: leg.top_hazards.length,
@@ -83,20 +95,34 @@ export function endLiveActivity(routineId?: string, leg?: number) {
   return MapayNative.endLiveActivity({ routineId, leg });
 }
 
+// Legs the user already pressed Start on, so the next foreground sync doesn't bring the banner back.
+const STARTED_KEY = 'mapay_started_legs';
+const legKey = (routineId?: string, leg?: number, localDate?: string) => `${routineId}:${leg}:${localDate ?? ''}`;
+function startedLegs(): string[] {
+  try { return JSON.parse(localStorage.getItem(STARTED_KEY) ?? '[]'); } catch { return []; }
+}
+function markStarted(key: string) {
+  try { localStorage.setItem(STARTED_KEY, JSON.stringify([...startedLegs(), key].slice(-20))); } catch { /* private mode */ }
+}
+const wasStarted = (leg: UpcomingLeg) => startedLegs().includes(legKey(leg.routine_id, leg.leg, leg.local_date));
+
 /** Starts (or updates) the Live Activity for the next leg departing within 8 h; ends it when there's none. */
-export async function syncLiveActivity() {
+export async function syncLiveActivity(items?: UpcomingLeg[]) {
   if (!isAvailable()) return;
-  const { items } = await api.upcomingRoutines(1);
+  const legs = items ?? (await api.upcomingRoutines(1)).items;
   const now = Date.now();
-  // Demo data (Preferences › Data): the mock's fixed times are days away, so use the debug departure.
+  // Demo data (Preferences › Data): the mock's fixed times are days away, so the countdown owner
+  // runs on the debug departure while user-created routines keep their own times (soonest wins).
   if (isDemo()) {
-    return items.length ? startLiveActivity(demoLeg(items), mockDeparture(now)) : endLiveActivity();
+    const winner = demoWinner(legs, mockDeparture(now), now);
+    return winner ? startLiveActivity(winner.leg, winner.departureMs) : endLiveActivity();
   }
-  const next = items
+  const candidates: HeadsUpCandidate[] = legs
     .filter(leg => !wasStarted(leg))
-    .filter(leg => departureOf(leg) + LINGER_MS > now && departureOf(leg) - now < WINDOW_MS)
-    .sort((a, b) => departureOf(a) - departureOf(b))[0];
-  return next ? startLiveActivity(next) : endLiveActivity();
+    .filter(leg => planHeadsUp(leg, now).liveActivity)
+    .map(leg => ({ leg, departureMs: departureMs(leg) }));
+  const winner = soonestLiveActivity(candidates, now);
+  return winner ? startLiveActivity(winner.leg) : endLiveActivity();
 }
 
 /** Called on Start. Live: the next foreground sync won't bring this leg's banner back. Demo: the banner
@@ -104,15 +130,4 @@ export async function syncLiveActivity() {
 export function markLegStarted(routineId?: string, leg?: number, localDate?: string) {
   if (isDemo()) resetMockDeparture();
   else markStarted(legKey(routineId, leg, localDate));
-}
-
-/** Keeps the Live Activity in sync on launch and every time the app comes to the foreground. */
-export function useLiveActivitySync() {
-  useEffect(() => {
-    if (!isAvailable()) return;
-    const sync = () => syncLiveActivity().catch(err => console.warn('[mapay] Live Activity', err));
-    sync();
-    const listener = CapacitorApp.addListener('appStateChange', ({ isActive }) => { if (isActive) sync(); });
-    return () => { listener.then(h => h.remove()); };
-  }, []);
 }

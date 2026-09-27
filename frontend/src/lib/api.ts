@@ -1,5 +1,6 @@
 import { Device } from '@capacitor/device';
 import { reloadWidgets } from './native';
+import { mergeDemoPlaces, mergeDemoRoutines, mergeDemoUpcoming, saveDemoPlace, saveDemoRoutine } from './demoRoutines';
 import type { RouteResponse, Routine, UpcomingRoutinesResponse, Neighborhood, Preferences, LayersResponse, Place } from "./types";
 import { apiBaseUrl, isDemo } from "./dataSource";
 
@@ -77,30 +78,43 @@ export const api = {
   alerts: () => request<{ nws: unknown[]; news: unknown[] }>("/alerts"),
   report: (data: { type: string; lat: number; lng: number; hazard_id?: string; cleared?: boolean }) =>
     request("/report", { method: "POST", body: JSON.stringify(data) }),
-  routines: () => request<Routine[]>(`/routines`),
+  routines: async () => {
+    const list = await request<Routine[]>("/routines");
+    return isDemo() ? mergeDemoRoutines(list) : list;
+  },
   saveRoutine: async (r: Routine) => {
-    const saved = await request<Routine>("/routines", { method: "POST", body: JSON.stringify(r) });
+    // Demo mode keeps the routine locally (demoRoutines.ts) so its heads-up can be scheduled.
+    const saved = isDemo() ? saveDemoRoutine(r) : await request<Routine>("/routines", { method: "POST", body: JSON.stringify(r) });
     reloadWidgets(); // the home-screen widget shows the next leg
     window.dispatchEvent(new Event('mapay:routines-changed')); // reschedules the heads-up notifications
     return saved;
   },
-  upcomingRoutines: (days: number = 7) => request<UpcomingRoutinesResponse>(`/routines/upcoming?days=${days}`),
+  upcomingRoutines: async (days: number = 7) => {
+    const res = await request<UpcomingRoutinesResponse>(`/routines/upcoming?days=${days}`);
+    if (!isDemo()) return res;
+    // Locally created Demo-mode routines aren't in the mock; compute and merge their occurrences.
+    const places = await request<Place[]>('/places').catch(() => [] as Place[]);
+    return { ...res, items: mergeDemoUpcoming(res.items, places, new Date(), days) };
+  },
   /** Live demo: makes that leg due in heads_up_minutes, so /routines/upcoming lists it in heads-up mode. */
   demoHeadsUp: (routineId: string, leg: number) =>
     request<{ departure_at: string; heads_up_at: string }>('/demo/heads-up', {
       method: 'POST',
       body: JSON.stringify({ routine_id: routineId, leg }),
     }),
-  places: () => request<Place[]>("/places"),
+  places: async () => {
+    const list = await request<Place[]>("/places");
+    return isDemo() ? mergeDemoPlaces(list) : list;
+  },
   // Stored shape follows public/mocks/places.json (GeoJSON Point). The mock is a GET list, so with
-  // mocks on this returns the new place locally instead of POSTing.
+  // mocks on the place is kept locally instead of POSTing.
   savePlace: async (p: { name: string; lat: number; lng: number; google_place_id?: string; address?: string }) => {
     const body = {
       name: p.name,
       google_place_id: p.google_place_id,
       location: { type: 'Point' as const, coordinates: [p.lng, p.lat] as [number, number] },
     };
-    if (isDemo()) return { _id: `pl-${Date.now()}`, user_id: 'device-demo', address: p.address, ...body } as Place;
+    if (isDemo()) return saveDemoPlace({ _id: `pl-${Date.now()}`, user_id: 'device-demo', address: p.address, ...body } as Place);
     return request<Place>("/places", { method: "POST", body: JSON.stringify(body) });
   },
   neighborhoods: async (q?: string) => {
